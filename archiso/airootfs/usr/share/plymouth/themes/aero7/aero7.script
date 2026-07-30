@@ -1,0 +1,32 @@
+background.image = Image("background.png");
+background.sprite = Sprite(background.image.Scale(Window.GetWidth(), Window.GetHeight()));
+background.sprite.SetZ(-100);
+
+logo.image = Image("logo.png");
+logo.sprite = Sprite(logo.image);
+logo.sprite.SetX(Window.GetWidth() / 2 - logo.image.GetWidth() / 2);
+logo.sprite.SetY(Window.GetHeight() / 2 - logo.image.GetHeight() / 2 - 28);
+logo.sprite.SetZ(10);
+
+title.image = Image.Text("Starting Aero7 Setup", 0.94, 0.98, 1.0, 1.0, "Sans 18");
+title.sprite = Sprite(title.image);
+title.sprite.SetX(Window.GetWidth() / 2 - title.image.GetWidth() / 2);
+title.sprite.SetY(Window.GetHeight() / 2 + 112);
+title.sprite.SetZ(10);
+
+counter = 0;
+fun refresh_callback () {
+    counter = counter + 0.045;
+    logo.sprite.SetOpacity(0.72 + 0.28 * Math.Sin(counter));
+}
+Plymouth.SetRefreshFunction(refresh_callback);
+
+fun message_callback (text) {
+    message.image = Image.Text(text, 0.94, 0.98, 1.0, 1.0, "Sans 12");
+    message.sprite = Sprite(message.image);
+    message.sprite.SetX(Window.GetWidth() / 2 - message.image.GetWidth() / 2);
+    message.sprite.SetY(Window.GetHeight() - 72);
+    message.sprite.SetZ(11);
+}
+Plymouth.SetMessageFunction(message_callback);
+

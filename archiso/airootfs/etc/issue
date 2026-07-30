@@ -1,0 +1,5 @@
+Aero7 installation recovery console (TTY2)
+
+The graphical installer runs on TTY1. Return with Alt+F1.
+This shell is for diagnostics; never run installer disk commands manually.
+

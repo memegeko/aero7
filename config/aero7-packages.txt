@@ -1,0 +1,11 @@
+aeroshell-libplasma-git
+aeroshell-workspace-git
+aeroshell-kwin-components-git
+aerothemeplasma-icons-git
+aerothemeplasma-sounds-git
+aeroshell-smod-git
+uac-polkit-agent-git
+aerothemeplasma-desktop-git
+linux-devmgmt
+tuxmanager
+

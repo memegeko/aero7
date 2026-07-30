@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+set -uo pipefail
+
+mode="${1:---demo}"
+case "$mode" in
+  --demo|--live-install)
+    application_args=("$mode")
+    log_file=/var/log/aero7-kiosk.log
+    ;;
+  --oobe)
+    application_args=(--oobe --live-install)
+    log_file=/var/log/aero7-oobe-kiosk.log
+    ;;
+  *)
+    printf 'Invalid Aero7 installer mode: %s\n' "$mode" >&2
+    exit 64
+    ;;
+esac
+
+install -d -m 0755 /var/log
+printf '%s Starting Cage and Aero7 installer (%s)\n' "$(date --iso-8601=seconds)" "$mode" >>"$log_file"
+
+set +e
+/usr/bin/cage -D -d -s -- /usr/bin/aero7-installer "${application_args[@]}" >>"$log_file" 2>&1
+status=$?
+set -e
+
+/usr/bin/chvt 1 >/dev/null 2>&1 || true
+{
+  printf '\033c'
+  printf 'Aero7 graphical installer failed to start.\n\n'
+  printf 'Cage/Qt exit code: %s\n' "$status"
+  printf 'Persistent log: %s\n\n' "$log_file"
+  printf '%s\n' '--- recent log output ---'
+  tail -n 60 "$log_file" 2>/dev/null || true
+  printf '\nSwitch to recovery with Alt+F2, log in as root, then run:\n'
+  printf '  journalctl -u aero7-installer --no-pager\n'
+  printf '  cat %s\n' "$log_file"
+} >/dev/tty1
+
+exec /usr/bin/sleep infinity

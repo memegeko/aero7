@@ -1,0 +1,987 @@
+// PlymouthVista
+// bootlegacy.sp
+// Defines the standard Vista (graphicsmodedisabled yes) boot screen class
+
+fun LegacyBootScreenNew() {
+	local.self = [];
+	
+	self.BaseSprite = Sprite();
+	self.ProgressSprite = Sprite();
+
+	self.BaseImage = Image("base.png");
+	self.ProgressImage = Image("progress.png");
+
+	self.State = "fadein";
+	self.Opacity = 0;
+	self.FadeSteps = 15;
+
+	// I could directly use the screen width & height here, but
+	// I want to follow the pattern of using the scale factors.
+	self.BaseScaledWidth = self.BaseImage.GetWidth() * ScaleFactorX;
+	self.BaseScaledHeight = self.BaseImage.GetHeight() * ScaleFactorY;
+
+	self.ProgressScaledWidth = self.ProgressImage.GetWidth() * ScaleFactorX;
+	self.ProgressScaledHeight = self.ProgressImage.GetHeight() * ScaleFactorY;
+
+	self.BaseImageScaled = self.BaseImage.Scale(self.BaseScaledWidth, self.BaseScaledHeight);
+	self.ProgressImageScaled = self.ProgressImage.Scale(self.ProgressScaledWidth, self.ProgressScaledHeight);
+
+	self.BaseSprite.SetImage(self.BaseImageScaled);
+	self.BaseSprite.SetOpacity(0);
+	self.BaseSprite.SetZ(1);
+
+	// Progress co-ordinate stuff
+	self.ProgressOriginX = 234 * ScaleFactorX;
+	self.ProgressReturnX = (234 + (18 * 8)) * ScaleFactorX;
+	self.ProgressCurrentX = self.ProgressOriginX;
+	self.ProgressStepX = 8 * ScaleFactorX;
+	self.ProgressY = 354 * ScaleFactorY;
+
+	self.ProgressSprite.SetImage(self.ProgressImageScaled);
+	self.ProgressSprite.SetOpacity(0);
+	self.ProgressSprite.SetZ(0);
+	self.ProgressSprite.SetX(self.ProgressCurrentX);
+	self.ProgressSprite.SetY(self.ProgressY);
+	
+	fun Update(self) {
+		// What state are we in?
+		if (self.State == "fadein") {
+			// Fade in, let's increment our opacity
+			self.Opacity += (1 / self.FadeSteps);
+			
+			if (self.Opacity >= 1) {
+				self.State = "progress";
+				self.Opacity = 1;
+			}
+			
+			self.BaseSprite.SetOpacity(self.Opacity);
+		}
+		if (self.State == "progress") {
+			// Progress, let's increment the position of the progress dots
+			self.ProgressSprite.SetOpacity(1);
+			self.ProgressCurrentX += self.ProgressStepX;
+			self.ProgressSprite.SetX(self.ProgressCurrentX);
+			
+			if (self.ProgressCurrentX > self.ProgressReturnX) {
+				self.ProgressCurrentX = self.ProgressOriginX;
+			}
+		}
+	}
+
+	self.Update = Update;
+	
+	return self;
+}
+// PlymouthVista
+// boot7.sp
+// Defines the Aero7 boot screen class.
+
+fun SevenBootScreenNew(status) {
+    local.self = [];
+
+    scaleX = global.GlobalWidth / 1024;
+    scaleY = global.GlobalHeight / 768;
+
+    self.CopyrightText = Image.Text(global.CopyrightText, 0.5, 0.5, 0.5, 1, "Segoe UI 11");
+    self.ScaledCopyright = self.CopyrightText.Scale(self.CopyrightText.GetWidth() * scaleX, self.CopyrightText.GetHeight() * scaleY);
+    self.CopyrightSprite = Sprite();
+    self.CopyrightSprite.SetImage(self.ScaledCopyright);
+    self.CopyrightSprite.SetOpacity(0);
+
+    self.CopyrightTextX = (global.GlobalWidth - self.ScaledCopyright.GetWidth()) / 2;
+    self.CopyrightTextY = 718 * scaleY;
+    
+    self.CopyrightSprite.SetX(self.CopyrightTextX);
+    self.CopyrightSprite.SetY(self.CopyrightTextY);
+
+    text = "";
+    if (status == "resume") {
+        text = global.ResumingText;
+    }
+    else {
+        text = global.StartingText;
+    }
+
+    self.MainText = Image.Text(text, 1, 1, 1, 1, "Segoe UI 18");
+    self.ScaledMainText = self.MainText.Scale(self.MainText.GetWidth() * scaleX, self.MainText.GetHeight() * scaleY);
+    self.MainTextSprite = Sprite();
+    self.MainTextSprite.SetImage(self.ScaledMainText);
+    self.MainTextSprite.SetOpacity(0);
+
+    self.MainTextX = (global.GlobalWidth - self.ScaledMainText.GetWidth()) / 2;
+    self.MainTextY = 523 * scaleY;
+
+    self.MainTextSprite.SetX(self.MainTextX);
+    self.MainTextSprite.SetY(self.MainTextY);
+
+    for (i = 0; i < 105; i++) {
+        flagImage = Image("flag" + i + ".png");
+        flagImageScaled = flagImage.Scale(flagImage.GetWidth() * scaleX, flagImage.GetHeight() * scaleY);
+        flagSprite = Sprite();
+        flagSprite.SetImage(flagImageScaled);
+        flagSprite.SetOpacity(0);
+        flagSprite.SetX(self.MainTextX);
+        flagSprite.SetY(self.MainTextY - self.ScaledMainText.GetHeight() - flagImageScaled.GetHeight());
+        self.Flags[i] = flagSprite;
+    }
+
+    self.Current = 0;
+    self.LastStep = 0;
+
+    fun Update(self) {
+        if (self.Current == 0) {
+            self.CopyrightSprite.SetOpacity(1);
+            self.MainTextSprite.SetOpacity(1);
+            self.Flags[0].SetOpacity(1);
+        }
+        else {
+            self.Flags[self.LastStep].SetOpacity(0);
+            self.Flags[self.Current].SetOpacity(1);
+        }
+
+        self.LastStep = self.Current;
+        if (self.Current == 104) {
+            self.Current = 60;
+        }
+        else {
+            self.Current++;
+        }
+
+    }
+
+    self.Update = Update;
+
+    return self;
+}
+// bootmgr.sp
+// Boot manager screen creation
+
+// Original specs:
+// Boot manager has offset width = 32 px and height = 9 px each side for rect and text.
+// Resolution is 1024*768
+// White rectangle height is 30 px
+// Text: Lucida Console and 13 px size
+// Gray box color is 191 191 191 (RGB)
+// max length 74
+// max row 22
+
+// question must be a single line!
+fun BootManagerNew(title, message, question) {
+    local.self = [];
+
+    if (global.ScaleBootManager) {
+        self.ScaleX = GlobalWidth / 1024;
+        self.ScaleY = GlobalHeight / 768;
+    }
+    else {
+        self.ScaleX = 1;
+        self.ScaleY = 1;
+    }
+
+
+    self.Background = Image("native_bg.png").Scale(GlobalWidth, GlobalHeight);
+    self.BackgroundSprite = Sprite();
+    self.BackgroundSprite.SetImage(self.Background);
+    self.BackgroundSprite.SetZ(20);
+
+    self.TopRect = Image("rect.png").Scale(GlobalWidth - (64 * self.ScaleX), 30 * self.ScaleY);
+    self.TopRectSprite = Sprite();
+    self.TopRectSprite.SetImage(self.TopRect);
+    self.TopRectSprite.SetZ(21);
+    self.TopRectSprite.SetX(32 * self.ScaleX);
+    self.TopRectSprite.SetY(9 * self.ScaleY);
+
+    self.BottomRect = Image("rect.png").Scale(GlobalWidth - (64 * self.ScaleX), 30 * self.ScaleY);
+    self.BottomRectSprite = Sprite();
+    self.BottomRectSprite.SetImage(self.TopRect);
+    self.BottomRectSprite.SetZ(21);
+    self.BottomRectSprite.SetX(32 * self.ScaleX);
+    self.BottomRectSprite.SetY(GlobalHeight - (self.BottomRect.GetHeight() + 9 * self.ScaleY));
+
+    self.ScaledPixel = (13 * self.ScaleX + 20 * self.ScaleY) / 2;
+
+    self.Title = Image.Text(title, 0, 0, 0, 1, "Lucida Console " + self.ScaledPixel);
+    self.TitleSprite = Sprite();
+    self.TitleSprite.SetImage(self.Title);
+    self.TitleSprite.SetZ(22);
+    self.TitleSprite.SetX((GlobalWidth - self.Title.GetWidth()) / 2);
+    self.TitleSprite.SetY(9 * self.ScaleY * 3 / 2);
+
+    self.EnterText = Image.Text("ENTER - Continue", 0, 0, 0, 1, "Lucida Console " + self.ScaledPixel);
+    self.EnterTextSprite = Sprite();
+    self.EnterTextSprite.SetImage(self.EnterText);
+    self.EnterTextSprite.SetX(41 * self.ScaleX);
+    self.EnterTextSprite.SetY(GlobalHeight - (self.BottomRect.GetHeight() + 9 * self.ScaleY / 2));
+    self.EnterTextSprite.SetZ(22);
+
+    messageText = TextWrapper(message, 74, 17);
+
+    self.MessageText = Image.Text(messageText, 1, 1, 1, 1, "Lucida Console " + self.ScaledPixel);
+    self.MessageTextSprite = Sprite();
+    self.MessageTextSprite.SetImage(self.MessageText);
+    self.MessageTextSprite.SetX(32 * self.ScaleX);
+    self.MessageTextSprite.SetY(41 * self.ScaleY);
+    self.MessageTextSprite.SetZ(22);
+
+    self.AnswerBox = Image.Text(question + "\n[" + CreateMany(" ", 65) + "]", 1, 1, 1, 1, "Lucida Console " + self.ScaledPixel);
+    self.AnswerBoxSprite = Sprite();
+    self.AnswerBoxSprite.SetImage(self.AnswerBox);
+    self.AnswerBoxSprite.SetX(32 * self.ScaleX);
+    self.AnswerBoxSprite.SetY(41 * self.ScaleY + self.ScaledPixel + self.MessageText.GetHeight());
+    self.AnswerBoxSprite.SetZ(22);
+
+    self.BulletSprite = Sprite();
+
+    fun UpdateBullets(self, bulletCount) {
+        bulletString = "";
+        for (i = 0; i < bulletCount; i++) {
+            if (i == 64) {
+                break;
+            }
+
+            bulletString += "*";
+        }
+
+        image = Image.Text(bulletString, 1, 1, 1, 1, "Lucida Console " + self.ScaledPixel);
+        self.BulletSprite.SetImage(image);
+        self.BulletSprite.SetX(32 * self.ScaleX + self.ScaledPixel);
+        self.BulletSprite.SetY(41 * self.ScaleY + 5 / 2 * self.ScaledPixel + self.MessageText.GetHeight());
+        self.BulletSprite.SetZ(23);
+    }
+
+    fun UpdateAnswer(self, text) {
+        length = text.Length();
+        if (length > 60) {
+            text = text.SubString(0, 59);
+        }
+
+        image = Image.Text(text, 1, 1, 1, 1, "Lucida Console " + self.ScaledPixel);
+        self.BulletSprite.SetImage(image);
+        self.BulletSprite.SetX(32 * self.ScaleX + self.ScaledPixel);
+        self.BulletSprite.SetY(41 * self.ScaleY + 5 / 2 * self.ScaledPixel + self.MessageText.GetHeight());
+        self.BulletSprite.SetZ(23);
+    }
+
+    self.UpdateBullets = UpdateBullets;
+    self.UpdateAnswer = UpdateAnswer;
+
+    return self;
+}// plymouth_config.sp
+// Plymouth theme configuration
+
+// You are free to modify this file for configuring the theme.
+// But, I'd recommend keeping the original integrity of this file and using pv_conf.sh instead.
+// Simply, compile the theme and run pv_conf.sh to configure.
+#USED_BY_PV_CONF
+
+//This key is reserved for fading service. Please don't modify it, especially when you set Pref to 1.
+//Accepted values:
+//sddm: Won't show the fade that is applied to the shutdown and reboot screen.
+//desktop: Will show the fade that is applied to the shutdown and reboot screen.
+global.OsState = "desktop";
+
+//This is reserved for the fake logoff screen service, which isn't available yet, lol.
+//Accepted Values:
+//1: Show the logoff screen instead of the shutdown screen.
+//0: Show the shutdown screen instead of the logoff screen.
+global.SpawnFakeLogoff = 0;
+
+//Used for whether the hibernation resume screen should be shown or not. Please don't modify it if you use hibernation services.
+//Accepted Values:
+//1: Show hibernation resume screen.
+//0: Show normal boot screen.
+global.ReturnFromHibernation = 0;
+
+//This key is reserved for the uninstallation script, which will revert to the previous Plymouth theme.
+global.OldPlymouthTheme = "";
+
+//Pref:
+//Fading preference for the shutdown and reboot screens.
+//Accepted values:
+//1: Use OsState value to determine whether fade should be shown or not on the shutdown and reboot screen.
+//2: Always show the fade.
+//3 - Never show the fade.
+global.Pref = 3;
+
+//Defines whether hibernation should be used or not.
+//This value is only read by install.sh to add/remove hibernation services.
+//Accepted values:
+//1: Install hibernation services,
+//2: Uninstall hibernation services, if they are present.
+global.UseHibernation = 0;
+
+//Defined whether annoying wall messages should be disabled or not.
+//This value is only read by `install.sh` to add/remove no-wall services.
+//Accepted values:
+//0: Keep wall messages.
+//1: Disable wall messages.
+global.DisableWall = 0;
+
+//Title of the password screen
+//Prerequisites:
+//Must be a single line of text,
+//Allowed up to 74 characters.
+//Default value:
+//"Windows Boot Manager"
+global.PasswordTitle = "Windows Boot Manager";
+
+//Overrides the message of the password screen with its value.
+//Prerequisites:
+//Must be a single line of text,
+//Allowed up to 74 characters.
+//Default value:
+//""
+global.OverriddenPasswordMessage = "";
+
+//Text that is shown above the textbox.
+//
+//Default value:
+//"Password"
+global.PasswordText = "Password";
+
+//Title of the password screen
+//Prerequisites:
+//Must be a single line of text,
+//Allowed up to 74 characters.
+//Default value:
+//"Windows Boot Manager"
+global.AnswerTitle = "Windows Boot Manager";
+
+//Overrides the message of the password screen with its value.
+//Prerequisites:
+//Must be a single line of text,
+//Allowed up to 74 characters.
+//Default value:
+//""
+global.OverriddenAnswerMessage = "";
+
+//Text that is shown above the textbox.
+//Default value:
+//"Password"
+global.AnswerText = "Password";
+
+//Defines whether elements in the Boot Manager screen (password and answer screen), such as rectangles and texts, should be scaled or not.
+//Default is set to 0 because the screen may look weird.
+//Accepted values:
+//1: Scale elements.
+//0: Don't scale elements.
+global.ScaleBootManager = 0;
+
+//Text that is shown when the system is shutting down.
+//Prerequisites:
+//Only a single line of text is allowed. Don't use /n.
+//If you modified this key after installation, please re-run gen_blur.sh.
+//Default value:
+//"Shutting down..."
+global.ShutdownText = "Shutting down...";
+
+//Text that is shown when the system is rebooting.
+//Both Windows 7 and Windows Vista use Shutting Down... instead of Rebooting... but to make this screen make more sense, you will see Rebooting... as the default value.
+//Prerequisites:
+//Only a single line of text is allowed. Don't use /n.
+//If you modified this key after installation, please re-run gen_blur.sh.
+//Default value:
+//"Rebooting..."
+global.RebootText = "Rebooting...";
+
+//Text that is shown when the fake logoff will be shown.
+//Prerequisites:
+//Only a single line of text is allowed. Don't use /n.
+//If you modified this key after installation, please re-run gen_blur.sh.
+//Default value:
+//"Logging off..."
+global.LogoffText = "Logging off...";
+
+//Text that is shown when the system is updating.
+//This text supports formatting. Use %i for number.
+//You can also use newline, unlike other screens. Simply use \n for newlines.
+//If you modified this key after installation, please re-run gen_blur.sh.
+//Prerequisites
+//Default Value:
+//"Configuring Windows updates\n%i% complete\nDo not turn off your computer.
+global.UpdateTextMTL = "Configuring Windows updates\n%i% complete\nDo not turn off your computer.";
+
+//Defines whether the Vista boot screen should be used or not:
+//Accepted values:
+//1 - Use the Vista boot screen.
+//0 - Use the 7 boot screen.
+global.UseLegacyBootScreen = 0;
+
+//Defines whether the shadow effect should be applied or not.
+//Setting this value to 1 after installation requires re-running gen_blur.sh.
+//Accepted values:
+//0: Windows Vista style, don't show text shadow.
+//1: Windows 7 style, show text shadow.
+global.UseShadow = 1;
+
+//Sets the background and branding image of the shutdown, reboot, and update screen.
+//Accepted values:
+//"7": Use Windows 7 background and branding.
+//"vista": Use Windows Vista background and branding.
+global.AuthuiStyle = "7";
+
+//The text that is displayed on Windows 7 boot screen when the system is starting normally.
+//Default value:
+//"Starting Windows"
+global.StartingText = "Starting Aero7";
+
+//The text that is displayed on Windows 7 boot screen when the system is returning from hibernation.
+//Default value:
+//"Resuming Windows"
+global.ResumingText = "Resuming Aero7";
+
+//Copyright text of the Windows 7 boot screen that is displayed on bottom center of the screen.
+//Default value:
+//"© Microsoft Corporation"
+global.CopyrightText = "Aero7";
+
+//Defines whether Windows Vista's no GUI resume screen will be used or not.
+//This only applies when UseLegacyBootScreen is set to 1.
+//Accepted values:
+//1 - Use Windows Vista's no GUI resume screen.
+//0 - Don't use Windows Vista's no GUI resume screen.
+global.UseNoGuiResume = 1;
+
+//Text that is shown below of the progress bar on the Windows Vista hibernation resume screen.
+//Default value:
+//"Resuming Windows..."
+global.NoGuiResumeText = "Resuming Windows...";
+
+//Slows down your boot in seconds.
+//Works when the plymouth-vista-slow-boot-animation.service is enabled.
+//If you don't want to slow down your boot, keep this value as 0.
+//Default value:
+//0
+global.BootSlowdown = 0;
+
+// Want to make your own Windows 9, see this:
+// https://crustywindo.ws/w/images/2/2a/Dilshad9-Boot.png
+
+#END_USED_BY_PV_CONF
+
+// Do not modify this!
+fun ReadOsState() {
+    if (global.Pref == 1) {
+        if (global.SpawnFakeLogoff) {
+            // Logoff screen will spawn only when user is logging off, 
+            // We can safely ignore this because it will return to value 'sddm' when we logoff.
+            // Use global.Pref to configure this.
+            return "desktop";
+        }
+        
+        return global.OsState;
+    }
+    else if (global.Pref == 2) {
+        return "desktop";
+    }
+    else {
+        return "sddm";
+    }
+}
+// stringutils.sp
+
+fun TextWrapper(text, wrapLine, lineLimiter) { 
+
+    local.requestedText = "";
+    length = text.Length();
+
+    currentLineLength = 0;
+    lines = 1;
+    for (i = 0; i < length; i++) {
+        currentChar = text.CharAt(i);
+
+        if (lines <= lineLimiter) {
+            if (currentChar == "\n") {
+                currentLineLength = 0;
+                lines++;
+                requestedText += currentChar;
+            }
+            else if (currentChar == " " && currentLineLength + 1 >= wrapLine) {
+                currentLineLength = 0;
+                lines++;
+                requestedText += "\n";
+            }
+            else {
+                requestedText += currentChar;
+                currentLineLength++;
+            }
+        }
+        else {
+            requestedText += "...";
+            break;
+        }
+
+    }
+
+    return requestedText;
+}
+
+fun CreateMany(char, times) {
+    text = "";
+    for (i = 0; i <= times; i++) {
+        text += char;
+    }
+
+    return text;
+}// PlymouthVista
+// Windows Updates screen
+// wupdate.sp
+
+fun UpdateScreenNew() {
+    local.self = [];
+
+    scaleX = global.GlobalWidth / 1024;
+    scaleY = global.GlobalHeight / 768;
+    logoScale = scaleX;
+    if (scaleY < logoScale) {
+        logoScale = scaleY;
+    }
+
+    self.BaseSprite = Sprite();
+    self.BaseImage = Image("aero7-auth-background.png").Scale(Window.GetWidth(), Window.GetHeight());
+    self.BaseSprite.SetImage(self.BaseImage);
+    self.BaseSprite.SetOpacity(0);
+    self.BaseSprite.SetZ(1);
+
+    self.BrandingSprite = Sprite();
+    self.BrandingImage = Image("aero7-logo-plain.png").Scale(96 * logoScale, 96 * logoScale);
+    self.BrandingSprite.SetImage(self.BrandingImage);
+
+    // does scaling matter? simply no! 
+    self.BrandingSprite.SetOpacity(0.0);
+    self.BrandingSprite.SetZ(2);
+
+    self.BrandingSprite.SetX((GlobalWidth - self.BrandingImage.GetWidth()) / 2);
+    self.BrandingSprite.SetY(GlobalHeight - self.BrandingImage.GetHeight() - 23);
+
+    baseText = Image("textUpdate0.png");
+
+    self.TextX = (GlobalWidth - baseText.GetWidth()) / 2;
+    self.TextY = (GlobalHeight - baseText.GetHeight()) / 2 - 36;
+
+    self.CurrentTextSprite = Sprite();
+    self.CurrentTextSprite.SetImage(baseText);
+    self.CurrentTextSprite.SetOpacity(0);
+    self.CurrentTextSprite.SetX(self.TextX);
+    self.CurrentTextSprite.SetY(self.TextY);
+    self.CurrentTextSprite.SetZ(4);
+
+    if (global.UseShadow) {
+        shadow = Image("blurUpdate0.png");
+        self.CurrentShadowSprite = Sprite();
+        self.CurrentShadowSprite.SetImage(shadow);
+        self.CurrentShadowSprite.SetOpacity(0);
+        self.CurrentShadowSprite.SetZ(3);
+        // The shadows have a 2px padding, and we want to offset it by
+        // (0.5, 1), so we use (TextX - 1.5, TextY - 1) to account for both.
+        self.CurrentShadowSprite.SetX(self.TextX - 1.5);
+        self.CurrentShadowSprite.SetY(self.TextY - 1);
+    }
+
+    for (i = 0; i < 18; i++) {
+        imageSpinner = Image("spinner_" + i + ".png");
+        self.SpinnerWidth = imageSpinner.GetWidth();
+
+        sprite = Sprite();
+        sprite.SetImage(imageSpinner);
+        sprite.SetOpacity(0);
+        sprite.SetZ(10);
+
+        sprite.SetX(self.TextX - 8 - imageSpinner.GetWidth());
+        sprite.SetY((GlobalHeight - imageSpinner.GetHeight()) / 2 - 36);
+
+        self.Spinners[i] = sprite;
+    }
+
+    self.SpinnerStep = 0;
+    self.LastSpinner = 17;
+
+    self.CurrentDot = 0;
+
+    fun ShowScreen(self) {
+        self.BaseSprite.SetOpacity(1);
+        self.BrandingSprite.SetOpacity(1);
+        self.CurrentTextSprite.SetOpacity(1);
+        if (global.UseShadow) {
+            self.CurrentShadowSprite.SetOpacity(1);
+        }
+
+        self.DrawSpinners(self);
+    }
+
+    fun UpdateText(self, progress) {
+        text = Image("textUpdate" + progress + ".png");
+        self.CurrentTextSprite.SetImage(text);
+        if (global.UseShadow) {
+            shadow = Image("blurUpdate" + progress + ".png");
+            self.CurrentShadowSprite.SetImage(shadow);
+        }
+    }
+
+    fun DrawSpinners(self) {
+        currentStep = self.Spinners[self.SpinnerStep];
+        currentStep.SetOpacity(1);
+        
+        lastStep = self.Spinners[self.LastSpinnerStep];
+        lastStep.SetOpacity(0);
+
+        self.LastSpinnerStep = self.SpinnerStep;
+
+        if (self.SpinnerStep >= 17) {
+            self.SpinnerStep = 0;
+        }
+        else {
+            self.SpinnerStep += 1;
+        }
+    }
+
+    self.ShowScreen = ShowScreen;
+    self.UpdateText = UpdateText;
+    self.DrawSpinners = DrawSpinners;
+    self.DrawDots = DrawDots;
+
+    return self;
+}
+// PlymouthVista
+// Shutdown screen
+// shutdown.sp
+
+fun ShutdownScreenNew(textName) {
+    local.self = [];
+
+    scaleX = global.GlobalWidth / 1024;
+    scaleY = global.GlobalHeight / 768;
+    logoScale = scaleX;
+    if (scaleY < logoScale) {
+        logoScale = scaleY;
+    }
+
+    self.BaseSprite = Sprite();
+    self.BaseImage = Image("aero7-auth-background.png").Scale(Window.GetWidth(), Window.GetHeight());
+    self.BaseSprite.SetImage(self.BaseImage);
+    self.BaseSprite.SetOpacity(0);
+    self.BaseSprite.SetZ(1);
+
+    self.BrandingSprite = Sprite();
+    self.BrandingImage = Image("aero7-logo-plain.png").Scale(96 * logoScale, 96 * logoScale);
+    self.BrandingSprite.SetImage(self.BrandingImage);
+
+    // does scaling matter?
+    self.BrandingSprite.SetOpacity(0.0);
+    self.BrandingSprite.SetZ(2);
+
+    self.BrandingSprite.SetX((GlobalWidth - self.BrandingImage.GetWidth()) / 2);
+    self.BrandingSprite.SetY(GlobalHeight - self.BrandingImage.GetHeight() - 23);
+
+    self.Text = Image("text" + textName + ".png");
+    self.TextSprite = Sprite();
+	self.TextSprite.SetImage(self.Text);
+
+    self.TextX = (GlobalWidth - self.Text.GetWidth()) / 2;
+    self.TextY = (GlobalHeight - self.Text.GetHeight()) / 2 - 36;
+
+	self.TextSprite.SetOpacity(0);
+	self.TextSprite.SetZ(4);
+    self.TextSprite.SetX(self.TextX);
+    self.TextSprite.SetY(self.TextY);
+
+    if (global.UseShadow) {
+        self.ShadowImage = Image("blur" + textName + ".png");
+        self.ShadowSprite = Sprite();
+        self.ShadowSprite.SetImage(self.ShadowImage);
+        self.ShadowSprite.SetOpacity(0);
+        self.ShadowSprite.SetZ(3);
+        // The shadows have a 2px padding, and we want to offset it by
+        // (0.5, 1), so we use (TextX - 1.5, TextY - 1) to account for both.
+        self.ShadowSprite.SetX(self.TextX - 1.5);
+        self.ShadowSprite.SetY(self.TextY - 1);
+    }
+
+    for (i = 0; i < 18; i++) {
+        imageSpinner = Image("spinner_" + i + ".png");
+        sprite = Sprite();
+        sprite.SetImage(imageSpinner);
+        sprite.SetOpacity(0);
+        sprite.SetZ(10);
+
+        sprite.SetX(self.TextX - 8 - imageSpinner.GetWidth());
+        sprite.SetY((GlobalHeight - imageSpinner.GetHeight()) / 2 - 36);
+
+        self.Spinners[i] = sprite;
+    }
+
+    self.SpinnerStep = 0;
+    self.LastSpinner = 17;
+
+    self.FadedOpacity = 0;
+    self.Updating = true;
+    self.DelaySteps = 10000;
+    self.CurrentDelayStep = 0;
+    self.FadeSteps = 18;
+
+    fun UpdateFade(self) {
+        if (self.Updating == true) {
+            self.FadedOpacity += (1 / self.FadeSteps);
+        }
+
+        if (self.FadedOpacity >= 1) {
+            self.Updating = false;
+            self.FadedOpacity = 1;
+        }
+
+        self.SetBackgroundOpacity(self, self.FadedOpacity);
+        self.SetTextOpacity(self, self.FadedOpacity);
+        self.DrawSpinners(self, self.FadedOpacity);
+    }
+
+    fun UpdateDelayed(self) {
+        self.SetBackgroundOpacity(self, 1);
+        self.CurrentDelayStep++;
+
+        if (self.CurrentDelayStep >= self.DelaySteps) {
+            self.Updating = false;
+        }
+
+        if (self.Updating == false) {
+            self.SetTextOpacity(self, 1);
+            self.DrawSpinners(self, 1);
+        }
+    }
+
+    fun SetBackgroundOpacity(self, opaque) {
+        self.BaseSprite.SetOpacity(opaque);
+        self.BrandingSprite.SetOpacity(opaque);
+    }
+
+    fun SetTextOpacity(self, opaque) {
+        self.TextSprite.SetOpacity(opaque);
+        if (global.UseShadow) {
+            self.ShadowSprite.SetOpacity(opaque);
+        }
+    }
+
+    fun DrawSpinners(self, opaque) {
+        currentStep = self.Spinners[self.SpinnerStep];
+        currentStep.SetOpacity(opaque);
+        
+        lastStep = self.Spinners[self.LastSpinnerStep];
+        lastStep.SetOpacity(0);
+
+        self.LastSpinnerStep = self.SpinnerStep;
+
+        if (self.SpinnerStep >= 17) {
+            self.SpinnerStep = 0;
+        }
+        else {
+            self.SpinnerStep += 1;
+        }
+    }
+
+    self.UpdateFade = UpdateFade;
+    self.UpdateDelayed = UpdateDelayed;
+    self.SetBackgroundOpacity = SetBackgroundOpacity;
+    self.SetTextOpacity = SetTextOpacity;
+    self.DrawSpinners = DrawSpinners;
+
+    return self;
+}
+// vistaresume.sp
+// Windows Vista resume screen.
+
+fun NewNoGUIBoot(text) {
+    local.self = [];
+
+    scaleFactorX = GlobalWidth / 1024;
+    scaleFactorY = GlobalHeight / 768;
+
+    self.NoGuiImage = Image("resumevista.png");
+    self.NoGuiScaledX = self.NoGuiImage.GetWidth() * scaleFactorX;
+    self.NoGuiScaledY = self.NoGuiImage.GetHeight() * scaleFactorY;
+    self.NoGuiScaled = self.NoGuiImage.Scale(self.NoGuiScaledX, self.NoGuiScaledY);
+
+    self.NoGuiSprite = Sprite(self.NoGuiScaled);
+    self.NoGuiSprite.SetZ(0);
+    self.NoGuiSprite.SetOpacity(1);
+
+    fontSize = 18 * (GlobalHeight / 768);
+    self.ResumeText = Image.Text(global.NoGuiResumeText, 0.7, 0.7, 0.7, 1, "Lucida Console " + fontSize);
+    textY = GlobalHeight - 48 * scaleFactorY;
+    
+    self.ResumeTextSprite = Sprite(self.ResumeText);
+    self.ResumeTextSprite.SetZ(1);
+    self.ResumeTextSprite.SetX((GlobalWidth - self.ResumeText.GetWidth()) / 2);
+    self.ResumeTextSprite.SetY(textY);
+
+    for (i = 1; i < 11; i++) {
+        resumeBarImage = Image("resumebar" + i + ".png");
+        resumeBarScaleX = resumeBarImage.GetWidth() * scaleFactorX;
+        resumeBarScaleY = resumeBarImage.GetHeight() * scaleFactorY;
+        resumeBarImageScaled = resumeBarImage.Scale(resumeBarScaleX, resumeBarScaleY);
+
+        resumeBarSprite = Sprite(resumeBarImageScaled);
+        resumeBarSprite.SetOpacity(0);
+        resumeBarSprite.SetX((GlobalWidth - resumeBarImageScaled.GetWidth()) / 2);
+        resumeBarSprite.SetY(textY - 48 * scaleFactorY);
+        resumeBarSprite.SetZ(1);
+
+        self.ResumeBars[i - 1] = resumeBarSprite;
+    }
+
+    self.CurrentStep = 0;
+    self.LastStep = 9;
+
+    fun Update(self) {
+        self.ResumeBars[self.CurrentStep].SetOpacity(1);
+        self.ResumeBars[self.LastStep].SetOpacity(0);
+        self.LastStep = self.CurrentStep;
+        if (self.CurrentStep >= 9) {
+            self.CurrentStep = 0;
+        }
+        else {
+            self.CurrentStep++;
+        }
+    }
+
+    self.Update = Update;
+
+    return self;
+}// PlymouthVista
+// Plymouth theme to emulate the Windows Vista and 7 boot sequences and shutdown sequences.
+// 
+// Distributed images are owned by Microsoft Corporation!
+// 
+// "Windows Vista" is a registered trademark of Microsoft Corporation.
+// The author(s) of this software are in no way affiliated with or endorsed by Microsoft Corporation,
+// in any capacity. This project is a fan-made labor of love that sees NO PROFITS WHATSOEVER, donations or otherwise.
+//
+// "Windows 7" is a registered trademark of Microsoft Corporation.
+// The author(s) of this software are in no way affiliated with or endorsed by Microsoft Corporation,
+// in any capacity. This project is a fan-made labor of love that sees NO PROFITS WHATSOEVER, donations or otherwise.
+
+Window.SetBackgroundColor(0, 0, 0);
+
+global.GlobalWidth = Window.GetWidth();
+global.GlobalHeight = Window.GetHeight();
+
+global.ScaleFactorX = Window.GetWidth() / 640;
+global.ScaleFactorY = Window.GetHeight() / 480;
+
+BootManager = 0;
+BootScreen = 0;
+ShutdownScreen = 0;
+UpdateScreen = 0;
+
+fun RefreshCallback() {
+	if (BootManager == 0) {
+		mode = Plymouth.GetMode();
+		if (mode == "boot" || mode == "firmware_upgrade" || mode == "update") {
+			BootScreen.Update(BootScreen);
+		}
+		else if (mode == "shutdown" || mode == "reboot") {
+			if (ReadOsState() == "sddm") {
+				ShutdownScreen.UpdateDelayed(ShutdownScreen);
+			}
+			else {
+				ShutdownScreen.UpdateFade(ShutdownScreen);
+			}
+		}
+		else if (mode == "system-upgrade") {
+			UpdateScreen.ShowScreen(UpdateScreen);
+		}
+	}
+}
+
+fun ShowQuestionDialog(prompt, contents) {
+	if (BootManager == 0) {
+		val = 0;
+		if (global.OverriddenAnswerMessage != "") {
+			val = global.OverriddenAnswerMessage;
+		}
+		else {
+			val = prompt;
+		}
+		BootManager = BootManagerNew(global.AnswerTitle, prompt, global.AnswerText);
+	}
+	else {
+		BootManager.UpdateAnswer(BootManager, contents);
+	}
+}
+
+fun ShowPasswordDialog(prompt, bulletCount) {
+	if (BootManager == 0) {
+		val = 0;
+		if (global.OverriddenPasswordMessage != "") {
+			val = global.OverriddenPasswordMessage;
+		}
+		else {
+			val = prompt;
+		}
+		BootManager = BootManagerNew(global.PasswordTitle, val, global.PasswordText);
+	}
+	else {
+		BootManager.UpdateBullets(BootManager, bulletCount);
+	}
+
+}
+
+fun ShowSystemUpdate(progress)
+{
+	UpdateScreen.ShowScreen(UpdateScreen);
+	UpdateScreen.UpdateText(UpdateScreen, progress);
+}
+
+fun ReturnNormal() {
+	mode = Plymouth.GetMode();
+	// Why are "update" and "firmware_upgrade" modes here? Because,
+	// - Fedora's BGRT theme shows spinner on "firmware_upgrade"
+	// - Fedora's BGRT theme shows spinner on "update"
+	if (mode == "boot" || mode == "update" || mode == "firmware_upgrade") {
+		if (global.UseLegacyBootScreen) {
+			if (global.ReturnFromHibernation && global.UseNoGuiResume) {
+				BootScreen = NewNoGUIBoot();
+			}
+			else {
+				BootScreen = LegacyBootScreenNew();
+			}
+		}
+		else {
+			if (global.ReturnFromHibernation) {
+				BootScreen = SevenBootScreenNew("resume");
+			}
+			else {
+				BootScreen = SevenBootScreenNew("boot");
+			}
+		}
+		Plymouth.SetRefreshRate(12);
+	}
+  	else if (mode == "shutdown") {
+		text = "";
+		if (global.SpawnFakeLogoff) {
+			text = "LogoffText";
+		}
+		else {
+			text = "ShutdownText";
+		}
+    	ShutdownScreen = ShutdownScreenNew(text);
+    	Plymouth.SetRefreshRate(30);
+  	}
+  	else if (mode == "reboot") {
+  		ShutdownScreen = ShutdownScreenNew("RebootText");
+  		Plymouth.SetRefreshRate(30);
+  	}
+	else if (mode == "system-upgrade") {
+		UpdateScreen = UpdateScreenNew();
+		Plymouth.SetRefreshRate(30);
+	}
+
+	if (BootManager != 0) {
+		BootManager = 0;
+	}
+
+	Plymouth.SetRefreshFunction(RefreshCallback);
+}
+
+Plymouth.SetDisplayNormalFunction(ReturnNormal);
+Plymouth.SetDisplayQuestionFunction(ShowQuestionDialog);
+Plymouth.SetDisplayPasswordFunction(ShowPasswordDialog);
+Plymouth.SetSystemUpdateFunction(ShowSystemUpdate);

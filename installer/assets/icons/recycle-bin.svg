@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="can" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#eefbff" stop-opacity=".96"/>
+      <stop offset=".55" stop-color="#b9deeb" stop-opacity=".9"/>
+      <stop offset="1" stop-color="#719fb4" stop-opacity=".96"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f8ffff"/>
+      <stop offset="1" stop-color="#79aabd"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="180%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="1.5"/>
+      <feOffset dy="2"/>
+      <feComponentTransfer><feFuncA type="linear" slope=".45"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g filter="url(#shadow)">
+    <path d="M17 15h31l-3 41c-.2 2.5-2 4-4.5 4h-16c-2.5 0-4.3-1.5-4.5-4z" fill="url(#can)" stroke="#376e87" stroke-width="1.5"/>
+    <ellipse cx="32.5" cy="15" rx="16.2" ry="4.5" fill="url(#rim)" stroke="#376e87" stroke-width="1.5"/>
+    <path d="M25 11.7V8.5c0-1.4 1.1-2.5 2.5-2.5h10c1.4 0 2.5 1.1 2.5 2.5v3.2" fill="none" stroke="#507f92" stroke-width="2.5"/>
+    <path d="M27 24l-3 27M37 24l3 27M32 23v29" fill="none" stroke="#74a9bd" stroke-width="2" opacity=".82"/>
+    <path d="M20 19c6 2.3 19 2.3 25 0" fill="none" stroke="#e8fbff" stroke-width="1.4" opacity=".9"/>
+  </g>
+</svg>
