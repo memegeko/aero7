@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="350" height="50" viewBox="0 0 350 50">
+  <defs>
+    <linearGradient id="red" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff5d36"/>
+      <stop offset="1" stop-color="#ffbf42"/>
+    </linearGradient>
+    <linearGradient id="green" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#a5db65"/>
+      <stop offset="1" stop-color="#3a9b3e"/>
+    </linearGradient>
+    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#82c7ff"/>
+      <stop offset="1" stop-color="#1876c8"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff08a"/>
+      <stop offset="1" stop-color="#f3a521"/>
+    </linearGradient>
+  </defs>
+  <g stroke="#ffffff" stroke-opacity=".42" stroke-width=".8">
+    <path d="M4 5 Q13 1 22 3 L21 21 Q12 18 2 22 Z" fill="url(#red)"/>
+    <path d="M25 4 Q34 7 45 5 L44 22 Q34 25 24 21 Z" fill="url(#green)"/>
+    <path d="M2 25 Q12 21 21 24 L20 44 Q10 40 0 45 Z" fill="url(#blue)"/>
+    <path d="M24 24 Q34 28 43 23 L42 42 Q32 47 23 43 Z" fill="url(#gold)"/>
+  </g>
+  <text x="55" y="35" fill="#ffffff" font-family="DejaVu Sans, sans-serif" font-size="30" font-weight="300">Aero7</text>
+  <text x="147" y="35" fill="#ffffff" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="300">Professional</text>
+</svg>

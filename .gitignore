@@ -1,0 +1,14 @@
+/build/
+/work/
+/out/*
+!/out/.gitkeep
+*.iso
+*.qcow2
+*.raw
+*.img
+*.fd
+*.log
+__pycache__/
+*.py[cod]
+.cache/
+

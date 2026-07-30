@@ -1,0 +1,32 @@
+[Unit]
+Description=Aero7 graphical installer kiosk
+After=systemd-user-sessions.service systemd-udev-settle.service systemd-logind.service pacman-init.service plymouth-quit.service
+Wants=systemd-logind.service
+Requires=pacman-init.service
+Conflicts=getty@tty1.service
+ConditionPathExists=/usr/bin/aero7-installer
+
+[Service]
+Type=simple
+ExecStart=/usr/lib/aero7/aero7-kiosk-launch @INSTALL_MODE@
+Restart=no
+RuntimeDirectory=aero7-kiosk
+RuntimeDirectoryMode=0700
+PAMName=login
+TTYPath=/dev/tty1
+StandardInput=tty
+StandardOutput=journal
+StandardError=journal
+TTYReset=yes
+TTYVHangup=yes
+TTYVTDisallocate=yes
+UtmpIdentifier=tty1
+Environment=QT_QPA_PLATFORM=wayland
+Environment=QT_QUICK_CONTROLS_STYLE=Basic
+Environment=XKB_DEFAULT_LAYOUT=us
+Environment=XDG_RUNTIME_DIR=/run/aero7-kiosk
+Environment=WLR_RENDERER_ALLOW_SOFTWARE=1
+@DESTRUCTIVE_ENV@
+
+[Install]
+WantedBy=multi-user.target

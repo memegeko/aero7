@@ -1,0 +1,9 @@
+[Plymouth Theme]
+Name=Aero7 Setup
+Description=Original Aero7 installation boot splash
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/aero7
+ScriptFile=/usr/share/plymouth/themes/aero7/aero7.script
+

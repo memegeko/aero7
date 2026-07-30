@@ -1,0 +1,35 @@
+[Unit]
+Description=Aero7 first-boot setup
+After=systemd-user-sessions.service NetworkManager.service systemd-logind.service plymouth-quit.service
+Wants=NetworkManager.service systemd-logind.service
+Conflicts=getty@tty1.service sddm.service
+ConditionPathExists=!/var/lib/aero7/oobe-complete
+
+[Service]
+Type=simple
+ExecStart=/usr/lib/aero7/aero7-kiosk-launch --oobe
+Restart=no
+RuntimeDirectory=aero7-kiosk
+RuntimeDirectoryMode=0700
+PAMName=login
+TTYPath=/dev/tty1
+StandardInput=tty
+StandardOutput=journal
+StandardError=journal
+TTYReset=yes
+TTYVHangup=yes
+TTYVTDisallocate=yes
+UtmpIdentifier=tty1
+Environment=QT_QPA_PLATFORM=wayland
+Environment=QT_QUICK_CONTROLS_STYLE=Basic
+Environment=XKB_DEFAULT_LAYOUT=us
+Environment=XDG_RUNTIME_DIR=/run/aero7-kiosk
+Environment=WLR_RENDERER_ALLOW_SOFTWARE=1
+# OOBE must also work before the final desktop graphics stack is configured.
+# Pixman uses a DRM-dumb buffer that QXL and other primary-only DRM devices can
+# scan out, while the software cursor avoids an incompatible cursor plane.
+Environment=WLR_RENDERER=pixman
+Environment=WLR_NO_HARDWARE_CURSORS=1
+
+[Install]
+WantedBy=multi-user.target

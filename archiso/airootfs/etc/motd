@@ -1,0 +1,3 @@
+Aero7 ISO recovery environment. The installer log is /var/log/aero7-installer.log.
+Use lsblk and journalctl -u aero7-installer for read-only diagnostics.
+
