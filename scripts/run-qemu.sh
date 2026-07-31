@@ -24,7 +24,12 @@ while (($#)); do
 done
 
 case "$display_backend" in
-  sdl) display_spec="sdl,gl=off" ;;
+  sdl)
+    display_spec="sdl,gl=off"
+    # QEMU's SDL frontend otherwise uses nearest-neighbour enlargement, which
+    # makes the fixed 1024x768 installer framebuffer look blocky.
+    export SDL_RENDER_SCALE_QUALITY=linear
+    ;;
   gtk) display_spec="gtk,gl=off" ;;
   *)
     printf 'Unsupported QEMU display backend: %s (use sdl or gtk).\n' "$display_backend" >&2
@@ -129,7 +134,7 @@ fi
 
 exec qemu-system-x86_64 \
   -name Aero7-Installer-Test \
-  -machine "q35,accel=$accel" \
+  -machine "q35,accel=$accel,vmport=off" \
   -cpu "$cpu_model" \
   -m 4096 \
   -smp 4 \
