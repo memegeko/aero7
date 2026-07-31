@@ -140,8 +140,7 @@ exec qemu-system-x86_64 \
   -smp 4 \
   -vga qxl \
   -display "$display_spec" \
-  -device qemu-xhci \
-  -device usb-tablet \
+  -device virtio-tablet-pci,id=aero7tablet \
   -drive "if=pflash,format=raw,readonly=on,file=$code_path" \
   -drive "if=pflash,format=raw,file=$vars_path" \
   "${storage_args[@]}" \

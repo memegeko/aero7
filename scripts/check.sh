@@ -35,6 +35,13 @@ grep -Fq 'display_spec="sdl,gl=off"' "$project_root/scripts/run-qemu.sh"
 grep -Fq 'SDL_RENDER_SCALE_QUALITY=linear' "$project_root/scripts/run-qemu.sh"
 grep -Fq -- '-machine "q35,accel=$accel,vmport=off"' \
   "$project_root/scripts/run-qemu.sh"
+grep -Fq -- '-device virtio-tablet-pci,id=aero7tablet' \
+  "$project_root/scripts/run-qemu.sh"
+if rg -n -- '-device (usb-tablet|qemu-xhci)' \
+    "$project_root/scripts/run-qemu.sh" >/dev/null 2>&1; then
+  printf 'The QEMU launcher still contains the click-dropping USB tablet path.\n' >&2
+  exit 1
+fi
 grep -Fq 'it does not rebuild the ISO' "$project_root/scripts/run-qemu.sh"
 if grep -Fq -- 'once=d' "$project_root/scripts/run-qemu.sh"; then
   printf 'The QEMU launcher still forces the installer DVD on reboot.\n' >&2
