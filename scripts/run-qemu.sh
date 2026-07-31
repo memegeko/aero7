@@ -57,6 +57,10 @@ if ((!installed_only)); then
   }
 fi
 
+if ((fresh)); then
+  printf '%s\n' 'Fresh mode resets the disposable VM disk and UEFI variables; it does not rebuild the ISO.'
+fi
+
 qemu_root="$project_root/work/qemu"
 archive_root="$qemu_root/archive"
 disk_path="$qemu_root/aero7-test.qcow2"
