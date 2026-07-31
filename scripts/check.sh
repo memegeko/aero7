@@ -32,6 +32,7 @@ grep -Fq 'Older images in out/ are deliberately ignored' \
   "$project_root/scripts/run-qemu.sh"
 grep -Fq 'display_backend="sdl"' "$project_root/scripts/run-qemu.sh"
 grep -Fq 'display_spec="sdl,gl=off"' "$project_root/scripts/run-qemu.sh"
+grep -Fq 'it does not rebuild the ISO' "$project_root/scripts/run-qemu.sh"
 if grep -Fq -- 'once=d' "$project_root/scripts/run-qemu.sh"; then
   printf 'The QEMU launcher still forces the installer DVD on reboot.\n' >&2
   exit 1

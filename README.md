@@ -92,6 +92,9 @@ Launch it with a fresh, project-local QEMU disk:
 ./scripts/run-qemu.sh --fresh
 ```
 
+`--fresh` resets the disposable VM disk and UEFI variables. It does not rebuild
+the ISO; run both build phases above first whenever the source has changed.
+
 The UEFI menu contains:
 
 - **Aero7 Setup** — normal boot with PlymouthVista in Windows 7-style mode and
