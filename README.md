@@ -131,6 +131,13 @@ The disk phase installs the complete Arch/Plasma dependency set and the signed
 Aero7 binary packages from the pinned repository. The exact pinned
 Aero7-shell runtime is also embedded for first boot.
 
+The signed application set includes Aero Dolphin, Aero Gwenview, Linux Control
+Panel, Aero KolourPaint, the three original Aero7 gadgets, WinXplorer, execbin,
+and LinVer. Stock Dolphin and Gwenview are omitted from the base `pacstrap`
+transaction so their Aero replacements can be installed without a package
+conflict. Sevulet remains excluded because its source and redistribution license
+cannot currently be audited.
+
 The build checks the ISO package manifests against both pinned shell package
 lists. During installation, pacman must then confirm every signed Aero7 package
 before setup continues; the requested list is recorded at

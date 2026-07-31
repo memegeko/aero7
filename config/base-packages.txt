@@ -37,10 +37,8 @@ kvantum
 cage
 mesa
 konsole
-dolphin
 ark
 kate
-gwenview
 spectacle
 okular
 kcalc
