@@ -30,9 +30,12 @@ grep -Fq -- '-device "ide-cd,drive=aero7cd,bootindex=2"' \
 grep -Fq 'release_name="$(sed -n' "$project_root/scripts/run-qemu.sh"
 grep -Fq 'Older images in out/ are deliberately ignored' \
   "$project_root/scripts/run-qemu.sh"
-grep -Fq 'display_backend="sdl"' "$project_root/scripts/run-qemu.sh"
+grep -Fq 'display_backend="spice"' "$project_root/scripts/run-qemu.sh"
 grep -Fq 'display_spec="sdl,gl=off"' "$project_root/scripts/run-qemu.sh"
 grep -Fq 'SDL_RENDER_SCALE_QUALITY=linear' "$project_root/scripts/run-qemu.sh"
+grep -Fq 'remote-viewer --auto-resize=never' "$project_root/scripts/run-qemu.sh"
+grep -Fq 'image-compression=off,streaming-video=off' \
+  "$project_root/scripts/run-qemu.sh"
 grep -Fq -- '-machine "q35,accel=$accel,vmport=off"' \
   "$project_root/scripts/run-qemu.sh"
 grep -Fq -- '-device virtio-tablet-pci,id=aero7tablet' \

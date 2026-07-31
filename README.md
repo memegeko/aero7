@@ -94,9 +94,11 @@ Launch it with a fresh, project-local QEMU disk:
 
 `--fresh` resets the disposable VM disk and UEFI variables. It does not rebuild
 the ISO; run both build phases above first whenever the source has changed.
-The SDL launcher uses smooth scaling, disables QEMU's conflicting VMware mouse,
-and uses a native VirtIO tablet so pointer coordinates and click events remain
-aligned with the installer framebuffer.
+The default launcher uses a lossless local SPICE connection through
+`remote-viewer`, disables QEMU's conflicting VMware mouse, and uses a native
+VirtIO tablet so pointer coordinates and click events remain aligned with the
+installer framebuffer. SDL and GTK remain available through `--display` for
+diagnostics.
 
 The UEFI menu contains:
 
