@@ -161,6 +161,13 @@ while IFS= read -r package_name; do
     exit 1
   }
 done < "$project_root/../aero_desktop/config/aur-packages.conf"
+while IFS= read -r package_name; do
+  [[ -n "$package_name" && "$package_name" != \#* ]] || continue
+  grep -Fqx "$package_name" "$project_root/config/aero7-packages.txt" || {
+    printf 'Aero companion package from the pinned shell installer is missing: %s\n' "$package_name" >&2
+    exit 1
+  }
+done < "$project_root/../aero_desktop/config/companion-packages.conf"
 for available_application in linux-devmgmt tuxmanager; do
   grep -Fqx "$available_application" "$project_root/config/aero7-packages.txt" || {
     printf 'Available shell application package is missing: %s\n' "$available_application" >&2
