@@ -201,6 +201,21 @@ grep -Fqx oxygen-icons "$project_root/config/base-packages.txt" || {
   printf 'The Oxygen fallback icon set is missing from the ISO.\n' >&2
   exit 1
 }
+grep -Fq 'io.gitgud.wackyideas.panel' \
+  "$project_root/../aero_desktop/modules/plasma/first-login.sh" || {
+  printf 'The pinned shell is missing duplicate-panel repair.\n' >&2
+  exit 1
+}
+grep -Fq 'aero7-login-background.jpg' \
+  "$project_root/../aero_desktop/lib/plasma.sh" || {
+  printf 'The pinned shell does not preserve the blue Welcome login background.\n' >&2
+  exit 1
+}
+grep -Fq 'Name=Command Prompt' \
+  "$project_root/../aero_desktop/lib/applications.sh" || {
+  printf 'The pinned shell is missing Command Prompt application branding.\n' >&2
+  exit 1
+}
 
 if command -v shellcheck >/dev/null 2>&1; then
   printf 'ShellCheck\n'
