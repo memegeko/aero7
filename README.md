@@ -140,8 +140,9 @@ Aero7 binary packages from the pinned repository. The exact pinned
 Aero7-shell runtime is also embedded for first boot.
 
 The signed application set includes Aero Dolphin, Aero Gwenview, Linux Control
-Panel, Aero KolourPaint, the three original Aero7 gadgets, WinXplorer, execbin,
-and LinVer. Stock Dolphin and Gwenview are omitted from the base `pacstrap`
+Panel, Aero KolourPaint, the three original Aero7 gadgets, execbin, and LinVer.
+WinXplorer remains available as an optional compatibility package but is not
+installed by the ISO. Stock Dolphin and Gwenview are omitted from the base `pacstrap`
 transaction so their Aero replacements can be installed without a package
 conflict. Sevulet remains excluded because its source and redistribution license
 cannot currently be audited.

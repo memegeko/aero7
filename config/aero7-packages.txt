@@ -14,6 +14,5 @@ aero7-gwenview
 linux-control-panel
 aero7-kolourpaint
 aero7-gadgets
-winxplorer
 execbin
 linver
