@@ -25,6 +25,8 @@ trap 'rm -rf -- "$verify_root"' EXIT
 squashfs="$verify_root/airootfs.sfs"
 loader="$verify_root/01-aero7.conf"
 embedded_lock="$verify_root/sources.lock"
+embedded_plasma="$verify_root/plasma.sh"
+embedded_applications="$verify_root/applications.sh"
 
 file "$image"
 sha256sum "$image"
@@ -47,6 +49,21 @@ unsquashfs -cat "$squashfs" usr/bin/aero7-installer \
   | strings | rg -F 'This beta software is provided without warranty' >/dev/null
 unsquashfs -cat "$squashfs" usr/bin/aero7-installer \
   | strings -el | rg -F 'aero7-first-login-cleanup.timer' >/dev/null
+
+unsquashfs -cat "$squashfs" usr/share/aero7/source/lib/plasma.sh >"$embedded_plasma"
+rg -F 'new Panel("io.gitgud.wackyideas.panel")' "$embedded_plasma" >/dev/null
+if sed -n '/aero7_apply_plasma_layout()/,/^}/p' "$embedded_plasma" \
+    | rg -F 'org.kde.plasma.icontasks' >/dev/null; then
+  printf 'The embedded shell still creates a duplicate stock KDE taskbar.\n' >&2
+  exit 1
+fi
+
+unsquashfs -cat "$squashfs" usr/share/aero7/source/lib/applications.sh \
+  >"$embedded_applications"
+rg -F 'Name=Command Prompt' "$embedded_applications" >/dev/null
+rg -F 'kbuildsycoca6 --noincremental' "$embedded_applications" >/dev/null
+unsquashfs -cat "$squashfs" usr/share/aero7/branding/aero7-login-background.jpg \
+  >/dev/null
 
 unsquashfs -cat "$squashfs" usr/share/aero7/sources.lock >"$embedded_lock"
 cmp -s "$project_root/sources.lock" "$embedded_lock"
