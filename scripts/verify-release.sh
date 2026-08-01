@@ -46,7 +46,7 @@ unsquashfs -cat "$squashfs" usr/lib/aero7/aero7-install-backend \
 unsquashfs -cat "$squashfs" usr/lib/aero7/aero7-install-backend \
   | rg -F 'ExecStartPre=/usr/bin/sleep' >/dev/null
 unsquashfs -cat "$squashfs" usr/bin/aero7-installer \
-  | strings | rg -F 'This beta software is provided without warranty' >/dev/null
+  | strings | rg -F 'Aero7 is beta software supplied without warranty' >/dev/null
 unsquashfs -cat "$squashfs" usr/bin/aero7-installer \
   | strings -el | rg -F 'aero7-first-login-cleanup.timer' >/dev/null
 
