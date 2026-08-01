@@ -188,6 +188,14 @@ for available_application in linux-devmgmt tuxmanager; do
     exit 1
   }
 done
+if grep -Fqx winxplorer "$project_root/config/aero7-packages.txt"; then
+  printf 'WinXplorer must remain optional and must not be installed by the ISO.\n' >&2
+  exit 1
+fi
+grep -Fqx oxygen-icons "$project_root/config/base-packages.txt" || {
+  printf 'The Oxygen fallback icon set is missing from the ISO.\n' >&2
+  exit 1
+}
 
 if command -v shellcheck >/dev/null 2>&1; then
   printf 'ShellCheck\n'

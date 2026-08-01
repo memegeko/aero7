@@ -34,6 +34,7 @@ wayland-protocols
 vulkan-headers
 plasma5support
 kvantum
+oxygen-icons
 cage
 mesa
 konsole
