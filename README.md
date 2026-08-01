@@ -160,9 +160,10 @@ user configuration is written as the selected account. No passwordless sudo
 rule is created or retained.
 
 Before the one-time automatic login begins, OOBE also pins the light Aero color
-scheme and the shell repository's default copyright-free wallpaper. This keeps
-SDDM, the Welcome splash, the lock screen, and the first Plasma session visually
-consistent while the deferred live Plasma setup finishes.
+scheme and the shell repository's default copyright-free desktop wallpaper.
+SDDM and the lock screen use the installer's clean blue Welcome-screen artwork,
+keeping the login transition visually consistent while the deferred live Plasma
+setup finishes.
 
 See [architecture.md](docs/architecture.md),
 [implementation-plan.md](docs/implementation-plan.md), and
