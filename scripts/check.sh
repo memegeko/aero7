@@ -106,6 +106,11 @@ grep -Fq 'QStringLiteral("aero7-first-login-cleanup.timer")' \
   "$project_root/installer/src/installercontroller.cpp"
 grep -Fq 'QStringLiteral("sddm.service")' \
   "$project_root/installer/src/installercontroller.cpp"
+grep -Fq 'magick "$project_root/installer/assets/aero7-background.png" -strip -quality 92 "$login_background"' \
+  "$project_root/scripts/build-iso.sh" || {
+  printf 'SDDM must use the same background as the Welcome screen.\n' >&2
+  exit 1
+}
 grep -Fq 'brand_plasma_look_and_feel()' \
   "$project_root/backend/aero7_install_backend.py"
 if rg -n '\balpha software\b' "$project_root/installer/qml" >/dev/null 2>&1; then

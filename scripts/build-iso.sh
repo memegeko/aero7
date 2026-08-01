@@ -200,7 +200,7 @@ install -Dm644 "$project_root/installer/assets/aero7-sddm-branding.png" \
   "$profile_root/airootfs/usr/share/aero7/branding/aero7-sddm-branding.png"
 login_background="$profile_root/airootfs/usr/share/aero7/branding/aero7-login-background.jpg"
 install -d -m 0755 "${login_background%/*}"
-magick "$source_path/assets/wallpapers/aero_bg_1.png" -strip -quality 92 "$login_background"
+magick "$project_root/installer/assets/aero7-background.png" -strip -quality 92 "$login_background"
 chmod 0644 "$login_background"
 install -Dm644 "$project_root/sources.lock" \
   "$profile_root/airootfs/usr/share/aero7/sources.lock"

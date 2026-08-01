@@ -72,7 +72,7 @@ Plasma security/logout screen. Beta 1 replaces that QML watermark with the
 project-owned `Aero7 Professional` artwork, removes the unused upstream bitmap
 and preview screenshots, and sanitizes visible look-and-feel metadata. The
 current source candidate upgrades that replacement to a glossy, transparent
-350x50 PNG and applies the shell wallpaper to SDDM, the Welcome splash, and the
+350x50 PNG and applies the clean blue Welcome-screen artwork to SDDM and the
 lock-screen background. These new changes are covered by automated regression
 tests but still need the new-ISO VM gate below.
 
