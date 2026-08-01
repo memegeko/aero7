@@ -2,7 +2,7 @@
 # The build refuses to continue if the local clone has moved or is dirty.
 aero7_shell_path=../aero_desktop
 aero7_shell_origin=https://github.com/memegeko/aero7-shell.git
-aero7_shell_commit=5d1e04ee293358de8f24ff89767073331cdea300
+aero7_shell_commit=3b7d2858a6e92c11ca8dd04618869f73f002b486
 aero7_shell_status_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 aero7_repository_url=https://memegeko.github.io/aero7-repo/$arch
 aero7_repository_fingerprint=72C79ABBBBE96446DD3324042694BFE1090F4FD6
