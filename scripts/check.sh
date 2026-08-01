@@ -206,6 +206,17 @@ grep -Fq 'io.gitgud.wackyideas.panel' \
   printf 'The pinned shell is missing duplicate-panel repair.\n' >&2
   exit 1
 }
+grep -Fq 'new Panel("io.gitgud.wackyideas.panel")' \
+  "$project_root/../aero_desktop/lib/plasma.sh" || {
+  printf 'The pinned shell layout does not create the canonical Aero taskbar.\n' >&2
+  exit 1
+}
+if sed -n '/aero7_apply_plasma_layout()/,/^}/p' \
+    "$project_root/../aero_desktop/lib/plasma.sh" | \
+    grep -Fq 'org.kde.plasma.icontasks'; then
+  printf 'The pinned shell layout still creates a duplicate stock KDE taskbar.\n' >&2
+  exit 1
+fi
 grep -Fq 'aero7-login-background.jpg' \
   "$project_root/../aero_desktop/lib/plasma.sh" || {
   printf 'The pinned shell does not preserve the blue Welcome login background.\n' >&2
