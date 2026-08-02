@@ -40,7 +40,7 @@ system with a Windows-7-era-inspired installer and KDE Plasma 6 Wayland desktop.
 | Desktop | KDE Plasma 6 Wayland |
 | Intended target | Disposable QEMU/KVM VM |
 
-Download it from the [Beta 1 GitHub release](https://github.com/memegeko/aero7/releases/latest).
+Download it from the [Beta 1 GitHub release](https://github.com/memegeko/aero7/releases/tag/v0.1.0-beta.1).
 
 ## Project links
 
