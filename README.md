@@ -1,172 +1,165 @@
-# Aero7 ISO
+<a id="readme-top"></a>
 
-Aero7 ISO Beta 1 is an experimental x86-64 UEFI installer for an Arch Linux-based
-Aero7 desktop. It boots into a Qt 6/QML interface inside the Cage Wayland kiosk
-compositor. A normal live desktop is not installed or exposed; a recovery shell
-remains available on TTY2.
+<div align="center">
 
-The graphical flow is inspired by the pacing and hierarchy of the Windows 7
-setup screenshots supplied during development. It keeps original Aero7
-branding and wording, while using the AeroThemePlasma/SMOD window frame and
-control artwork requested for closer visual consistency. The boot animation is
-the requested PlymouthVista theme configured to display Aero7 startup text.
-See `THIRD_PARTY.md` before redistributing an ISO.
+<img src="installer/assets/aero7-logo-circle.png" width="150" alt="Aero7 logo">
 
-## Complete installer flow
+# Aero7
 
-The default ISO now connects the installer and first-boot experience into one
-safe walkthrough:
+### The familiar Aero desktop, rebuilt on modern Linux
+
+Aero7 is an independent Arch Linux-based operating system with a guided,
+full-screen installer and a KDE Plasma 6 Wayland desktop inspired by the calm,
+glassy desktop design of the late 2000s.
+
+[![Release](https://img.shields.io/badge/release-Beta%201-66B8FF?style=for-the-badge)](https://github.com/memegeko/aero7/releases/latest)
+[![Arch Linux](https://img.shields.io/badge/base-Arch%20Linux-1793D1?style=for-the-badge&logo=archlinux&logoColor=white)](https://archlinux.org/)
+[![KDE Plasma](https://img.shields.io/badge/desktop-Plasma%206-1D99F3?style=for-the-badge&logo=kde&logoColor=white)](https://kde.org/plasma-desktop/)
+[![Wayland](https://img.shields.io/badge/session-Wayland-7D4CDB?style=for-the-badge)](https://wayland.freedesktop.org/)
+
+[**Download Beta 1**](https://github.com/memegeko/aero7/releases/latest) ·
+[**Read the Wiki**](https://github.com/memegeko/aero7/wiki) ·
+[**Report a bug**](https://github.com/memegeko/aero7/issues/new) ·
+[**Aero7-shell**](https://github.com/memegeko/aero7-shell)
+
+</div>
+
+---
+
+> [!IMPORTANT]
+> **Beta 1 is a VM-only testing release.** Its destructive installer accepts
+> only a disposable VirtIO disk inside a supported virtual machine. Physical
+> disks, dual boot, encryption, manual partitioning, and legacy BIOS are
+> intentionally blocked in this release.
+
+## Meet Aero7
+
+Aero7 turns a complete Arch Linux installation into a cohesive classic desktop
+experience. It boots directly into a purpose-built graphical setup—there is no
+live desktop to wander through—and continues after installation with account,
+password, time zone, update, and network personalization.
+
+Under the glass it remains a modern Linux system: Plasma 6, Wayland, PipeWire,
+NetworkManager, systemd-boot, signed packages, and the rolling Arch package
+base. The goal is familiar interaction without pretending to be Windows or
+hiding the open-source system underneath.
+
+<p align="center">
+  <img src="docs/screenshots/installer-language.png" width="900" alt="Aero7 Beta 1 graphical installer language screen">
+</p>
+
+## What makes it different
+
+| | |
+| --- | --- |
+| **A real guided installer** | A dedicated Qt 6/QML flow for language, licensing, installation, progress, restart, and first-boot setup. |
+| **No live desktop** | The ISO opens directly in a focused Cage kiosk, with a recovery console kept out of the way on TTY2. |
+| **Aero from boot to desktop** | Matching boot animation, installer frame, setup screens, login branding, sounds, icons, taskbar, Start menu, and applications. |
+| **Modern Linux foundation** | Arch Linux, KDE Plasma 6 Wayland, PipeWire, NetworkManager, systemd, and a focused `plasma-desktop` installation. |
+| **Signed Aero7 packages** | Desktop components and applications come from the dedicated signed [Aero7 package repository](https://github.com/memegeko/aero7-repo). |
+| **Safety-first Beta** | Disk identity is fingerprinted and checked again immediately before the VM disk is erased. |
+
+## The setup experience
 
 ```text
-Language -> Install now -> License -> Install type -> Disk -> Confirmation
--> Installing -> Restart -> Applying settings -> Video check -> Account
--> Password -> Updates -> Time zone -> Network -> Finalizing -> Welcome
--> Preparing desktop -> Aero7 desktop
+Language → Install now → License → Installation type → Disk confirmation
+         → Installing → Restart → Personalization → Welcome → Desktop
 ```
 
-On a real installation, the restart is a genuine boundary: the live ISO
-finishes the disk phase, the installed system boots `aero7-oobe.service`, and
-OOBE completes the account and system configuration. Simulation mode bridges
-that boundary in memory so the entire experience can be tested without writing
-to a disk.
+The first installed boot continues naturally into OOBE. Create your account,
+choose a password and computer name, review update and regional settings, and
+arrive at the desktop through the Welcome and Preparing your desktop screens.
 
-## Safety status
+<p align="center">
+  <img src="docs/screenshots/first-boot-account.png" width="48%" alt="Aero7 first-boot account page">
+  <img src="docs/screenshots/finalizing.png" width="48%" alt="Aero7 finalizing screen">
+</p>
 
-The default build is a **VM-only real installer**. It can erase only the
-disposable VirtIO disk attached by the provided QEMU runner. Real installation
-is deliberately gated behind all of the following:
+## Included desktop
 
-- a live-enabled ISO build;
-- an explicit final disk confirmation;
-- root execution inside the live ISO;
-- a verified virtual-machine environment;
-- an unmounted, writable, non-removable target whose fingerprint still matches;
-- the exact destructive-operation guard token.
+Beta 1 installs a focused Plasma desktop rather than the broad Plasma or KDE
+application meta-packages. Aero7 then adds its own signed desktop set:
 
-The live backend supports only one layout: UEFI, GPT, a 1 GiB FAT32 EFI System
-Partition, an ext4 root partition, and systemd-boot. It rejects dual boot,
-encryption, manual partitioning, legacy BIOS, mounted disks, and host testing.
+- AeroShell workspace, Start menu, taskbar, window decoration, icons, and sounds;
+- Aero Dolphin, presented as **File Explorer**;
+- Aero Gwenview, presented as **Photo Viewer**;
+- Linux Control Panel and Device Manager;
+- Aero KolourPaint, Gadgets, execbin, LinVer, and TuxManager;
+- Konsole integration presented as **Command Prompt**;
+- Ark archive integration, Wine compatibility components, and branded Fastfetch.
 
-## Host requirements
+WinXplorer remains optional and is not installed by the ISO. Sevulet is not
+included because its source and redistribution terms have not been verified.
 
-On Arch Linux:
+## Download and try Beta 1
 
-```bash
-sudo pacman -S --needed archiso cmake ninja qt6-base qt6-declarative \
-  qt6-svg qt6-wayland qemu-desktop edk2-ovmf cage imagemagick shellcheck
-```
+1. Open the [Beta 1 release](https://github.com/memegeko/aero7/releases/latest).
+2. Download the `.iso` and matching `.sha256` file.
+3. Verify the checksum before booting the image.
+4. Create an x86-64 UEFI virtual machine with at least 4 GB RAM and a disposable
+   40 GB VirtIO disk.
+5. Boot the ISO and follow the on-screen installer.
 
-`cage` is required in the generated ISO but is not needed to compile the app.
-ShellCheck is optional for a prepare-only build, although `scripts/check.sh`
-reports it when unavailable.
+Detailed VM settings, checksum commands, screenshots, recovery shortcuts, and
+troubleshooting are in the [Installation wiki page](https://github.com/memegeko/aero7/wiki/Installation).
 
-## Build and test
+## Beta 1 support matrix
 
-Compile the application, run automated tests, lint QML, and assemble a complete
-Archiso profile without invoking privileged Archiso operations:
+| Area | Beta 1 support |
+| --- | --- |
+| Architecture | x86-64 |
+| Firmware | UEFI |
+| Tested hypervisor | QEMU/KVM |
+| Target storage | Disposable VirtIO disk, 16 GB minimum; 40 GB recommended |
+| Partitioning | Whole-disk GPT, 1 GiB FAT32 ESP, ext4 root |
+| Desktop | KDE Plasma 6 Wayland |
+| Networking | Required during package installation |
+| Physical hardware | Blocked in Beta 1 |
+| Dual boot / encryption / manual layout | Not available in Beta 1 |
 
-```bash
-./scripts/build-iso.sh --prepare-only
-```
+## Documentation
 
-Build the default VM-install ISO. Compilation and profile assembly deliberately
-run without root; only the final Archiso phase uses sudo:
+The [Aero7 Wiki](https://github.com/memegeko/aero7/wiki) is the main handbook:
 
-```bash
-./scripts/build-iso.sh --prepare-only
-sudo ./scripts/build-iso.sh --mkarchiso-only
-```
+- [Installation](https://github.com/memegeko/aero7/wiki/Installation)
+- [Installer guide](https://github.com/memegeko/aero7/wiki/Installer-Guide)
+- [First boot and OOBE](https://github.com/memegeko/aero7/wiki/First-Boot-and-OOBE)
+- [Included software](https://github.com/memegeko/aero7/wiki/Included-Software)
+- [Troubleshooting](https://github.com/memegeko/aero7/wiki/Troubleshooting)
+- [Known issues](https://github.com/memegeko/aero7/wiki/Known-Issues)
+- [Architecture](https://github.com/memegeko/aero7/wiki/Architecture)
+- [Building the ISO](https://github.com/memegeko/aero7/wiki/Building-the-ISO)
+- [Security and disk safety](https://github.com/memegeko/aero7/wiki/Security-and-Disk-Safety)
+- [Credits and licensing](https://github.com/memegeko/aero7/wiki/Credits-and-Licensing)
 
-The result is written to `out/aero7-beta1-YYYY.MM.DD-x86_64.iso`.
+## Related projects
 
-Verify the published ISO metadata, checksum, boot arguments, embedded backend,
-release label, and pinned source lock without root:
+| Project | Role |
+| --- | --- |
+| [Aero7-shell](https://github.com/memegeko/aero7-shell) | Desktop configuration, recovery tooling, application recipes, and post-install integration |
+| [Aero7 package repository](https://github.com/memegeko/aero7-repo) | Signed binary packages consumed during installation |
+| [AeroThemePlasma](https://github.com/aeroshell-desktop/aerothemeplasma) | Core Plasma visual components |
+| [PlymouthVista](https://github.com/furkrn/PlymouthVista) | Compatibility boot-theme base used by the requested Plymouth experience |
 
-```bash
-./scripts/verify-release.sh
-```
+## Project status
 
-Launch it with a fresh, project-local QEMU disk:
+Aero7 is experimental Beta software. Automated checks cover the installer state
+machine, destructive-operation gates, package manifest, OOBE, boot configuration,
+QML, and embedded release contents. Beta 1 is intended for disposable VM testing
+and feedback—not a personal workstation or irreplaceable data.
 
-```bash
-./scripts/run-qemu.sh --fresh
-```
+See the [Beta 1 release notes](docs/BETA1-RELEASE-NOTES.md) and
+[validation report](docs/validation.md) for the exact artifact and test record.
 
-`--fresh` resets the disposable VM disk and UEFI variables. It does not rebuild
-the ISO; run both build phases above first whenever the source has changed.
-The default launcher uses a lossless local SPICE connection through
-`remote-viewer`, disables QEMU's conflicting VMware mouse, and uses a native
-VirtIO tablet so pointer coordinates and click events remain aligned with the
-installer framebuffer. SDL and GTK remain available through `--display` for
-diagnostics.
+## License and trademark notice
 
-The UEFI menu contains:
+The Aero7 installer source is distributed under the [MIT License](LICENSE).
+Third-party packages, themes, fonts, and artwork retain their own licenses and
+notices; see [THIRD_PARTY.md](THIRD_PARTY.md) before redistributing an image.
 
-- **Aero7 Setup** — normal boot with PlymouthVista in Windows 7-style mode and
-  Aero7 startup text.
-- **Aero7 Setup (debug, no splash)** — verbose kernel and systemd output.
+Aero7 is an independent open-source project. It is not affiliated with,
+authorized, sponsored, endorsed, or approved by Microsoft Corporation. Windows
+is a trademark of the Microsoft group of companies. Aero7 recreates interface
+ideas and does not include a licensed copy of Microsoft Windows.
 
-If the graphical kiosk cannot start, TTY1 shows the Cage/Qt exit code and the
-last 60 log lines instead of remaining black. Recovery remains on Alt+F2; its
-commands are:
-
-```bash
-journalctl -u aero7-installer --no-pager
-cat /var/log/aero7-kiosk.log
-```
-
-The **Repair your computer** link on the Install screen asks for confirmation,
-starts the same recovery getty, and switches to TTY2. Return with Alt+F1.
-
-The QEMU runner also captures debug-console output in
-`work/qemu/aero7-serial.log`.
-
-To build a simulation-only ISO for visual testing, explicitly disable the live
-backend:
-
-```bash
-AERO7_ENABLE_LIVE_INSTALL=0 ./scripts/build-iso.sh --prepare-only
-sudo ./scripts/build-iso.sh --mkarchiso-only
-./scripts/run-qemu.sh --fresh
-```
-
-Never attach a host block device to the QEMU command. The provided runner only
-creates and uses `work/qemu/aero7-test.qcow2`.
-
-## Aero7-shell integration
-
-The disk phase installs the complete Arch/Plasma dependency set and the signed
-Aero7 binary packages from the pinned repository. The exact pinned
-Aero7-shell runtime is also embedded for first boot.
-
-The signed application set includes Aero Dolphin, Aero Gwenview, Linux Control
-Panel, Aero KolourPaint, the three original Aero7 gadgets, execbin, and LinVer.
-WinXplorer remains available as an optional compatibility package but is not
-installed by the ISO. Stock Dolphin and Gwenview are omitted from the base `pacstrap`
-transaction so their Aero replacements can be installed without a package
-conflict. Sevulet remains excluded because its source and redistribution license
-cannot currently be audited.
-
-The build checks the ISO package manifests against both pinned shell package
-lists. During installation, pacman must then confirm every signed Aero7 package
-before setup continues; the requested list is recorded at
-`/var/lib/aero7/requested-aero7-packages.txt` for diagnosis.
-
-After OOBE creates the account, Aero7-shell runs in its guarded `--image-mode`.
-Its existing stages apply the Plasma theme, panel layout, wallpaper, SDDM,
-Fastfetch, deferred first-login helper, management commands, backups, and final
-validation. System work runs directly under the root-owned OOBE service, while
-user configuration is written as the selected account. No passwordless sudo
-rule is created or retained.
-
-Before the one-time automatic login begins, OOBE also pins the light Aero color
-scheme and the shell repository's default copyright-free desktop wallpaper.
-SDDM and the lock screen use the installer's clean blue Welcome-screen artwork,
-keeping the login transition visually consistent while the deferred live Plasma
-setup finishes.
-
-See [architecture.md](docs/architecture.md),
-[implementation-plan.md](docs/implementation-plan.md), and
-[safety.md](docs/safety.md) for details. The latest local check results are in
-[validation.md](docs/validation.md).
-# aero7
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
