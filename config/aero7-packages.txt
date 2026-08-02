@@ -8,4 +8,11 @@ uac-polkit-agent-git
 aerothemeplasma-desktop-git
 linux-devmgmt
 tuxmanager
-
+aero7-qt
+aero7-dolphin
+aero7-gwenview
+linux-control-panel
+aero7-kolourpaint
+aero7-gadgets
+execbin
+linver
