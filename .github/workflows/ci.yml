@@ -32,7 +32,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           repository: memegeko/aero7-shell
-          ref: 797d7bf56b498938da4dbd8f7f7ab259dc6fc832
+          ref: edf4f5f672c8a7bdfba15f83be32b83690a15321
           path: aero_desktop
 
       - name: Run source gate
