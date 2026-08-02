@@ -185,6 +185,16 @@ for required_file in \
   "$project_root/installer/assets/controls/button-normal.png"; do
   [[ -s "$required_file" ]] || { printf 'Missing visual asset: %s\n' "$required_file" >&2; exit 1; }
 done
+printf '%s  %s\n' \
+  '51b0152683a10829365a7105b3bf3681142f9564a6698573fb2513af6a0e3bc2' "$project_root/third_party/PlymouthVista/PlymouthVista.script" \
+  '66dfe9233d96f9a189c2d2e0c5270c3cb8f21a4ab538bba5b27553751500ffa2' "$project_root/third_party/PlymouthVista/images/aero7-logo-circle.png" \
+  'f3912a918743471b776be6c96d72a91ab00cf88acab0a6f1263542e4a46f9e83' "$project_root/third_party/PlymouthVista/images/aero7-logo-plain.png" \
+  '7852558af39cea34b64f20e87a3ee0f2b3009f70f8f45c4261b1b4e15c1bc305' "$project_root/third_party/PlymouthVista/images/flag0.png" \
+  '3b9814d55cde346e3d15845df5c5114e9260a0553be49bd1bc8846ac84605f54' "$project_root/third_party/PlymouthVista/images/flag104.png" \
+  | sha256sum --check --status || {
+  printf 'Plymouth assets changed even though the theme is locked.\n' >&2
+  exit 1
+}
 branding_geometry="$(magick identify -format '%wx%h' "$project_root/installer/assets/aero7-sddm-branding.png")"
 [[ "$branding_geometry" == "350x50" ]] || {
   printf 'Unexpected SDDM branding dimensions: %s\n' "$branding_geometry" >&2

@@ -1,5 +1,9 @@
 # Aero7 Wiki
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/memegeko/aero7/main/installer/assets/aero7-logo-circle.png" width="150" alt="Aero7 logo">
+</p>
+
 Welcome to the handbook for **Aero7**, an independent Arch Linux-based operating
 system with a Windows-7-era-inspired installer and KDE Plasma 6 Wayland desktop.
 

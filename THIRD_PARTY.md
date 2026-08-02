@@ -11,16 +11,16 @@
   original abstract cobalt-to-cyan Aero7 installer background with sweeping
   light trails and bokeh; no text, logos, flags, Windows marks, Microsoft
   wallpaper motifs, recognizable flowers or birds, UI panels, or watermark.
-- `installer/assets/aero7-logo-plain.png` and the two `aero7-logo-*.png` files
-  under `third_party/PlymouthVista/images/` are derived from AI-generated images
-  supplied by the project owner on 2026-07-29. OpenAI's built-in image editor
-  isolated the supplied marks on a chroma-key background; the background was
-  then removed mechanically. The plain mark is used by the installer and the
-  circular mark is used as the finished desktop's Start badge. At the project
-  owner's request, the existing animated Plymouth boot sequence is retained
-  instead of replacing it with the static circular mark.
+- `installer/assets/aero7-logo-plain.png` and
+  `installer/assets/aero7-logo-circle.png` are deterministic UI-sized variants
+  of the transparent AI-generated Aero7 7 emblem supplied by the project owner
+  on 2026-08-02. The source artwork was cropped and downscaled without
+  redesigning or recoloring it. It is used by the installer and by installed
+  desktop branding. The older `aero7-logo-*.png` files under
+  `third_party/PlymouthVista/images/` remain part of the separately requested
+  Plymouth theme and were deliberately not replaced.
 - `installer/assets/aero7-sddm-branding.png` is a mechanical 350x50 composition
-  of that project-owner-supplied plain mark with Aero7 text rendered in the
+  of that project-owner-supplied 7 emblem with Aero7 text rendered in the
   bundled OFL-licensed Adwaita Sans font. It replaces the upstream SDDM and
   Plasma Welcome/logout product watermark.
 - The Plymouth boot animation is based on
@@ -31,9 +31,9 @@
   under `third_party/PlymouthVista/`.
 - The shipped Plymouth boot script retains the requested upstream `flag*.png`
   animation frames. Unused upstream `branding_*.png` and `authui_*.png` files
-  were removed from the current tree and are not installed; shutdown/update
-  branding uses the project-owner-supplied plain Aero7 mark and the project's
-  original Aero7 background. Earlier commits still contain the removed files.
+  were removed from the current tree and are not installed; its existing
+  shutdown/update branding and animation artwork are intentionally preserved.
+  Earlier commits still contain the removed files.
 - The installer frame, caption buttons, and back-button sprite come from the
   AeroThemePlasma/SMOD projects at the revisions recorded in `sources.lock`.
   Their copied assets and the mechanical Kvantum button crops remain under the
