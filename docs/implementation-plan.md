@@ -1,32 +1,39 @@
-# First vertical-slice implementation plan
+# Beta 1 Implementation Status
 
-1. Preserve and pin the read-only Aero7-shell clone, including its clean Git
-   state, origin, and exact commit.
+The original vertical slice has grown into a guarded VM-only installation
+path. This document records the completed Beta 1 scope and the work deliberately
+left for later releases.
+
+## Complete in Beta 1
+
+1. Pin and verify a read-only Aero7-shell source checkout by origin, commit, and
+   clean working-tree digest.
 2. Build one scalable Qt 6/QML application with separate installer and OOBE
-   state machines. Use a 1024×768 design canvas that scales uniformly to
-   1366×768 and 1920×1080.
-3. Keep simulation mode as the default. Provide a small privileged Python
-   backend whose destructive path is VM-gated, fingerprinted, revalidated, and
-   restricted to the documented GPT/ESP/ext4/systemd-boot layout.
-4. Assemble an Archiso profile that starts Cage and the installer directly on
-   TTY1, keeps a recovery getty on TTY2, and includes no live Plasma session.
-5. Install a first-boot Cage/OOBE service in the target. OOBE creates the real
-   user, configures hostname/time/update preference, then disables itself and
-   enables SDDM without leaving a setup account or sudo exception.
-6. Exercise flow transitions and disk-plan validation automatically; run CMake,
-   CTest, Python tests, qmllint, Bash syntax checks, and ShellCheck when present.
-7. Build the ISO when privileged Archiso execution is authorized, then boot it
-   only with the disposable QCOW2 disk created by `scripts/run-qemu.sh`.
+   state machines on a 1024×768 logical canvas.
+3. Provide a narrow privileged backend that accepts only a revalidated,
+   disposable VirtIO VM disk and creates the fixed GPT/ESP/ext4 layout.
+4. Assemble an Archiso image that starts Cage and the installer on TTY1, keeps
+   recovery on TTY2, and exposes no live Plasma desktop.
+5. Install a one-time Cage/OOBE service that creates the real user, applies the
+   Aero7-shell image-mode configuration, enables SDDM, and hands directly to the
+   first Plasma session.
+6. Remove temporary first-session autologin automatically and return subsequent
+   boots to password authentication.
+7. Install a focused Plasma 6 Wayland base plus the signed Aero7 desktop and
+   applications, with one taskbar and consistent light defaults.
+8. Validate state transitions, package parity, disk plans, QML, compiled Qt
+   logic, visual renders, the embedded ISO payload, and a fresh VM boot.
 
-The vertical slice is complete when the simulation ISO boots directly into the
-full graphical flow and the real backend can install onto a disposable QEMU
-disk under its explicit safety gates. Full Aero7-shell per-user configuration
-remains blocked until a safe post-OOBE adapter is validated.
+## Deliberately deferred
 
-## Current milestone
+- physical-hardware installation;
+- dual boot and install-alongside;
+- encryption and manual partitioning;
+- legacy BIOS;
+- offline package installation;
+- broader language and region coverage;
+- automatic NVIDIA-specific selection;
+- recovery environment beyond the TTY2 console.
 
-The safe simulation now exercises the complete installer-to-desktop state
-sequence, including the simulated restart handoff and all first-boot transition
-pages. A compiled controller test supplies valid form data and walks the same
-path automatically. Enabling and validating the real destructive backend is a
-separate milestone and is not implied by completion of the visual flow.
+These features must not be enabled by removing guards. Each requires its own
+design, safety review, automated tests, and disposable-hardware validation.
