@@ -228,6 +228,10 @@ else
   printf 'Prepared simulation-only profile.\n'
 fi
 
+install -d -m 0755 \
+  "$profile_root/airootfs/etc/systemd/system/multi-user.target.wants" \
+  "$profile_root/airootfs/etc/systemd/system/getty.target.wants"
+
 ln -sfn ../aero7-installer.service \
   "$profile_root/airootfs/etc/systemd/system/multi-user.target.wants/aero7-installer.service"
 ln -sfn /usr/lib/systemd/system/NetworkManager.service \
