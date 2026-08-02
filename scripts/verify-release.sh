@@ -27,6 +27,7 @@ loader="$verify_root/01-aero7.conf"
 embedded_lock="$verify_root/sources.lock"
 embedded_plasma="$verify_root/plasma.sh"
 embedded_applications="$verify_root/applications.sh"
+embedded_base_packages="$verify_root/base-packages.txt"
 
 file "$image"
 sha256sum "$image"
@@ -64,6 +65,18 @@ rg -F 'Name=Command Prompt' "$embedded_applications" >/dev/null
 rg -F 'kbuildsycoca6 --noincremental' "$embedded_applications" >/dev/null
 unsquashfs -cat "$squashfs" usr/share/aero7/branding/aero7-login-background.jpg \
   >/dev/null
+
+unsquashfs -cat "$squashfs" usr/share/aero7/base-packages.txt \
+  >"$embedded_base_packages"
+cmp -s "$project_root/config/base-packages.txt" "$embedded_base_packages"
+grep -Fqx plasma-desktop "$embedded_base_packages"
+for excluded_target_package in plasma-meta kde-applications-meta; do
+  if grep -Fqx "$excluded_target_package" "$embedded_base_packages"; then
+    printf 'The release ISO contains an unwanted desktop meta-package: %s\n' \
+      "$excluded_target_package" >&2
+    exit 1
+  fi
+done
 
 unsquashfs -cat "$squashfs" usr/share/aero7/sources.lock >"$embedded_lock"
 cmp -s "$project_root/sources.lock" "$embedded_lock"
