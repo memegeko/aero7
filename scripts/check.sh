@@ -3,6 +3,29 @@ set -Eeuo pipefail
 
 project_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
+printf 'Repository policy files\n'
+for policy_file in \
+  CONTRIBUTING.md \
+  CODE_OF_CONDUCT.md \
+  SECURITY.md \
+  SUPPORT.md \
+  THIRD_PARTY.md \
+  docs/PUBLIC-RELEASE-CHECKLIST.md \
+  config/public-release.conf \
+  .github/PULL_REQUEST_TEMPLATE.md \
+  .github/ISSUE_TEMPLATE/bug_report.yml \
+  .github/ISSUE_TEMPLATE/feature_request.yml; do
+  [[ -s "$project_root/$policy_file" ]] || {
+    printf 'Missing repository policy file: %s\n' "$policy_file" >&2
+    exit 1
+  }
+done
+grep -Eq '^public_release_status=(blocked|cleared)$' \
+  "$project_root/config/public-release.conf" || {
+  printf 'The public release status is missing or invalid.\n' >&2
+  exit 1
+}
+
 printf 'Python backend tests\n'
 python -m unittest discover -s "$project_root/tests" -p 'test_*.py' -v
 
@@ -162,6 +185,19 @@ grep -Fq 'global.StartingText = "Starting Aero7";' "$project_root/third_party/Pl
 grep -Fq 'Image("flag" + i + ".png")' "$project_root/third_party/PlymouthVista/PlymouthVista.script"
 if rg -n 'Image\("branding_|Image\("authui_' "$project_root/third_party/PlymouthVista/PlymouthVista.script" >/dev/null 2>&1; then
   printf 'Plymouth script still references replaced branding or auth artwork.\n' >&2
+  exit 1
+fi
+for removed_asset in \
+  authui_7.png authui_vista.png branding_7.png branding_vista.png; do
+  if [[ -e "$project_root/third_party/PlymouthVista/images/$removed_asset" ]]; then
+    printf 'Unused upstream Plymouth bitmap returned: %s\n' "$removed_asset" >&2
+    exit 1
+  fi
+done
+if [[ -e "$project_root/installer/assets/aero7-mark.png" \
+    || -e "$project_root/installer/assets/aero7-mark.svg" ]] \
+    || rg -n 'aero7-mark' "$project_root/installer" >/dev/null 2>&1; then
+  printf 'The retired temporary A mark is still present or referenced.\n' >&2
   exit 1
 fi
 
