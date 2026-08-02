@@ -35,5 +35,6 @@ hostname and must not contain spaces.
 ## Recovery
 
 If OOBE cannot finish, switch to TTY2 with Alt+F2 and inspect the commands in
-[[Recovery and Logs]]. The one-time service remains diagnosable and does not
+[Recovery and Logs](Recovery-and-Logs.md). The one-time service remains
+diagnosable and does not
 create a passwordless sudo rule.

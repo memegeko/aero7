@@ -80,7 +80,7 @@ the verified package-focus regression changes and passed the automated release
 gate; treat it as Beta software and report any full-flow regression.
 
 See the [validation report](validation.md) and the
-[Aero7 Wiki](https://github.com/memegeko/aero7/wiki) for details.
+[Aero7 handbook](../wiki/Home.md) for details.
 
 ## Legal notice
 

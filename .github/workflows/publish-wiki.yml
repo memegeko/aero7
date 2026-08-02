@@ -28,6 +28,10 @@ jobs:
         run: |
           set -Eeuo pipefail
           wiki_url="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git"
+          if ! git ls-remote "$wiki_url" >/dev/null 2>&1; then
+            echo "GitHub Wiki has no first page yet; keeping versioned wiki source in the repository."
+            exit 0
+          fi
           git clone "$wiki_url" published-wiki
           rsync -a --delete --exclude=.git wiki/ published-wiki/
           cd published-wiki

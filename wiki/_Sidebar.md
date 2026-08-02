@@ -1,26 +1,26 @@
 ## Aero7
 
-- [[Home]]
-- [[Installation]]
-- [[System Requirements]]
-- [[Installer Guide]]
-- [[First Boot and OOBE]]
-- [[Included Software]]
+- [Home](Home.md)
+- [Installation](Installation.md)
+- [System Requirements](System-Requirements.md)
+- [Installer Guide](Installer-Guide.md)
+- [First Boot and OOBE](First-Boot-and-OOBE.md)
+- [Included Software](Included-Software.md)
 
 ## Help
 
-- [[Troubleshooting]]
-- [[Recovery and Logs]]
-- [[Known Issues]]
-- [[FAQ]]
+- [Troubleshooting](Troubleshooting.md)
+- [Recovery and Logs](Recovery-and-Logs.md)
+- [Known Issues](Known-Issues.md)
+- [FAQ](FAQ.md)
 
 ## Technical
 
-- [[Architecture]]
-- [[Security and Disk Safety]]
-- [[Building the ISO]]
-- [[Testing and Release]]
-- [[Credits and Licensing]]
+- [Architecture](Architecture.md)
+- [Security and Disk Safety](Security-and-Disk-Safety.md)
+- [Building the ISO](Building-the-ISO.md)
+- [Testing and Release](Testing-and-Release.md)
+- [Credits and Licensing](Credits-and-Licensing.md)
 
 ---
 
