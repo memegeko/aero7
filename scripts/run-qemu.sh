@@ -149,12 +149,12 @@ qemu_args=(
   -smp 4
   -vga qxl
   -display "$display_spec"
-  -device virtio-tablet-pci,id=aero7tablet
+  -device "virtio-tablet-pci,id=aero7tablet"
   -drive "if=pflash,format=raw,readonly=on,file=$code_path"
   -drive "if=pflash,format=raw,file=$vars_path"
   "${storage_args[@]}"
   -boot menu=on
-  -nic user,model=virtio-net-pci
+  -nic "user,model=virtio-net-pci"
   -monitor "unix:$monitor_path,server=on,wait=off"
   -qmp "unix:$qmp_path,server=on,wait=off"
   -serial "file:$serial_path"

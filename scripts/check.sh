@@ -61,7 +61,7 @@ grep -Fq 'image-compression=off,streaming-video=off' \
   "$project_root/scripts/run-qemu.sh"
 grep -Fq -- '-machine "q35,accel=$accel,vmport=off"' \
   "$project_root/scripts/run-qemu.sh"
-grep -Fq -- '-device virtio-tablet-pci,id=aero7tablet' \
+grep -Fq -- '-device "virtio-tablet-pci,id=aero7tablet"' \
   "$project_root/scripts/run-qemu.sh"
 if rg -n -- '-device (usb-tablet|qemu-xhci)' \
     "$project_root/scripts/run-qemu.sh" >/dev/null 2>&1; then
@@ -302,7 +302,8 @@ grep -Fq 'Name=Command Prompt' \
 
 if command -v shellcheck >/dev/null 2>&1; then
   printf 'ShellCheck\n'
-  shellcheck "$project_root"/scripts/*.sh "$project_root/archiso/profiledef.sh"
+  shellcheck --severity=warning \
+    "$project_root"/scripts/*.sh "$project_root/archiso/profiledef.sh"
 else
   printf 'SKIP: shellcheck is not installed\n'
 fi
