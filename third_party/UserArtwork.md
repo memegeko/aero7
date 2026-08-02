@@ -1,18 +1,22 @@
 # Project-owner-supplied Aero7 artwork
 
-The project owner supplied two AI-generated Aero7 logo images on 2026-07-29:
-one plain four-pane mark and one circular glass variant. OpenAI's built-in image
-editor was used in background-extraction mode to place each existing mark on a
-flat magenta chroma key. The standard imagegen transparency helper then removed
-that key without installing software on the host.
+The project owner supplied a transparent AI-generated circular Aero7 7 emblem
+on 2026-08-02 and approved it as the primary non-Plymouth Aero7 identity. The
+installer variants are deterministic crops and downscales of that supplied
+artwork; its design, colors, highlights, and internal glass effects were not
+regenerated or recolored.
 
-Project outputs:
+Current non-Plymouth outputs:
 
 - `installer/assets/aero7-logo-plain.png`
 - `installer/assets/aero7-logo-circle.png`
+- `installer/assets/aero7-sddm-branding.png`
+
+The older project-owner-supplied files below are retained only because the
+project owner explicitly requested that Plymouth remain unchanged:
+
 - `third_party/PlymouthVista/images/aero7-logo-plain.png`
 - `third_party/PlymouthVista/images/aero7-logo-circle.png`
 
-Final image-editing prompt intent: isolate the supplied mark; preserve its pane
-or circular-glass design; remove only the original background and exterior glow;
-add no text, watermark, shadow, or extra branding.
+Those Plymouth files and the `flag*.png` animation frames are not sources for
+the current installer, login, desktop, or companion-application identity.
