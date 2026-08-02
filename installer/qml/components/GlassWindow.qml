@@ -165,7 +165,7 @@ Item {
                 anchors.left: parent.left
                 anchors.leftMargin: root.showBack ? 43 : 11
                 anchors.verticalCenter: parent.verticalCenter
-                source: "qrc:/assets/aero7-mark.png"
+                source: "qrc:/assets/aero7-logo-plain.png"
                 smooth: true
             }
 

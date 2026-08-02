@@ -13,6 +13,8 @@ The Beta 1 release candidate was assembled on 2026-08-02:
 
 The matching checksum file is
 `out/aero7-beta1-2026.08.02-x86_64.iso.sha256`.
+The checksum is also recorded in version control at
+`docs/checksums/SHA256SUMS`.
 
 ## Automated release gate
 
@@ -102,3 +104,5 @@ The artifact satisfies the Beta 1 source and embedded-image gates and is ready
 for private VM-only prerelease testing. It is not approved for physical disks,
 production systems, or public redistribution without the independent artwork
 rights review described in `THIRD_PARTY.md`.
+The public-release history, mark, security, and fresh-candidate gates are
+tracked in `docs/PUBLIC-RELEASE-CHECKLIST.md`.

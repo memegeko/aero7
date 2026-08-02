@@ -188,7 +188,7 @@ install -m 0644 "$plymouth_source/PlymouthVista.script" "$plymouth_target/Plymou
 while IFS= read -r -d '' plymouth_asset; do
   asset_name="${plymouth_asset##*/}"
   case "$asset_name" in
-    aero7-logo-circle.png|branding_7.png|branding_vista.png|authui_7.png|authui_vista.png) continue ;;
+    aero7-logo-circle.png) continue ;;
   esac
   install -m 0644 "$plymouth_asset" "$plymouth_target/images/$asset_name"
 done < <(find "$plymouth_source/images" -maxdepth 1 -type f -print0)

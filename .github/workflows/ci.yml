@@ -1,0 +1,49 @@
+name: Source checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: source-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel
+    steps:
+      - name: Install validation tools
+        run: >-
+          pacman -Syu --noconfirm --needed
+          git imagemagick python qt6-declarative ripgrep shellcheck
+
+      - name: Check out Aero7 ISO
+        uses: actions/checkout@v5
+        with:
+          path: aero7-iso
+
+      - name: Check out pinned Aero7 shell
+        uses: actions/checkout@v5
+        with:
+          repository: memegeko/aero7-shell
+          ref: 797d7bf56b498938da4dbd8f7f7ab259dc6fc832
+          path: aero_desktop
+
+      - name: Run source gate
+        working-directory: aero7-iso
+        run: ./scripts/check.sh
+
+      - name: Confirm public-release hold is active
+        working-directory: aero7-iso
+        run: |
+          if ./scripts/check-public-release.sh; then
+            echo "The public-release gate unexpectedly passed." >&2
+            exit 1
+          fi
+          grep -Fqx 'public_release_status=blocked' config/public-release.conf

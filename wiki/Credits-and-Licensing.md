@@ -38,5 +38,10 @@ before any public or commercial redistribution of the ISO. Do not remove
 license files, copyright notices, source offers, or attribution from a
 derivative image.
 
+The current theme and animation remain unchanged. Four unused upstream login
+and product-branding bitmaps were removed from the latest source tree, but
+earlier Git commits still contain them. Any public-release decision must cover
+the repository's full history as well as the ISO and release attachments.
+
 The repository's `THIRD_PARTY.md` is the authoritative asset-by-asset notice.
 If this wiki summary and that file differ, follow `THIRD_PARTY.md`.

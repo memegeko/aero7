@@ -78,8 +78,6 @@ qt_add_resources(aero7-installer "art_resources"
         assets/aero7-background.png
         assets/aero7-logo-circle.png
         assets/aero7-logo-plain.png
-        assets/aero7-mark.png
-        assets/aero7-mark.svg
         assets/aero-shell/aero7-user.png
         assets/aero-shell/aero_bg_1.png
         assets/cursors/aero-pointer.svg
