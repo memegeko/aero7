@@ -5,10 +5,10 @@ project_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 fresh=0
 installed_only=0
 iso_path=""
-display_backend="sdl"
+display_backend="spice"
 
 usage() {
-  printf 'Usage: %s [--fresh] [--installed] [--iso PATH] [--display sdl|gtk]\n' "${0##*/}"
+  printf 'Usage: %s [--fresh] [--installed] [--iso PATH] [--display spice|sdl|gtk]\n' "${0##*/}"
 }
 
 while (($#)); do
@@ -24,10 +24,16 @@ while (($#)); do
 done
 
 case "$display_backend" in
-  sdl) display_spec="sdl,gl=off" ;;
+  spice) display_spec="none" ;;
+  sdl)
+    display_spec="sdl,gl=off"
+    # QEMU's SDL frontend otherwise uses nearest-neighbour enlargement, which
+    # makes the fixed 1024x768 installer framebuffer look blocky.
+    export SDL_RENDER_SCALE_QUALITY=linear
+    ;;
   gtk) display_spec="gtk,gl=off" ;;
   *)
-    printf 'Unsupported QEMU display backend: %s (use sdl or gtk).\n' "$display_backend" >&2
+    printf 'Unsupported QEMU display backend: %s (use spice, sdl, or gtk).\n' "$display_backend" >&2
     exit 2
     ;;
 esac
@@ -40,6 +46,12 @@ fi
 for command_name in qemu-system-x86_64 qemu-img; do
   command -v "$command_name" >/dev/null 2>&1 || { printf 'Missing tool: %s\n' "$command_name" >&2; exit 1; }
 done
+if [[ "$display_backend" == "spice" ]]; then
+  command -v remote-viewer >/dev/null 2>&1 || {
+    printf 'Missing SPICE client: remote-viewer (install virt-viewer).\n' >&2
+    exit 1
+  }
+fi
 
 if ((!installed_only)) && [[ -z "$iso_path" ]]; then
   release_name="$(sed -n 's/^iso_name="\([^"]*\)"/\1/p' "$project_root/archiso/profiledef.sh")"
@@ -57,6 +69,10 @@ if ((!installed_only)); then
   }
 fi
 
+if ((fresh)); then
+  printf '%s\n' 'Fresh mode resets the disposable VM disk and UEFI variables; it does not rebuild the ISO.'
+fi
+
 qemu_root="$project_root/work/qemu"
 archive_root="$qemu_root/archive"
 disk_path="$qemu_root/aero7-test.qcow2"
@@ -64,12 +80,14 @@ vars_path="$qemu_root/OVMF_VARS.4m.fd"
 serial_path="$qemu_root/aero7-serial.log"
 monitor_path="$qemu_root/aero7-monitor.sock"
 qmp_path="$qemu_root/aero7-qmp.sock"
+spice_path="$qemu_root/aero7-spice.sock"
 code_path="/usr/share/edk2/x64/OVMF_CODE.4m.fd"
 vars_template="/usr/share/edk2/x64/OVMF_VARS.4m.fd"
 mkdir -p "$qemu_root" "$archive_root"
 [[ -f "$code_path" && -f "$vars_template" ]] || { printf 'OVMF firmware is missing (install edk2-ovmf).\n' >&2; exit 1; }
 rm -f -- "$monitor_path"
 rm -f -- "$qmp_path"
+rm -f -- "$spice_path"
 
 if ((fresh)) && [[ -e "$disk_path" ]]; then
   mv "$disk_path" "$archive_root/aero7-test-$(date -u +%Y%m%dT%H%M%SZ).qcow2"
@@ -104,11 +122,10 @@ printf 'QMP input socket: %s\n' "$qmp_path"
 # updates, which leaves cursor trails and pieces of the previous page behind.
 # virtio-vga is also unsuitable here because this Cage/wlroots combination
 # cannot import its DMA-BUF for scan-out. QXL provides clean full repaints.
-# Use SDL for the host window by default. QEMU 11's GTK/Cairo frontend can
-# reject QXL scanlines with an "invalid value for stride" warning, leaving a
-# black window that repaints only while the pointer moves. SDL presents the
-# same QXL guest surface without that host-side repaint failure. Keep GTK as an
-# explicit diagnostic option through --display gtk.
+# Use a local SPICE Unix socket for the host window. QEMU 11's SDL frontend can
+# lose physical mouse-button events, while its GTK/Cairo frontend can reject
+# QXL scanlines and repaint only while the pointer moves. remote-viewer avoids
+# both frontend bugs. SDL and GTK remain explicit diagnostic options.
 # Put the virtual disk first in the UEFI device boot order. A fresh empty disk
 # falls through to the installer DVD, while the first reboot after installation
 # selects the newly bootable disk even if the virtual DVD is still attached.
@@ -123,21 +140,64 @@ if ((!installed_only)); then
   )
 fi
 
-exec qemu-system-x86_64 \
-  -name Aero7-Installer-Test \
-  -machine "q35,accel=$accel" \
-  -cpu "$cpu_model" \
-  -m 4096 \
-  -smp 4 \
-  -vga qxl \
-  -display "$display_spec" \
-  -device qemu-xhci \
-  -device usb-tablet \
-  -drive "if=pflash,format=raw,readonly=on,file=$code_path" \
-  -drive "if=pflash,format=raw,file=$vars_path" \
-  "${storage_args[@]}" \
-  -boot menu=on \
-  -nic user,model=virtio-net-pci \
-  -monitor "unix:$monitor_path,server=on,wait=off" \
-  -qmp "unix:$qmp_path,server=on,wait=off" \
+qemu_args=(
+  qemu-system-x86_64
+  -name Aero7-Installer-Test
+  -machine "q35,accel=$accel,vmport=off"
+  -cpu "$cpu_model"
+  -m 4096
+  -smp 4
+  -vga qxl
+  -display "$display_spec"
+  -device virtio-tablet-pci,id=aero7tablet
+  -drive "if=pflash,format=raw,readonly=on,file=$code_path"
+  -drive "if=pflash,format=raw,file=$vars_path"
+  "${storage_args[@]}"
+  -boot menu=on
+  -nic user,model=virtio-net-pci
+  -monitor "unix:$monitor_path,server=on,wait=off"
+  -qmp "unix:$qmp_path,server=on,wait=off"
   -serial "file:$serial_path"
+)
+
+if [[ "$display_backend" != "spice" ]]; then
+  exec "${qemu_args[@]}"
+fi
+
+qemu_args+=(
+  -spice "unix=on,addr=$spice_path,disable-ticketing=on,image-compression=off,streaming-video=off"
+)
+"${qemu_args[@]}" &
+qemu_pid=$!
+
+cleanup_spice() {
+  trap - EXIT
+  if kill -0 "$qemu_pid" >/dev/null 2>&1; then
+    kill "$qemu_pid" >/dev/null 2>&1 || true
+    wait "$qemu_pid" >/dev/null 2>&1 || true
+  fi
+  rm -f -- "$spice_path"
+}
+trap cleanup_spice EXIT
+
+for ((attempt = 0; attempt < 100; attempt++)); do
+  [[ -S "$spice_path" ]] && break
+  if ! kill -0 "$qemu_pid" >/dev/null 2>&1; then
+    set +e
+    wait "$qemu_pid"
+    qemu_status=$?
+    set -e
+    exit "$qemu_status"
+  fi
+  sleep 0.05
+done
+[[ -S "$spice_path" ]] || {
+  printf 'QEMU did not create the SPICE socket: %s\n' "$spice_path" >&2
+  exit 1
+}
+
+{
+  printf '[virt-viewer]\n'
+  printf 'type=spice\n'
+  printf 'unix-path=%s\n' "$spice_path"
+} | remote-viewer --auto-resize=never --cursor=auto --title 'Aero7 Installer Test' -
