@@ -12,12 +12,12 @@ Aero7 is an independent Arch Linux-based operating system with a guided,
 full-screen installer and a KDE Plasma 6 Wayland desktop inspired by the calm,
 glassy desktop design of the late 2000s.
 
-[![Release](https://img.shields.io/badge/release-Beta%201-66B8FF?style=for-the-badge)](https://github.com/memegeko/aero7/releases/latest)
+[![Release](https://img.shields.io/badge/release-Beta%201-66B8FF?style=for-the-badge)](https://github.com/memegeko/aero7/releases/tag/v0.1.0-beta.1)
 [![Arch Linux](https://img.shields.io/badge/base-Arch%20Linux-1793D1?style=for-the-badge&logo=archlinux&logoColor=white)](https://archlinux.org/)
 [![KDE Plasma](https://img.shields.io/badge/desktop-Plasma%206-1D99F3?style=for-the-badge&logo=kde&logoColor=white)](https://kde.org/plasma-desktop/)
 [![Wayland](https://img.shields.io/badge/session-Wayland-7D4CDB?style=for-the-badge)](https://wayland.freedesktop.org/)
 
-[**Download Beta 1**](https://github.com/memegeko/aero7/releases/latest) ·
+[**Download Beta 1**](https://github.com/memegeko/aero7/releases/tag/v0.1.0-beta.1) ·
 [**Read the Handbook**](wiki/Home.md) ·
 [**Report a bug**](https://github.com/memegeko/aero7/issues/new) ·
 [**Aero7-shell**](https://github.com/memegeko/aero7-shell)
@@ -93,7 +93,7 @@ included because its source and redistribution terms have not been verified.
 
 ## Download and try Beta 1
 
-1. Open the [Beta 1 release](https://github.com/memegeko/aero7/releases/latest).
+1. Open the [Beta 1 release](https://github.com/memegeko/aero7/releases/tag/v0.1.0-beta.1).
 2. Download the `.iso` and matching `.sha256` file.
 3. Verify the checksum before booting the image.
 4. Create an x86-64 UEFI virtual machine with at least 4 GB RAM and a disposable
