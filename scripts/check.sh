@@ -117,7 +117,23 @@ done
 
 printf 'QML syntax\n'
 mapfile -t qml_files < <(find "$project_root/installer/qml" -type f -name '*.qml' -print | sort)
-qmllint "${qml_files[@]}"
+qml_linter=""
+for qml_linter_candidate in \
+  "${AERO7_QMLLINT:-}" \
+  /usr/lib/qt6/bin/qmllint \
+  "$(command -v qmllint6 || true)" \
+  "$(command -v qmllint || true)"; do
+  if [[ -n "$qml_linter_candidate" && -x "$qml_linter_candidate" ]]; then
+    qml_linter="$qml_linter_candidate"
+    break
+  fi
+done
+[[ -n "$qml_linter" ]] || {
+  printf 'Qt 6 qmllint is not installed.\n' >&2
+  exit 1
+}
+printf 'Using %s\n' "$qml_linter"
+"$qml_linter" "${qml_files[@]}"
 if rg -n 'Continue|AeroButton' \
   "$project_root/installer/qml/screens/OobeWelcomeScreen.qml" >/dev/null 2>&1; then
   printf 'The automatic OOBE Welcome screen still contains a manual button.\n' >&2
