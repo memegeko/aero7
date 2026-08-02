@@ -62,7 +62,8 @@ Normal setup opens directly. There is no general-purpose live desktop.
 
 ## 5. Install
 
-Follow the pages described in [[Installer Guide]]. The whole-disk option creates:
+Follow the pages described in [Installer Guide](Installer-Guide.md). The
+whole-disk option creates:
 
 1. a GPT partition table;
 2. a 1 GiB FAT32 EFI System Partition;
@@ -76,12 +77,14 @@ the VM must have internet access.
 
 After the disk phase, the machine restarts from its virtual disk while the ISO
 may remain attached. The OOBE pages create your user, password, computer name,
-time zone, update choice, and network profile. See [[First Boot and OOBE]].
+time zone, update choice, and network profile. See
+[First Boot and OOBE](First-Boot-and-OOBE.md).
 
 ## If something goes wrong
 
 - Boot **Aero7 Setup (debug, no splash)**.
 - Press **Alt+F2** for the recovery console and **Alt+F1** to return.
-- Read [[Troubleshooting]] and [[Recovery and Logs]].
+- Read [Troubleshooting](Troubleshooting.md) and
+  [Recovery and Logs](Recovery-and-Logs.md).
 
 Do not attach a host drive or important VM disk to a Beta 1 test machine.

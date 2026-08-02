@@ -22,7 +22,7 @@ tablet devices if the pointer coordinates or button events are duplicated.
 
 1. Boot **Aero7 Setup (debug, no splash)**.
 2. Switch to TTY2 with Alt+F2.
-3. Run the commands in [[Recovery and Logs]].
+3. Run the commands in [Recovery and Logs](Recovery-and-Logs.md).
 4. Check whether Cage, Qt, QXL, or package-mirror errors appear.
 
 ## No disk appears
@@ -45,7 +45,8 @@ failing package name and the end of the log in a bug report.
 ## OOBE does not reach the desktop
 
 Open TTY2 and check `aero7-oobe.service`, SDDM, the shell adapter log, and the
-first-login state. See [[Recovery and Logs]]. Avoid manually enabling permanent
+first-login state. See [Recovery and Logs](Recovery-and-Logs.md). Avoid manually
+enabling permanent
 autologin; the normal first-login setting is deliberately temporary.
 
 ## Report a useful bug

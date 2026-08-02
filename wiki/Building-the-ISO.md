@@ -1,7 +1,8 @@
 # Building the ISO
 
 This page is for developers and advanced testers. Most people should download
-the signed Beta 1 artifact from [[Installation]] instead of rebuilding it.
+the signed Beta 1 artifact from [Installation](Installation.md) instead of
+rebuilding it.
 
 ## Build host
 
@@ -63,7 +64,7 @@ Aero taskbar layout, application branding, and login artwork.
 
 `--fresh` creates a new disposable VM disk; it does not rebuild the ISO. Use
 `--iso /absolute/path/image.iso` to test a non-current artifact. See
-[[Testing and Release]] for the complete release gate.
+[Testing and Release](Testing-and-Release.md) for the complete release gate.
 
 ## Output safety
 
@@ -72,4 +73,5 @@ Aero taskbar layout, application branding, and login artwork.
   convenience.
 - Never publish an ISO unless its checksum was generated from the exact file
   that passed verification and the fresh-VM gate.
-- Review [[Credits and Licensing]] before redistributing any derivative image.
+- Review [Credits and Licensing](Credits-and-Licensing.md) before redistributing
+  any derivative image.
