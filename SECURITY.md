@@ -1,0 +1,31 @@
+# Security Policy
+
+## Supported releases
+
+| Release | Supported |
+| --- | --- |
+| Beta 1 | Security fixes are accepted for the VM-only test scope |
+| Older development snapshots | No |
+
+Beta 1 must not be used on physical hardware, production systems, or disks that
+contain valuable data.
+
+## Reporting a vulnerability
+
+Do not open a public issue for a vulnerability that could expose credentials,
+bypass the installer disk guards, erase an unintended device, or compromise an
+installed system.
+
+Use GitHub's **Report a vulnerability** button in the Security tab when it is
+available. GitHub does not expose that external reporting channel while this
+repository is private; it must be enabled and tested immediately after an
+explicitly approved visibility change and before the public release is
+announced. Non-sensitive bugs may use the normal bug-report form.
+
+Please include the affected commit or release, VM configuration, a minimal
+reproduction, expected and actual behavior, and whether the issue can affect a
+host or physical disk. Remove passwords, tokens, machine identifiers, and other
+personal information from logs.
+
+The project will acknowledge a complete private report as soon as practical,
+coordinate a fix and disclosure window, and credit the reporter if requested.
