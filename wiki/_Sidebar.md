@@ -24,4 +24,4 @@
 
 ---
 
-[Download Beta 1](https://github.com/memegeko/aero7/releases/latest)
+[Download Beta 1](https://github.com/memegeko/aero7/releases/tag/v0.1.0-beta.1)
