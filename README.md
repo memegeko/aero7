@@ -18,7 +18,7 @@ glassy desktop design of the late 2000s.
 [![Wayland](https://img.shields.io/badge/session-Wayland-7D4CDB?style=for-the-badge)](https://wayland.freedesktop.org/)
 
 [**Download Beta 1**](https://github.com/memegeko/aero7/releases/latest) ·
-[**Read the Wiki**](https://github.com/memegeko/aero7/wiki) ·
+[**Read the Handbook**](wiki/Home.md) ·
 [**Report a bug**](https://github.com/memegeko/aero7/issues/new) ·
 [**Aero7-shell**](https://github.com/memegeko/aero7-shell)
 
@@ -101,7 +101,7 @@ included because its source and redistribution terms have not been verified.
 5. Boot the ISO and follow the on-screen installer.
 
 Detailed VM settings, checksum commands, screenshots, recovery shortcuts, and
-troubleshooting are in the [Installation wiki page](https://github.com/memegeko/aero7/wiki/Installation).
+troubleshooting are in the [Installation handbook page](wiki/Installation.md).
 
 ## Beta 1 support matrix
 
@@ -119,18 +119,19 @@ troubleshooting are in the [Installation wiki page](https://github.com/memegeko/
 
 ## Documentation
 
-The [Aero7 Wiki](https://github.com/memegeko/aero7/wiki) is the main handbook:
+The [Aero7 handbook](wiki/Home.md) is the main documentation source. Its
+versioned pages are also ready to synchronize to GitHub Wiki:
 
-- [Installation](https://github.com/memegeko/aero7/wiki/Installation)
-- [Installer guide](https://github.com/memegeko/aero7/wiki/Installer-Guide)
-- [First boot and OOBE](https://github.com/memegeko/aero7/wiki/First-Boot-and-OOBE)
-- [Included software](https://github.com/memegeko/aero7/wiki/Included-Software)
-- [Troubleshooting](https://github.com/memegeko/aero7/wiki/Troubleshooting)
-- [Known issues](https://github.com/memegeko/aero7/wiki/Known-Issues)
-- [Architecture](https://github.com/memegeko/aero7/wiki/Architecture)
-- [Building the ISO](https://github.com/memegeko/aero7/wiki/Building-the-ISO)
-- [Security and disk safety](https://github.com/memegeko/aero7/wiki/Security-and-Disk-Safety)
-- [Credits and licensing](https://github.com/memegeko/aero7/wiki/Credits-and-Licensing)
+- [Installation](wiki/Installation.md)
+- [Installer guide](wiki/Installer-Guide.md)
+- [First boot and OOBE](wiki/First-Boot-and-OOBE.md)
+- [Included software](wiki/Included-Software.md)
+- [Troubleshooting](wiki/Troubleshooting.md)
+- [Known issues](wiki/Known-Issues.md)
+- [Architecture](wiki/Architecture.md)
+- [Building the ISO](wiki/Building-the-ISO.md)
+- [Security and disk safety](wiki/Security-and-Disk-Safety.md)
+- [Credits and licensing](wiki/Credits-and-Licensing.md)
 
 ## Related projects
 
