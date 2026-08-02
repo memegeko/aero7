@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Aero7 handbook
+    url: https://github.com/memegeko/aero7/wiki
+    about: Read installation, troubleshooting, and known-issue guidance.
+  - name: Security report
+    url: https://github.com/memegeko/aero7/security/advisories/new
+    about: Privately report a sensitive vulnerability. Do not post it as an issue.

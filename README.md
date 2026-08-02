@@ -16,6 +16,7 @@ glassy desktop design of the late 2000s.
 [![Arch Linux](https://img.shields.io/badge/base-Arch%20Linux-1793D1?style=for-the-badge&logo=archlinux&logoColor=white)](https://archlinux.org/)
 [![KDE Plasma](https://img.shields.io/badge/desktop-Plasma%206-1D99F3?style=for-the-badge&logo=kde&logoColor=white)](https://kde.org/plasma-desktop/)
 [![Wayland](https://img.shields.io/badge/session-Wayland-7D4CDB?style=for-the-badge)](https://wayland.freedesktop.org/)
+[![Public release](https://img.shields.io/badge/public%20release-rights%20review%20pending-D97706?style=for-the-badge)](docs/PUBLIC-RELEASE-CHECKLIST.md)
 
 [**Download Beta 1**](https://github.com/memegeko/aero7/releases/tag/v0.1.0-beta.1) ·
 [**Read the Handbook**](wiki/Home.md) ·
@@ -31,6 +32,11 @@ glassy desktop design of the late 2000s.
 > only a disposable VirtIO disk inside a supported virtual machine. Physical
 > disks, dual boot, encryption, manual partitioning, and legacy BIOS are
 > intentionally blocked in this release.
+>
+> **Public redistribution is not approved yet.** The repository and prerelease
+> remain private while the retained Plymouth animation, project marks, and full
+> repository history complete the reviews listed in the
+> [public-release checklist](docs/PUBLIC-RELEASE-CHECKLIST.md).
 
 ## Meet Aero7
 
@@ -151,12 +157,16 @@ and feedback—not a personal workstation or irreplaceable data.
 
 See the [Beta 1 release notes](docs/BETA1-RELEASE-NOTES.md) and
 [validation report](docs/validation.md) for the exact artifact and test record.
+Public-release status is tracked separately in the
+[public-release checklist](docs/PUBLIC-RELEASE-CHECKLIST.md).
 
 ## License and trademark notice
 
 The Aero7 installer source is distributed under the [MIT License](LICENSE).
 Third-party packages, themes, fonts, and artwork retain their own licenses and
 notices; see [THIRD_PARTY.md](THIRD_PARTY.md) before redistributing an image.
+The open-source code license does not by itself grant rights to every bundled
+visual asset.
 
 Aero7 is an independent open-source project. It is not affiliated with,
 authorized, sponsored, endorsed, or approved by Microsoft Corporation. Windows

@@ -6,6 +6,10 @@ system with a Windows-7-era-inspired installer and KDE Plasma 6 Wayland desktop.
 > **Beta 1 is a VM-only testing release.** The installer intentionally accepts
 > only a disposable VirtIO disk inside a supported virtual machine. Do not use
 > it for a personal workstation or irreplaceable data.
+>
+> **Public redistribution is not approved yet.** The private Beta is completing
+> an artwork-rights, mark, and repository-history review. See
+> [Testing and Release](Testing-and-Release.md) for the release gate.
 
 ## Start here
 
@@ -26,6 +30,7 @@ system with a Windows-7-era-inspired installer and KDE Plasma 6 Wayland desktop.
 - [Security and Disk Safety](Security-and-Disk-Safety.md)
 - [Building the ISO](Building-the-ISO.md)
 - [Testing and Release](Testing-and-Release.md)
+- [Public Release Readiness](Public-Release-Readiness.md)
 - [Credits and Licensing](Credits-and-Licensing.md)
 - [FAQ](FAQ.md)
 
@@ -40,7 +45,8 @@ system with a Windows-7-era-inspired installer and KDE Plasma 6 Wayland desktop.
 | Desktop | KDE Plasma 6 Wayland |
 | Intended target | Disposable QEMU/KVM VM |
 
-Download it from the [Beta 1 GitHub release](https://github.com/memegeko/aero7/releases/tag/v0.1.0-beta.1).
+Authorized private testers can download it from the
+[Beta 1 GitHub release](https://github.com/memegeko/aero7/releases/tag/v0.1.0-beta.1).
 
 ## Project links
 

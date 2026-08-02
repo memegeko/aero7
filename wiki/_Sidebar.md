@@ -20,8 +20,9 @@
 - [Security and Disk Safety](Security-and-Disk-Safety.md)
 - [Building the ISO](Building-the-ISO.md)
 - [Testing and Release](Testing-and-Release.md)
+- [Public Release Readiness](Public-Release-Readiness.md)
 - [Credits and Licensing](Credits-and-Licensing.md)
 
 ---
 
-[Download Beta 1](https://github.com/memegeko/aero7/releases/tag/v0.1.0-beta.1)
+[Private Beta 1](https://github.com/memegeko/aero7/releases/tag/v0.1.0-beta.1)
