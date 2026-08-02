@@ -5,7 +5,7 @@ will reject physical disks and non-VirtIO targets.
 
 ## 1. Download
 
-Open the [latest Aero7 release](https://github.com/memegeko/aero7/releases/latest)
+Open the [Aero7 Beta 1 release](https://github.com/memegeko/aero7/releases/tag/v0.1.0-beta.1)
 and download both files:
 
 - `aero7-beta1-2026.08.02-x86_64.iso`
