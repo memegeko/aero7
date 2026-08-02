@@ -9,12 +9,11 @@ sudo
 git
 curl
 unzip
-cmake
-extra-cmake-modules
-ninja
-base-devel
 dosfstools
 e2fsprogs
+# Install the focused Plasma desktop, never the broad plasma-meta or
+# kde-applications-meta collections. Aero7 applications are installed from the
+# signed Aero7 repository later in setup.
 plasma-desktop
 plasma-workspace
 plasma-nm
@@ -30,8 +29,6 @@ qt6-virtualkeyboard
 qt6-multimedia
 qt6-5compat
 plasma-wayland-protocols
-wayland-protocols
-vulkan-headers
 plasma5support
 kvantum
 oxygen-icons
@@ -39,10 +36,6 @@ cage
 mesa
 konsole
 ark
-kate
-spectacle
-okular
-kcalc
 fastfetch
 plymouth
 imagemagick

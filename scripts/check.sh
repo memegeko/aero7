@@ -168,6 +168,13 @@ fi
 printf 'Aero7-shell package parity\n'
 while IFS= read -r package_name; do
   [[ -n "$package_name" && "$package_name" != \#* ]] || continue
+  case "$package_name" in
+    # Source-build and optional utility packages used by the standalone shell
+    # installer are intentionally absent from the binary-package ISO target.
+    cmake|extra-cmake-modules|ninja|base-devel|wayland-protocols|vulkan-headers|kate|spectacle|okular|kcalc)
+      continue
+      ;;
+  esac
   grep -Fqx "$package_name" "$project_root/config/base-packages.txt" || {
     printf 'Base package from the pinned shell installer is missing: %s\n' "$package_name" >&2
     exit 1
@@ -187,6 +194,19 @@ while IFS= read -r package_name; do
     exit 1
   }
 done < "$project_root/../aero_desktop/config/companion-packages.conf"
+grep -Fqx plasma-desktop "$project_root/config/base-packages.txt" || {
+  printf 'The focused plasma-desktop package is missing from the installed system.\n' >&2
+  exit 1
+}
+for excluded_target_package in \
+  plasma-meta kde-applications-meta \
+  cmake extra-cmake-modules ninja base-devel wayland-protocols vulkan-headers \
+  kate spectacle okular kcalc; do
+  if grep -Fqx "$excluded_target_package" "$project_root/config/base-packages.txt"; then
+    printf 'Unwanted target package is present: %s\n' "$excluded_target_package" >&2
+    exit 1
+  fi
+done
 for available_application in linux-devmgmt tuxmanager; do
   grep -Fqx "$available_application" "$project_root/config/aero7-packages.txt" || {
     printf 'Available shell application package is missing: %s\n' "$available_application" >&2
