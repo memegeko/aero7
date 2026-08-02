@@ -1,0 +1,77 @@
+name: Bug report
+description: Report a reproducible Aero7 Beta 1 problem
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing Aero7. Do not include passwords, tokens, private machine data, or sensitive security details. Use the Security tab for vulnerabilities.
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Supported test scope
+      options:
+        - label: I reproduced this in a disposable QEMU/KVM VM using the current Aero7 launcher.
+          required: true
+        - label: I checked the troubleshooting guide and known issues.
+          required: true
+  - type: input
+    id: checksum
+    attributes:
+      label: ISO SHA-256
+      placeholder: 64-character checksum
+    validations:
+      required: true
+  - type: input
+    id: commit
+    attributes:
+      label: Source commit or release tag
+      placeholder: v0.1.0-beta.1 or commit SHA
+    validations:
+      required: true
+  - type: dropdown
+    id: stage
+    attributes:
+      label: Where did it happen?
+      options:
+        - ISO boot
+        - Installer
+        - Restart
+        - First-boot setup
+        - Login
+        - Desktop
+        - Shutdown or second boot
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Start from a fresh VM and list every action needed.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: vm
+    attributes:
+      label: VM configuration
+      description: QEMU version, firmware, RAM, CPU, display backend, and disk configuration.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized logs or screenshots
+      description: Drag files here after removing passwords, tokens, hostnames, and personal information.
