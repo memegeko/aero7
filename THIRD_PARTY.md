@@ -11,9 +11,6 @@
   original abstract cobalt-to-cyan Aero7 installer background with sweeping
   light trails and bokeh; no text, logos, flags, Windows marks, Microsoft
   wallpaper motifs, recognizable flowers or birds, UI panels, or watermark.
-- `installer/assets/aero7-mark.svg` is an original code-native Aero7 mark created
-  for this project. `aero7-mark.png` is a mechanical rasterization of that mark
-  for Plymouth.
 - `installer/assets/aero7-logo-plain.png` and the two `aero7-logo-*.png` files
   under `third_party/PlymouthVista/images/` are derived from AI-generated images
   supplied by the project owner on 2026-07-29. OpenAI's built-in image editor
@@ -33,9 +30,10 @@
   Microsoft Corporation. The original license and upstream notice are retained
   under `third_party/PlymouthVista/`.
 - The shipped Plymouth boot script retains the requested upstream `flag*.png`
-  animation frames. Its static `branding_*.png` and `authui_*.png` files are
-  not installed; shutdown/update branding uses the project-owner-supplied plain
-  Aero7 mark and the project's original Aero7 background.
+  animation frames. Unused upstream `branding_*.png` and `authui_*.png` files
+  were removed from the current tree and are not installed; shutdown/update
+  branding uses the project-owner-supplied plain Aero7 mark and the project's
+  original Aero7 background. Earlier commits still contain the removed files.
 - The installer frame, caption buttons, and back-button sprite come from the
   AeroThemePlasma/SMOD projects at the revisions recorded in `sources.lock`.
   Their copied assets and the mechanical Kvantum button crops remain under the
