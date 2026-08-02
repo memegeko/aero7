@@ -11,23 +11,23 @@ system with a Windows-7-era-inspired installer and KDE Plasma 6 Wayland desktop.
 
 | I want to… | Read… |
 | --- | --- |
-| Download and install Beta 1 | [[Installation]] |
-| Check whether my VM is supported | [[System Requirements]] |
-| Understand every setup page | [[Installer Guide]] |
-| Learn what happens after restart | [[First Boot and OOBE]] |
-| See which programs are included | [[Included Software]] |
-| Fix a failed or black-screen boot | [[Troubleshooting]] |
-| Open the recovery console | [[Recovery and Logs]] |
-| Review Beta limitations | [[Known Issues]] |
+| Download and install Beta 1 | [Installation](Installation.md) |
+| Check whether my VM is supported | [System Requirements](System-Requirements.md) |
+| Understand every setup page | [Installer Guide](Installer-Guide.md) |
+| Learn what happens after restart | [First Boot and OOBE](First-Boot-and-OOBE.md) |
+| See which programs are included | [Included Software](Included-Software.md) |
+| Fix a failed or black-screen boot | [Troubleshooting](Troubleshooting.md) |
+| Open the recovery console | [Recovery and Logs](Recovery-and-Logs.md) |
+| Review Beta limitations | [Known Issues](Known-Issues.md) |
 
 ## Technical documentation
 
-- [[Architecture]]
-- [[Security and Disk Safety]]
-- [[Building the ISO]]
-- [[Testing and Release]]
-- [[Credits and Licensing]]
-- [[FAQ]]
+- [Architecture](Architecture.md)
+- [Security and Disk Safety](Security-and-Disk-Safety.md)
+- [Building the ISO](Building-the-ISO.md)
+- [Testing and Release](Testing-and-Release.md)
+- [Credits and Licensing](Credits-and-Licensing.md)
+- [FAQ](FAQ.md)
 
 ## Beta 1 artifact
 

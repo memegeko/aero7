@@ -30,7 +30,7 @@ An offline payload is not included yet.
 ## Why did the VM boot into setup again?
 
 The virtual disk must be first in UEFI boot order and the DVD second. Follow
-the fix in [[Troubleshooting]].
+the fix in [Troubleshooting](Troubleshooting.md).
 
 ## Is WinXplorer included?
 
@@ -45,9 +45,11 @@ authentication.
 
 ## Where are installer logs?
 
-Press Alt+F2 for the recovery console and follow [[Recovery and Logs]].
+Press Alt+F2 for the recovery console and follow
+[Recovery and Logs](Recovery-and-Logs.md).
 
 ## Can I build it myself?
 
-Yes, if you are an experienced Arch Linux developer. See [[Building the ISO]]
-and review [[Credits and Licensing]] before sharing the result.
+Yes, if you are an experienced Arch Linux developer. See
+[Building the ISO](Building-the-ISO.md) and review
+[Credits and Licensing](Credits-and-Licensing.md) before sharing the result.

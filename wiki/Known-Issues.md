@@ -14,7 +14,8 @@
 QEMU's legacy standard VGA output can miss wlroots damage updates, leaving mouse
 trails or fragments of a previous page. Some GTK/Cairo combinations have also
 shown a black window that repaints only when the pointer moves. Use QXL through
-SPICE and a VirtIO tablet, as documented in [[System Requirements]].
+SPICE and a VirtIO tablet, as documented in
+[System Requirements](System-Requirements.md).
 
 The host SPICE viewer may print harmless GTK minimum-size or automount-inhibitor
 warnings. These do not indicate a guest installer failure.
@@ -37,4 +38,4 @@ not changed. Report the installer log and date when filing a package failure.
 The requested PlymouthVista compatibility theme retains upstream animation
 frames whose README attributes visual resources to Microsoft Corporation.
 Anyone redistributing the ISO publicly must independently review the rights and
-notices described in [[Credits and Licensing]].
+notices described in [Credits and Licensing](Credits-and-Licensing.md).
