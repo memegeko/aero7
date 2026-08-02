@@ -28,9 +28,24 @@ jobs:
         run: |
           set -Eeuo pipefail
           wiki_url="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git"
-          if ! git ls-remote "$wiki_url" >/dev/null 2>&1; then
+          wiki_enabled="$(gh api "repos/${GITHUB_REPOSITORY}" --jq .has_wiki)"
+          if [[ "$wiki_enabled" != "true" ]]; then
+            echo "GitHub Wiki is disabled for ${GITHUB_REPOSITORY}." >&2
+            exit 1
+          fi
+
+          probe_error="$(mktemp)"
+          if git ls-remote "$wiki_url" >/dev/null 2>"$probe_error"; then
+            :
+          elif [[ "$(wc -l <"$probe_error")" -eq 2 ]] \
+              && grep -Fqx 'remote: Repository not found.' "$probe_error" \
+              && grep -Fq "${GITHUB_REPOSITORY}.wiki.git" "$probe_error" \
+              && grep -Fq 'not found' "$probe_error"; then
             echo "GitHub Wiki has no first page yet; keeping versioned wiki source in the repository."
             exit 0
+          else
+            echo "GitHub Wiki accessibility check failed; refusing to hide an authentication, permission, or network error." >&2
+            exit 1
           fi
           git clone "$wiki_url" published-wiki
           rsync -a --delete --exclude=.git wiki/ published-wiki/
