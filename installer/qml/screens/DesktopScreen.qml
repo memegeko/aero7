@@ -7,7 +7,7 @@ Item {
 
     Image {
         anchors.fill: parent
-        source: "qrc:/assets/aero-shell/aero_bg_1.png"
+        source: "qrc:/assets/aero-shell/aero7-background.png"
         fillMode: Image.PreserveAspectCrop
         smooth: true
     }

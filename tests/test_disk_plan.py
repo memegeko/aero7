@@ -148,7 +148,7 @@ class DiskPlanTest(unittest.TestCase):
     def test_first_boot_shell_adapter_is_guarded_and_offline(self):
         arguments = shell_image_mode_arguments("geko")
         self.assertIn("AERO7_IMAGE_MODE_GUARD=YES-I-AM-IN-AERO7-FIRST-BOOT", arguments)
-        self.assertIn("AERO7_WALLPAPER=aero_bg_1.png", arguments)
+        self.assertIn("AERO7_WALLPAPER=aero7-background.png", arguments)
         self.assertIn("--image-mode", arguments)
         self.assertEqual(arguments[arguments.index("--target-user") + 1], "geko")
         skipped = [

@@ -678,7 +678,7 @@ def shell_image_mode_arguments(username: str) -> list[str]:
     arguments = [
         "env",
         f"AERO7_IMAGE_MODE_GUARD={IMAGE_MODE_GUARD}",
-        "AERO7_WALLPAPER=aero_bg_1.png",
+        "AERO7_WALLPAPER=aero7-background.png",
         str(SHELL_INSTALLER),
         "--backend-run",
         "--image-mode",
