@@ -217,6 +217,23 @@ magick identify -format '%[channels]' \
   printf 'SDDM branding must retain a transparent alpha channel.\n' >&2
   exit 1
 }
+for logo_asset in aero7-logo-circle.png aero7-logo-plain.png; do
+  logo_geometry="$(magick identify -format '%wx%h' "$project_root/installer/assets/$logo_asset")"
+  [[ "$logo_geometry" == "512x512" ]] || {
+    printf 'Unexpected %s dimensions: %s\n' "$logo_asset" "$logo_geometry" >&2
+    exit 1
+  }
+  magick identify -format '%[channels]' \
+    "$project_root/installer/assets/$logo_asset" | grep -qi 'a' || {
+    printf '%s must retain a transparent alpha channel.\n' "$logo_asset" >&2
+    exit 1
+  }
+done
+if cmp -s "$project_root/installer/assets/aero7-logo-circle.png" \
+    "$project_root/installer/assets/aero7-logo-plain.png"; then
+  printf 'Circular and standalone Aero7 logos unexpectedly match.\n' >&2
+  exit 1
+fi
 grep -Fqx 'ModuleName=script' "$project_root/third_party/PlymouthVista/PlymouthVista.plymouth"
 grep -Fq 'global.UseLegacyBootScreen = 0;' "$project_root/third_party/PlymouthVista/PlymouthVista.script"
 grep -Fq 'global.StartingText = "Starting Aero7";' "$project_root/third_party/PlymouthVista/PlymouthVista.script"
