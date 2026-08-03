@@ -12,15 +12,17 @@
   light trails and bokeh; no text, logos, flags, Windows marks, Microsoft
   wallpaper motifs, recognizable flowers or birds, UI panels, or watermark.
 - `installer/assets/aero7-logo-plain.png` and
-  `installer/assets/aero7-logo-circle.png` are deterministic UI-sized variants
-  of the transparent AI-generated Aero7 7 emblem supplied by the project owner
-  on 2026-08-02. The source artwork was cropped and downscaled without
-  redesigning or recoloring it. It is used by the installer and by installed
-  desktop branding. The older `aero7-logo-*.png` files under
+  `installer/assets/aero7-logo-circle.png` are UI-sized transparent variants of
+  the two AI-generated Aero7 emblems supplied by the project owner on
+  2026-08-03. OpenAI's built-in image editor was instructed to preserve each
+  emblem exactly while replacing only its background with a flat chroma color;
+  that background was then removed and the result mechanically centered and
+  downscaled. They are used by the installer and installed desktop branding.
+  The older `aero7-logo-*.png` files under
   `third_party/PlymouthVista/images/` remain part of the separately requested
   Plymouth theme and were deliberately not replaced.
 - `installer/assets/aero7-sddm-branding.png` is a mechanical 350x50 composition
-  of that project-owner-supplied 7 emblem with Aero7 text rendered in the
+  of the project-owner-supplied standalone 7 emblem with Aero7 text rendered in the
   bundled OFL-licensed Adwaita Sans font. It replaces the upstream SDDM and
   Plasma Welcome/logout product watermark.
 - The Plymouth boot animation is based on
