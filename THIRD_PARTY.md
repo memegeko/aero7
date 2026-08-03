@@ -41,12 +41,13 @@
   Their copied assets and the mechanical Kvantum button crops remain under the
   upstream AGPL-3.0 terms. License texts are retained as
   `third_party/AeroThemePlasma-LICENSE` and `third_party/SMOD-LICENSE`.
-- `installer/assets/aero-shell/aero_bg_1.png` and
+- `installer/assets/aero-shell/aero7-background.png` and
   `installer/assets/aero-shell/aero7-user.png` are copied from the local
-  Aero7-shell repository and are covered by that project's MIT license. They
-  are used for the finished-desktop preview and first-boot account portrait.
-  The build mechanically converts `aero_bg_1.png` to JPEG for the SDDM,
-  Welcome, and lock-screen backgrounds; no separate wallpaper is introduced.
+  Aero7-shell repository. The wallpaper is project-owner-supplied artwork and
+  the portrait is covered by that project's MIT license. They are used for the
+  finished-desktop preview and first-boot account portrait. SDDM, Welcome, and
+  the lock screen continue to use the separate original blue installer
+  background.
 - `installer/assets/loading/spinner_*.png` are the 20-pixel animated loading
   frames from the pinned PlymouthVista theme above. The installer uses them so
   its setup and first-boot transitions match the selected boot theme.

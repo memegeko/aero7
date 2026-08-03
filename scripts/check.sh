@@ -185,7 +185,7 @@ for required_file in \
   "$project_root/installer/assets/aero7-logo-plain.png" \
   "$project_root/installer/assets/aero7-sddm-branding.png" \
   "$project_root/installer/assets/aero-shell/aero7-user.png" \
-  "$project_root/installer/assets/aero-shell/aero_bg_1.png" \
+  "$project_root/installer/assets/aero-shell/aero7-background.png" \
   "$project_root/installer/assets/cursors/aero-pointer.svg" \
   "$project_root/installer/assets/fonts/AdwaitaSans-Regular.ttf" \
   "$project_root/installer/assets/loading/spinner_0.png" \
@@ -197,6 +197,18 @@ for required_file in \
   "$project_root/installer/assets/controls/button-normal.png"; do
   [[ -s "$required_file" ]] || { printf 'Missing visual asset: %s\n' "$required_file" >&2; exit 1; }
 done
+if find "$project_root/installer/assets/aero-shell" -maxdepth 1 -type f \
+    \( -name 'aero_bg_1.png' -o -name 'aero_bg_2.jpeg' -o -name 'aero_bg_3.jpg' \) \
+    -print -quit | grep -q .; then
+  printf 'A retired desktop wallpaper is still bundled.\n' >&2
+  exit 1
+fi
+printf '%s  %s\n' \
+  'ba52528d0353c4e474b6e9e007ad53dfc36f2b4c7a11283bafc066d21de5aaca' "$project_root/installer/assets/aero-shell/aero7-background.png" \
+  | sha256sum --check --status || {
+  printf 'The Aero7 desktop wallpaper differs from the approved artwork.\n' >&2
+  exit 1
+}
 printf '%s  %s\n' \
   '51b0152683a10829365a7105b3bf3681142f9564a6698573fb2513af6a0e3bc2' "$project_root/third_party/PlymouthVista/PlymouthVista.script" \
   '66dfe9233d96f9a189c2d2e0c5270c3cb8f21a4ab538bba5b27553751500ffa2' "$project_root/third_party/PlymouthVista/images/aero7-logo-circle.png" \
