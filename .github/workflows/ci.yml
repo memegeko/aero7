@@ -28,11 +28,19 @@ jobs:
         with:
           path: aero7-iso
 
+      - name: Read pinned Aero7 shell revision
+        id: sources
+        working-directory: aero7-iso
+        run: |
+          shell_commit="$(sed -n 's/^aero7_shell_commit=//p' sources.lock)"
+          [[ "$shell_commit" =~ ^[0-9a-f]{40}$ ]]
+          printf 'shell_commit=%s\n' "$shell_commit" >>"$GITHUB_OUTPUT"
+
       - name: Check out pinned Aero7 shell
         uses: actions/checkout@v5
         with:
           repository: memegeko/aero7-shell
-          ref: edf4f5f672c8a7bdfba15f83be32b83690a15321
+          ref: ${{ steps.sources.outputs.shell_commit }}
           path: aero_desktop
 
       - name: Run source gate
