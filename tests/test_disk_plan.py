@@ -374,6 +374,21 @@ class DiskPlanTest(unittest.TestCase):
 
         self.assertGreaterEqual(len(pulses), 2)
 
+    def test_heartbeat_command_failure_reports_the_real_exit_code(self):
+        with tempfile.TemporaryDirectory() as directory:
+            runner = CommandRunner(Path(directory) / "installer.log")
+            with self.assertRaisesRegex(
+                RuntimeError, "command failed with exit code 9"
+            ):
+                with runner.progress_heartbeat(lambda: None, interval=0.02):
+                    runner.run(
+                        [
+                            "/bin/sh",
+                            "-c",
+                            "printf 'pacstrap diagnostic\\n'; exit 9",
+                        ]
+                    )
+
     def test_partition_table_uses_exact_supported_sector_syntax(self):
         table = partition_table()
         self.assertIn('start=2048, size=2097152', table)
