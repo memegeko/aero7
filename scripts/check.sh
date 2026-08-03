@@ -96,6 +96,14 @@ if ! grep -Eq '^[[:space:]]*Server[[:space:]]*=' "$mirrorlist"; then
 fi
 grep -Fqx 'Requires=pacman-init.service' \
   "$project_root/archiso/airootfs/etc/systemd/system/aero7-installer.service"
+grep -Fqx 'Wants=systemd-logind.service systemd-resolved.service NetworkManager.service' \
+  "$project_root/archiso/airootfs/etc/systemd/system/aero7-installer.service"
+grep -Fqx 'dns=systemd-resolved' \
+  "$project_root/archiso/airootfs/etc/NetworkManager/conf.d/10-aero7-live-dns.conf"
+grep -Fq '/run/systemd/resolve/stub-resolv.conf' \
+  "$project_root/scripts/build-iso.sh"
+grep -Fq 'multi-user.target.wants/systemd-resolved.service' \
+  "$project_root/scripts/build-iso.sh"
 grep -Fqx 'ExecStart=/usr/bin/pacman-key --populate' \
   "$project_root/archiso/airootfs/etc/systemd/system/pacman-init.service"
 grep -Fqx 'Environment=WLR_RENDERER=pixman' \

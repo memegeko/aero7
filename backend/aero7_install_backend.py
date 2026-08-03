@@ -37,6 +37,10 @@ INSTALL_STAGES = (
     "Preparing first boot",
 )
 VM_MARKERS = ("qemu", "kvm", "virtualbox", "vmware")
+PACKAGE_MIRROR_HOSTS = (
+    "geo.mirror.pkgbuild.com",
+    "fastly.mirror.pkgbuild.com",
+)
 TARGET_ROOT = Path("/mnt/aero7-target")
 IMAGE_MODE_GUARD = "YES-I-AM-IN-AERO7-FIRST-BOOT"
 SHELL_INSTALLER = Path("/usr/local/lib/aero7-shell-installer/install.sh")
@@ -362,6 +366,45 @@ def pacstrap_arguments(target: Path, packages: Iterable[str]) -> list[str]:
     # Keep pacstrap's documented default: copy the live environment's fully
     # initialized signing keyring into the target before package installation.
     return ["pacstrap", str(target), *packages]
+
+
+def ensure_install_network(timeout: int = 45) -> None:
+    """Fail before disk changes when the network cannot reach package mirrors."""
+    if timeout <= 0:
+        raise ValueError("network timeout must be positive")
+
+    connected = subprocess.run(
+        ["nm-online", "--quiet", "--timeout", str(timeout)],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if connected.returncode != 0:
+        raise SafetyError(
+            "no usable network connection was detected. Connect the VM network "
+            "adapter, make sure Link up and DHCP are enabled, then restart Setup. "
+            "The target disk was not changed"
+        )
+
+    for host in PACKAGE_MIRROR_HOSTS:
+        try:
+            resolved = subprocess.run(
+                ["getent", "ahostsv4", host],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+        except subprocess.TimeoutExpired:
+            continue
+        if resolved.returncode == 0 and resolved.stdout.strip():
+            return
+
+    raise SafetyError(
+        "the network is connected, but DNS could not resolve the Arch package "
+        "mirrors. Check the VM DNS and gateway settings, then restart Setup. "
+        "The target disk was not changed"
+    )
 
 
 def wait_for_partitions(paths: Iterable[str], timeout: float = 15.0) -> None:
@@ -743,6 +786,11 @@ def install(plan: dict[str, Any], confirm_device: str) -> None:
     if current is None:
         raise SafetyError("selected disk disappeared before installation")
     validate_plan(plan, current, live_sources())
+
+    # This ISO retrieves the base system from signed Arch mirrors. Verify
+    # connectivity before wipefs/sfdisk so missing DHCP or DNS cannot destroy
+    # the selected disk and only then reveal that installation cannot proceed.
+    ensure_install_network()
 
     log_path = Path("/var/log/aero7-installer.log")
     log_path.parent.mkdir(parents=True, exist_ok=True)

@@ -232,8 +232,16 @@ install -d -m 0755 \
   "$profile_root/airootfs/etc/systemd/system/multi-user.target.wants" \
   "$profile_root/airootfs/etc/systemd/system/getty.target.wants"
 
+# NetworkManager receives DHCP-provided DNS servers and sends them to
+# systemd-resolved. Arch package assembly otherwise leaves a placeholder
+# resolv.conf in the live root, causing pacstrap mirror lookups to fail.
+ln -sfn /run/systemd/resolve/stub-resolv.conf \
+  "$profile_root/airootfs/etc/resolv.conf"
+
 ln -sfn ../aero7-installer.service \
   "$profile_root/airootfs/etc/systemd/system/multi-user.target.wants/aero7-installer.service"
+ln -sfn /usr/lib/systemd/system/systemd-resolved.service \
+  "$profile_root/airootfs/etc/systemd/system/multi-user.target.wants/systemd-resolved.service"
 ln -sfn /usr/lib/systemd/system/NetworkManager.service \
   "$profile_root/airootfs/etc/systemd/system/multi-user.target.wants/NetworkManager.service"
 ln -sfn /usr/lib/systemd/system/getty@.service \
