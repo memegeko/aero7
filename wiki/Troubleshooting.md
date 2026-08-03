@@ -38,9 +38,17 @@ Beta 1 lists only safe targets. Check that the disk:
 
 ## Package installation fails
 
-Confirm that the guest has DNS and HTTPS access. Then inspect
-`/var/log/aero7-installer.log`. Do not bypass signature checks. Include the
-failing package name and the end of the log in a bug report.
+The installer downloads the signed Arch base system during installation. If
+the log contains `Could not resolve host` for an Arch mirror, the live system
+does not have working DNS. Make sure the virtual machine has a connected
+network adapter, its link is up, and the network provides DHCP and DNS.
+
+Current builds check both connectivity and mirror DNS before repartitioning the
+selected disk. The live image connects NetworkManager to systemd-resolved so
+DHCP-provided DNS servers are available to package tools. If that preflight
+still fails, Setup stops with a specific recovery message and does not modify
+the target disk. Do not bypass signature checks. Include the failing package
+name and the end of the log in a bug report.
 
 ## OOBE does not reach the desktop
 

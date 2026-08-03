@@ -1,7 +1,7 @@
 [Unit]
 Description=Aero7 graphical installer kiosk
-After=systemd-user-sessions.service systemd-udev-settle.service systemd-logind.service pacman-init.service plymouth-quit.service
-Wants=systemd-logind.service
+After=systemd-user-sessions.service systemd-udev-settle.service systemd-logind.service systemd-resolved.service NetworkManager.service pacman-init.service plymouth-quit.service
+Wants=systemd-logind.service systemd-resolved.service NetworkManager.service
 Requires=pacman-init.service
 Conflicts=getty@tty1.service
 ConditionPathExists=/usr/bin/aero7-installer

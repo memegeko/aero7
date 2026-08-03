@@ -7,6 +7,7 @@ import tempfile
 import unittest
 from copy import deepcopy
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -25,9 +26,11 @@ from aero7_install_backend import (  # noqa: E402
     configure_plymouth_hold,
     ensure_shell_payload_modes,
     enable_plymouth_hook,
+    ensure_install_network,
     enforce_light_desktop_defaults,
     enforce_execution_gate,
     fingerprint,
+    install,
     partition_table,
     pacstrap_arguments,
     shell_image_mode_arguments,
@@ -400,6 +403,54 @@ class DiskPlanTest(unittest.TestCase):
         arguments = pacstrap_arguments(Path("/mnt/aero7-target"), ["base", "linux"])
         self.assertEqual(arguments, ["pacstrap", "/mnt/aero7-target", "base", "linux"])
         self.assertNotIn("-K", arguments)
+
+    def test_network_preflight_rejects_a_disconnected_vm(self):
+        with patch(
+            "aero7_install_backend.subprocess.run",
+            return_value=SimpleNamespace(returncode=1, stdout=""),
+        ) as run:
+            with self.assertRaisesRegex(SafetyError, "target disk was not changed"):
+                ensure_install_network(timeout=7)
+
+        self.assertEqual(
+            run.call_args.args[0],
+            ["nm-online", "--quiet", "--timeout", "7"],
+        )
+
+    def test_network_preflight_reports_dns_failure(self):
+        results = [
+            SimpleNamespace(returncode=0, stdout=""),
+            SimpleNamespace(returncode=2, stdout=""),
+            SimpleNamespace(returncode=2, stdout=""),
+        ]
+        with patch("aero7_install_backend.subprocess.run", side_effect=results):
+            with self.assertRaisesRegex(SafetyError, "DNS could not resolve"):
+                ensure_install_network()
+
+    def test_network_preflight_accepts_a_resolvable_package_mirror(self):
+        results = [
+            SimpleNamespace(returncode=0, stdout=""),
+            SimpleNamespace(returncode=0, stdout="95.216.195.133 STREAM host\n"),
+        ]
+        with patch("aero7_install_backend.subprocess.run", side_effect=results):
+            ensure_install_network()
+
+    def test_install_checks_network_before_creating_a_command_runner(self):
+        value = disk()
+        with (
+            patch("aero7_install_backend.enforce_execution_gate"),
+            patch("aero7_install_backend.query_lsblk", return_value=[value]),
+            patch("aero7_install_backend.live_sources", return_value=set()),
+            patch(
+                "aero7_install_backend.ensure_install_network",
+                side_effect=SafetyError("offline before wipe"),
+            ),
+            patch("aero7_install_backend.CommandRunner") as runner,
+        ):
+            with self.assertRaisesRegex(SafetyError, "offline before wipe"):
+                install(plan_for(value), "/dev/vda")
+
+        runner.assert_not_called()
 
 
 if __name__ == "__main__":
