@@ -29,7 +29,10 @@ private slots:
 
         controller.goNext();
         QCOMPARE(controller.screenId(), QStringLiteral("ProgressScreen"));
+        QCOMPARE(controller.progressStagePercent(), 0);
+        QTRY_VERIFY_WITH_TIMEOUT(controller.progressStagePercent() > 0, 1000);
         QTRY_COMPARE_WITH_TIMEOUT(controller.screenId(), QStringLiteral("CompleteScreen"), 8000);
+        QCOMPARE(controller.progressStagePercent(), 100);
         QCOMPARE(controller.restartSeconds(), 10);
 
         controller.goNext();

@@ -19,6 +19,7 @@ class InstallerController final : public QObject
     Q_PROPERTY(QVariantMap selectedDisk READ selectedDisk NOTIFY selectedDiskChanged)
     Q_PROPERTY(int progress READ progress NOTIFY progressChanged)
     Q_PROPERTY(int progressStageIndex READ progressStageIndex NOTIFY progressChanged)
+    Q_PROPERTY(int progressStagePercent READ progressStagePercent NOTIFY progressChanged)
     Q_PROPERTY(QString progressStage READ progressStage NOTIFY progressChanged)
     Q_PROPERTY(QString statusText READ statusText NOTIFY statusChanged)
     Q_PROPERTY(bool busy READ busy NOTIFY busyChanged)
@@ -51,6 +52,7 @@ public:
     [[nodiscard]] QVariantMap selectedDisk() const;
     [[nodiscard]] int progress() const;
     [[nodiscard]] int progressStageIndex() const;
+    [[nodiscard]] int progressStagePercent() const;
     [[nodiscard]] QString progressStage() const;
     [[nodiscard]] QString statusText() const;
     [[nodiscard]] bool busy() const;
@@ -112,6 +114,7 @@ private:
     QVariantMap m_selectedDisk;
     int m_progress = 0;
     int m_progressStageIndex = 0;
+    int m_progressStagePercent = 0;
     QString m_progressStage;
     QString m_statusText;
     bool m_busy = false;
