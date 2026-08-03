@@ -333,7 +333,7 @@ class CommandRunner:
                 detail = " | ".join(line.strip() for line in recent_lines if line.strip())
             except OSError:
                 detail = ""
-            message = f"command failed with exit code {completed.returncode}: {argv[0]}"
+            message = f"command failed with exit code {returncode}: {argv[0]}"
             if detail:
                 message += f" ({detail[-900:]})"
             raise RuntimeError(message)

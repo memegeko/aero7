@@ -73,19 +73,25 @@ ApplicationWindow {
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.bottom: parent.bottom
             anchors.bottomMargin: 18
-            width: Math.min(760, statusLabel.implicitWidth + 34)
-            height: 38
+            width: 760
+            height: Math.min(92, Math.max(38, statusLabel.implicitHeight + 18))
             radius: 5
             color: "#e8fff4f2"
             border.color: "#b9473b"
+            clip: true
             z: 30
 
             Text {
                 id: statusLabel
-                anchors.centerIn: parent
+                anchors.fill: parent
+                anchors.margins: 9
                 text: controller.statusText
                 color: "#8c231c"
                 font.pixelSize: 14
+                verticalAlignment: Text.AlignVCenter
+                wrapMode: Text.Wrap
+                maximumLineCount: 4
+                elide: Text.ElideRight
             }
         }
     }
