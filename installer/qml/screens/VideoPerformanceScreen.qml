@@ -44,10 +44,11 @@ Item {
                 height: 28
                 radius: 14
                 color: "#efffffff"
-                opacity: 0.72
+                // Initial opacity is set via the first animation step.
                 SequentialAnimation on opacity {
                     loops: Animation.Infinite
-                    NumberAnimation { to: 0.35; duration: 550; easing.type: Easing.InOutSine }
+                    // Start from a semi-transparent state, then animate.
+                    NumberAnimation { from: 0.72; to: 0.35; duration: 550; easing.type: Easing.InOutSine }
                     NumberAnimation { to: 0.82; duration: 550; easing.type: Easing.InOutSine }
                 }
             }
