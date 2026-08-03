@@ -16,9 +16,10 @@ import stat
 import subprocess
 import sys
 import time
-from dataclasses import dataclass
+from contextlib import contextmanager
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable, Iterator
 
 from aero7_shell_adapter import configure_and_install
 
@@ -62,6 +63,53 @@ class SafetyError(RuntimeError):
 
 def event(kind: str, **fields: Any) -> None:
     print(json.dumps({"type": kind, **fields}, separators=(",", ":")), flush=True)
+
+
+@dataclass
+class ProgressPulse:
+    """Emit monotonic progress while a blocking installation stage is active."""
+
+    stage: str
+    overall_start: int
+    overall_end: int
+    stage_start: int = 0
+    stage_end: int = 100
+    stage_percent: int = field(init=False)
+
+    def __post_init__(self) -> None:
+        if not 0 <= self.overall_start <= self.overall_end <= 100:
+            raise ValueError("overall progress range is invalid")
+        if not 0 <= self.stage_start < self.stage_end <= 100:
+            raise ValueError("stage progress range is invalid")
+        self.stage_percent = self.stage_start
+
+    def emit(self, stage_percent: int | None = None) -> None:
+        if stage_percent is not None:
+            self.stage_percent = max(
+                self.stage_percent,
+                min(self.stage_end, stage_percent),
+            )
+        span = self.stage_end - self.stage_start
+        fraction = (self.stage_percent - self.stage_start) / span
+        overall = round(
+            self.overall_start
+            + (self.overall_end - self.overall_start) * fraction
+        )
+        event(
+            "progress",
+            stage=self.stage,
+            percent=overall,
+            stage_percent=self.stage_percent,
+        )
+
+    def advance(self) -> None:
+        if self.stage_percent >= self.stage_end - 1:
+            return
+        remaining = self.stage_end - self.stage_percent
+        self.emit(min(self.stage_end - 1, self.stage_percent + max(1, remaining // 18)))
+
+    def complete(self) -> None:
+        self.emit(self.stage_end)
 
 
 def human_size(value: int) -> str:
@@ -221,21 +269,63 @@ def load_plan(path: Path) -> dict[str, Any]:
 @dataclass
 class CommandRunner:
     log_path: Path
+    _heartbeat: Callable[[], None] | None = field(default=None, init=False, repr=False)
+    _heartbeat_interval: float = field(default=5.0, init=False, repr=False)
+
+    @contextmanager
+    def progress_heartbeat(
+        self, callback: Callable[[], None], *, interval: float = 5.0
+    ) -> Iterator[None]:
+        if interval <= 0:
+            raise ValueError("heartbeat interval must be positive")
+        previous_callback = self._heartbeat
+        previous_interval = self._heartbeat_interval
+        self._heartbeat = callback
+        self._heartbeat_interval = interval
+        try:
+            yield
+        finally:
+            self._heartbeat = previous_callback
+            self._heartbeat_interval = previous_interval
 
     def run(self, argv: list[str], *, input_text: str | None = None) -> None:
         if not argv or not all(isinstance(item, str) and item for item in argv):
             raise RuntimeError("invalid command argument array")
         with self.log_path.open("a", encoding="utf-8") as log:
             log.write("+ " + " ".join(repr(item) for item in argv) + "\n")
-            completed = subprocess.run(
-                argv,
-                input=input_text,
-                text=True,
-                stdout=log,
-                stderr=subprocess.STDOUT,
-                check=False,
-            )
-        if completed.returncode != 0:
+            if self._heartbeat is None:
+                completed = subprocess.run(
+                    argv,
+                    input=input_text,
+                    text=True,
+                    stdout=log,
+                    stderr=subprocess.STDOUT,
+                    check=False,
+                )
+                returncode = completed.returncode
+            else:
+                process = subprocess.Popen(
+                    argv,
+                    stdin=subprocess.PIPE if input_text is not None else None,
+                    text=True,
+                    stdout=log,
+                    stderr=subprocess.STDOUT,
+                )
+                if input_text is not None and process.stdin is not None:
+                    try:
+                        process.stdin.write(input_text)
+                        process.stdin.close()
+                    except BrokenPipeError:
+                        pass
+                while True:
+                    try:
+                        returncode = process.wait(timeout=self._heartbeat_interval)
+                        break
+                    except subprocess.TimeoutExpired:
+                        self._heartbeat()
+                if returncode == 0:
+                    self._heartbeat()
+        if returncode != 0:
             try:
                 recent_lines = self.log_path.read_text(
                     encoding="utf-8", errors="replace"
@@ -663,41 +753,66 @@ def install(plan: dict[str, Any], confirm_device: str) -> None:
     mounted = False
 
     try:
-        event("progress", stage=INSTALL_STAGES[0], percent=2)
+        copying_disk = ProgressPulse(
+            INSTALL_STAGES[0], 2, 17, stage_start=0, stage_end=65
+        )
+        copying_disk.emit()
         runner.run(["wipefs", "--all", "--force", device])
+        copying_disk.emit(10)
         runner.run(
             ["sfdisk", "--wipe", "always", device], input_text=partition_table()
         )
+        copying_disk.emit(25)
         runner.run(["udevadm", "settle"])
+        copying_disk.emit(35)
         wait_for_partitions((esp, root))
+        copying_disk.emit(45)
         runner.run(["mkfs.fat", "-F", "32", "-n", "AERO7_ESP", esp])
+        copying_disk.emit(55)
         runner.run(["mkfs.ext4", "-F", "-L", "AERO7_ROOT", root])
-        event("progress", stage=INSTALL_STAGES[1], percent=18)
+        copying_disk.complete()
+
+        copying_files = ProgressPulse(
+            INSTALL_STAGES[1], 18, 27, stage_start=65, stage_end=100
+        )
+        copying_files.emit()
 
         TARGET_ROOT.mkdir(parents=True, exist_ok=True)
         runner.run(["mount", root, str(TARGET_ROOT)])
         mounted = True
+        copying_files.emit(82)
         (TARGET_ROOT / "boot").mkdir(parents=True, exist_ok=True)
         runner.run(["mount", esp, str(TARGET_ROOT / "boot")])
+        copying_files.complete()
 
-        event("progress", stage=INSTALL_STAGES[2], percent=28)
+        expanding = ProgressPulse(INSTALL_STAGES[2], 28, 53)
+        expanding.emit()
         package_file = Path("/usr/share/aero7/base-packages.txt")
         packages = [
             line.strip()
             for line in package_file.read_text(encoding="utf-8").splitlines()
             if line.strip() and not line.lstrip().startswith("#")
         ]
-        runner.run(pacstrap_arguments(TARGET_ROOT, packages))
+        with runner.progress_heartbeat(expanding.advance):
+            runner.run(pacstrap_arguments(TARGET_ROOT, packages))
         fstab = subprocess.run(
             ["genfstab", "-U", str(TARGET_ROOT)], check=True, capture_output=True, text=True
         ).stdout
         (TARGET_ROOT / "etc/fstab").write_text(fstab, encoding="utf-8")
+        expanding.complete()
 
-        event("progress", stage=INSTALL_STAGES[3], percent=54)
-        configure_and_install(TARGET_ROOT, runner, Path("/usr/share/aero7"))
+        features = ProgressPulse(INSTALL_STAGES[3], 54, 71)
+        features.emit()
+        with runner.progress_heartbeat(features.advance):
+            configure_and_install(TARGET_ROOT, runner, Path("/usr/share/aero7"))
+        features.complete()
 
-        event("progress", stage=INSTALL_STAGES[4], percent=72)
-        runner.run(["arch-chroot", str(TARGET_ROOT), "bootctl", "install"])
+        updates_boot = ProgressPulse(
+            INSTALL_STAGES[4], 72, 83, stage_start=0, stage_end=45
+        )
+        updates_boot.emit()
+        with runner.progress_heartbeat(updates_boot.advance):
+            runner.run(["arch-chroot", str(TARGET_ROOT), "bootctl", "install"])
         partuuid = subprocess.run(
             ["blkid", "-s", "PARTUUID", "-o", "value", root],
             check=True,
@@ -712,26 +827,36 @@ def install(plan: dict[str, Any], confirm_device: str) -> None:
             f"options root=PARTUUID={partuuid} rw quiet splash plymouth.ignore-serial-consoles\n",
             encoding="utf-8",
         )
+        updates_boot.complete()
 
-        event("progress", stage=INSTALL_STAGES[5], percent=84)
+        updates_settings = ProgressPulse(
+            INSTALL_STAGES[5], 84, 95, stage_start=45, stage_end=100
+        )
+        updates_settings.emit()
         (TARGET_ROOT / "etc/hostname").write_text("aero7-pc\n", encoding="utf-8")
         locale = TARGET_ROOT / "etc/locale.gen"
         locale.write_text(locale.read_text(encoding="utf-8").replace("#en_US.UTF-8 UTF-8", "en_US.UTF-8 UTF-8"), encoding="utf-8")
-        runner.run(["arch-chroot", str(TARGET_ROOT), "locale-gen"])
-        (TARGET_ROOT / "etc/locale.conf").write_text("LANG=en_US.UTF-8\n", encoding="utf-8")
-        copy_payload(TARGET_ROOT)
-        configure_target_plymouth(TARGET_ROOT, runner)
-        runner.run(["arch-chroot", str(TARGET_ROOT), "systemctl", "enable", "NetworkManager.service"])
-        runner.run(["arch-chroot", str(TARGET_ROOT), "systemctl", "disable", "sddm.service"])
-        runner.run(["arch-chroot", str(TARGET_ROOT), "systemctl", "enable", "aero7-oobe.service"])
+        with runner.progress_heartbeat(updates_settings.advance):
+            runner.run(["arch-chroot", str(TARGET_ROOT), "locale-gen"])
+            (TARGET_ROOT / "etc/locale.conf").write_text("LANG=en_US.UTF-8\n", encoding="utf-8")
+            copy_payload(TARGET_ROOT)
+            updates_settings.advance()
+            configure_target_plymouth(TARGET_ROOT, runner)
+            runner.run(["arch-chroot", str(TARGET_ROOT), "systemctl", "enable", "NetworkManager.service"])
+            runner.run(["arch-chroot", str(TARGET_ROOT), "systemctl", "disable", "sddm.service"])
+            runner.run(["arch-chroot", str(TARGET_ROOT), "systemctl", "enable", "aero7-oobe.service"])
+        updates_settings.complete()
 
-        event("progress", stage=INSTALL_STAGES[6], percent=96)
+        completing = ProgressPulse(INSTALL_STAGES[6], 96, 100)
+        completing.emit()
         (TARGET_ROOT / "var/lib/aero7").mkdir(parents=True, exist_ok=True)
         (TARGET_ROOT / "var/lib/aero7/install-source").write_text(
             "binary-packages-pinned\nfull-shell-stage-adapter=ready\n", encoding="utf-8"
         )
-        runner.run(["sync"])
-        event("progress", stage=INSTALL_STAGES[6], percent=100)
+        completing.emit(35)
+        with runner.progress_heartbeat(completing.advance):
+            runner.run(["sync"])
+        completing.complete()
     finally:
         if mounted:
             subprocess.run(["umount", "-R", str(TARGET_ROOT)], check=False)

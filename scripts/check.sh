@@ -145,6 +145,10 @@ grep -Fq 'QStringLiteral("aero7-first-login-cleanup.timer")' \
   "$project_root/installer/src/installercontroller.cpp"
 grep -Fq 'QStringLiteral("sddm.service")' \
   "$project_root/installer/src/installercontroller.cpp"
+grep -Fq 'Q_PROPERTY(int progressStagePercent READ progressStagePercent NOTIFY progressChanged)' \
+  "$project_root/installer/src/installercontroller.h"
+grep -Fq 'stage_percent=self.stage_percent' \
+  "$project_root/backend/aero7_install_backend.py"
 grep -Fq 'magick "$project_root/installer/assets/aero7-background.png" -strip -quality 92 "$login_background"' \
   "$project_root/scripts/build-iso.sh" || {
   printf 'SDDM must use the same background as the Welcome screen.\n' >&2

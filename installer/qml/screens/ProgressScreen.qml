@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import "../components"
 
@@ -9,6 +10,14 @@ Item {
                                             : controller.progressStageIndex === 2 ? 1
                                             : controller.progressStageIndex === 3 ? 2
                                             : controller.progressStageIndex <= 5 ? 3 : 4
+
+    function stagePercent(index) {
+        if (index < visualStageIndex)
+            return 100
+        if (index > visualStageIndex)
+            return 0
+        return controller.progressStagePercent
+    }
 
     GlassWindow {
         anchors.fill: parent
@@ -59,6 +68,7 @@ Item {
                 ]
 
                 Row {
+                    id: stageRow
                     required property string modelData
                     required property int index
                     width: 560
@@ -72,7 +82,7 @@ Item {
                             anchors.centerIn: parent
                             width: 22
                             height: 22
-                            visible: index < root.visualStageIndex
+                            visible: stageRow.index < root.visualStageIndex
                             source: "qrc:/assets/icons/check-green.svg"
                             fillMode: Image.PreserveAspectFit
                         }
@@ -80,12 +90,14 @@ Item {
 
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: modelData + (index === root.visualStageIndex
-                                           ? qsTr(" (%1%)…").arg(controller.progress) : "")
-                        color: index === root.visualStageIndex ? "#17212a"
-                              : index < root.visualStageIndex ? "#747b80" : "#8a9095"
+                        text: qsTr("%1 (%2%)%3")
+                            .arg(stageRow.modelData)
+                            .arg(root.stagePercent(stageRow.index))
+                            .arg(stageRow.index === root.visualStageIndex ? qsTr("…") : "")
+                        color: stageRow.index === root.visualStageIndex ? "#17212a"
+                              : stageRow.index < root.visualStageIndex ? "#747b80" : "#8a9095"
                         font.pixelSize: 13
-                        font.bold: index === root.visualStageIndex
+                        font.bold: stageRow.index === root.visualStageIndex
                     }
                 }
             }

@@ -79,6 +79,7 @@ QVariantList InstallerController::disks() const { return m_disks; }
 QVariantMap InstallerController::selectedDisk() const { return m_selectedDisk; }
 int InstallerController::progress() const { return m_progress; }
 int InstallerController::progressStageIndex() const { return m_progressStageIndex; }
+int InstallerController::progressStagePercent() const { return m_progressStagePercent; }
 QString InstallerController::progressStage() const { return m_progressStage; }
 QString InstallerController::statusText() const { return m_statusText; }
 bool InstallerController::busy() const { return m_busy; }
@@ -247,6 +248,7 @@ void InstallerController::enterOobeFlow()
     }
     m_progress = 0;
     m_progressStageIndex = 0;
+    m_progressStagePercent = 0;
     m_progressStage.clear();
     setStatus({});
     emit progressChanged();
@@ -370,6 +372,7 @@ void InstallerController::startInstallation()
     m_flow.jumpTo(QStringLiteral("ProgressScreen"));
     m_progress = 0;
     m_progressStageIndex = 0;
+    m_progressStagePercent = 0;
     m_progressStage = kInstallStages.first();
     setBusy(true);
     emit screenChanged();
@@ -396,6 +399,7 @@ void InstallerController::startOobeFinalization()
     m_flow.jumpTo(QStringLiteral("FinalizingScreen"));
     m_progress = 0;
     m_progressStageIndex = 0;
+    m_progressStagePercent = 0;
     m_progressStage = QStringLiteral("Applying your settings");
     setBusy(true);
     emit screenChanged();
@@ -426,7 +430,22 @@ void InstallerController::advanceDemoProgress()
     m_progress = qMin(100, m_progress + 4);
     const bool oobe = m_progressTimer.property("oobe").toBool();
     if (!oobe) {
-        m_progressStageIndex = qMin(kInstallStages.size() - 1, (m_progress * kInstallStages.size()) / 101);
+        if (m_progress < 28) {
+            m_progressStageIndex = m_progress < 18 ? 0 : 1;
+            m_progressStagePercent = qMin(100, (m_progress * 100) / 28);
+        } else if (m_progress < 54) {
+            m_progressStageIndex = 2;
+            m_progressStagePercent = ((m_progress - 28) * 100) / 26;
+        } else if (m_progress < 72) {
+            m_progressStageIndex = 3;
+            m_progressStagePercent = ((m_progress - 54) * 100) / 18;
+        } else if (m_progress < 96) {
+            m_progressStageIndex = m_progress < 84 ? 4 : 5;
+            m_progressStagePercent = ((m_progress - 72) * 100) / 24;
+        } else {
+            m_progressStageIndex = 6;
+            m_progressStagePercent = (m_progress - 96) * 25;
+        }
         m_progressStage = kInstallStages.at(m_progressStageIndex);
     } else if (m_progress > 55) {
         m_progressStage = QStringLiteral("Preparing the Aero7 desktop");
@@ -513,11 +532,21 @@ void InstallerController::handleBackendEvent(const QByteArray &line)
     const QJsonObject event = QJsonDocument::fromJson(line).object();
     const QString type = event.value(QStringLiteral("type")).toString();
     if (type == QStringLiteral("progress")) {
+        const int previousStage = m_progressStageIndex;
         m_progress = event.value(QStringLiteral("percent")).toInt(m_progress);
         m_progressStage = event.value(QStringLiteral("stage")).toString(m_progressStage);
         const int stage = kInstallStages.indexOf(m_progressStage);
-        if (stage >= 0)
+        if (stage >= 0) {
             m_progressStageIndex = stage;
+            if (event.contains(QStringLiteral("stage_percent"))) {
+                m_progressStagePercent = qBound(
+                    0,
+                    event.value(QStringLiteral("stage_percent")).toInt(),
+                    100);
+            } else if (stage != previousStage) {
+                m_progressStagePercent = 0;
+            }
+        }
         emit progressChanged();
     } else if (type == QStringLiteral("status")) {
         setStatus(event.value(QStringLiteral("message")).toString());
@@ -541,6 +570,7 @@ void InstallerController::backendFinished(int exitCode, QProcess::ExitStatus exi
         return;
     }
     m_progress = 100;
+    m_progressStagePercent = 100;
     emit progressChanged();
     m_flow.jumpTo(m_oobeMode ? QStringLiteral("OobeWelcomeScreen") : QStringLiteral("CompleteScreen"));
     emit screenChanged();
@@ -573,6 +603,7 @@ void InstallerController::resetDemo()
     }
     m_progress = 0;
     m_progressStageIndex = 0;
+    m_progressStagePercent = 0;
     m_progressStage.clear();
     m_licenseAccepted = false;
     m_username.clear();

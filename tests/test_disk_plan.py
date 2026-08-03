@@ -15,6 +15,7 @@ sys.path.insert(0, str(PROJECT_ROOT / "backend"))
 from aero7_install_backend import (  # noqa: E402
     CommandRunner,
     MIN_DISK_BYTES,
+    ProgressPulse,
     SUPPORTED_LAYOUT,
     SafetyError,
     brand_plasma_look_and_feel,
@@ -343,6 +344,35 @@ class DiskPlanTest(unittest.TestCase):
             runner = CommandRunner(Path(directory) / "installer.log")
             with self.assertRaisesRegex(RuntimeError, "diagnostic detail"):
                 runner.run(["/bin/sh", "-c", "printf 'diagnostic detail\\n'; exit 7"])
+
+    def test_progress_pulse_emits_monotonic_stage_and_overall_percentages(self):
+        with patch("aero7_install_backend.event") as emit:
+            pulse = ProgressPulse("Installing the base system", 28, 53)
+            pulse.emit()
+            pulse.advance()
+            pulse.complete()
+
+        payloads = [call.kwargs for call in emit.call_args_list]
+        self.assertEqual(
+            [payload["stage_percent"] for payload in payloads], [0, 5, 100]
+        )
+        self.assertEqual([payload["percent"] for payload in payloads], [28, 29, 53])
+        self.assertTrue(
+            all(payload["stage"] == "Installing the base system" for payload in payloads)
+        )
+
+    def test_command_runner_heartbeats_during_long_commands(self):
+        with tempfile.TemporaryDirectory() as directory:
+            pulses = []
+            runner = CommandRunner(Path(directory) / "installer.log")
+            with runner.progress_heartbeat(
+                lambda: pulses.append("pulse"), interval=0.02
+            ):
+                runner.run(
+                    [sys.executable, "-c", "import time; time.sleep(0.08)"]
+                )
+
+        self.assertGreaterEqual(len(pulses), 2)
 
     def test_partition_table_uses_exact_supported_sector_syntax(self):
         table = partition_table()
