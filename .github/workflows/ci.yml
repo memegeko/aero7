@@ -24,7 +24,7 @@ jobs:
           git imagemagick python qt6-declarative ripgrep shellcheck
 
       - name: Check out Aero7 ISO
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           path: aero7-iso
 
@@ -37,7 +37,7 @@ jobs:
           printf 'shell_commit=%s\n' "$shell_commit" >>"$GITHUB_OUTPUT"
 
       - name: Check out pinned Aero7 shell
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           repository: memegeko/aero7-shell
           ref: ${{ steps.sources.outputs.shell_commit }}
