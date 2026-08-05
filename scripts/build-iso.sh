@@ -133,10 +133,15 @@ if ((mkarchiso_only)); then
     while IFS= read -r -d '' image; do
       chown "$output_uid:$output_gid" "$image"
     done < <(find "$out_root" -maxdepth 1 -type f -name 'aero7-*.iso' -print0)
+    # The normal-user preparation pass archives its previous profile below
+    # this directory. Keep the shared archive root writable after a
+    # privileged mkarchiso pass; archived Archiso trees may remain root-owned.
+    chown "$output_uid:$output_gid" "$work_root/archive"
   elif [[ -n "${SUDO_USER:-}" ]]; then
     while IFS= read -r -d '' image; do
       chown "$SUDO_USER" "$image"
     done < <(find "$out_root" -maxdepth 1 -type f -name 'aero7-*.iso' -print0)
+    chown "$SUDO_USER" "$work_root/archive"
   fi
   printf 'ISO output:\n'
   find "$out_root" -maxdepth 1 -type f -name 'aero7-*.iso' -print
