@@ -1,11 +1,50 @@
 # Third-party and artwork notice
 
+## Independent-project and trademark notice
+
+Aero7 is an independent project and is not affiliated with, authorized,
+sponsored, endorsed, or approved by Microsoft Corporation. Windows and other
+Microsoft product names are trademarks of the Microsoft group of companies.
+Microsoft trademarks are used only for truthful, descriptive references to an
+upstream project's design target. No Microsoft sponsorship or compatibility
+certification is claimed.
+
+## Software and package licences
+
+| Component | Licence or notice |
+| --- | --- |
+| Aero7 installer and Aero7-shell original code | MIT |
+| Linux kernel | GPL-2.0-only |
+| Arch Linux packages | Each package's upstream licence under `/usr/share/licenses` |
+| KDE Plasma and KDE Frameworks | GPL/LGPL and other per-component KDE licences |
+| Qt | LGPL/GPL and other terms selected by the Arch Linux packages |
+| Cage | MIT |
+| Aero7 AeroThemePlasma fork | AGPL-3.0-or-later plus per-directory notices; runtime Microsoft logos replaced with Aero7 branding |
+| AeroShell workspace and KWin components | AGPL-3.0-or-later |
+| AeroShell libplasma | LGPL-2.0-or-later |
+| AeroShell SMOD | AGPL-3.0-or-later |
+| UAC Polkit Agent | GPL-3.0-or-later |
+| AeroThemePlasma icons and sounds | AGPL-3.0-or-later software notices; upstream also attributes relevant assets to Microsoft |
+| Adwaita Sans | OFL-1.1 |
+| PlymouthVista software | MIT; separate upstream Microsoft-asset notice applies to its visual resources |
+
+The retained icon and sound packages preserve their upstream licence and README
+files under `/usr/share/licenses`. Those notices do not establish that Microsoft
+has authorized redistribution of any material attributed to Microsoft. The
+project owner has chosen to retain these packages for now, and a public
+distributor remains responsible for any additional permission required.
+
 - Arch Linux packages are downloaded from the configured official repositories
   and retain their respective licenses.
 - Qt, KDE Plasma, Cage, systemd, the Linux kernel, and all other installed
   packages retain their upstream licenses and notices under `/usr/share/licenses`.
 - Aero7 binary packages are consumed from the signed repository pinned in
   `sources.lock` and retain their upstream licenses.
+- `aerothemeplasma-desktop-git` is built from the Aero7 downstream fork at
+  `https://github.com/memegeko/aerothemeplasma`. Its runtime Start, SDDM,
+  splash, logout, lock-screen, and System Information Microsoft logos are
+  replaced by project-owner-supplied Aero7 artwork. Upstream screenshots and
+  non-logo resources are deliberately unchanged for now.
 - `installer/assets/aero7-background.png` is original project artwork generated
   with OpenAI's built-in image-generation tool on 2026-07-29. Prompt: an
   original abstract cobalt-to-cyan Aero7 installer background with sweeping
@@ -60,7 +99,8 @@
   code-native SVG/QML artwork created for this installer.
 
 The Windows 7 screenshots supplied during development remain visual references
-and are not embedded in the ISO. PlymouthVista is a separate requested
+and are not embedded in the ISO. They are intentionally deferred to the public
+release screenshot pass. PlymouthVista is a separate requested
 compatibility theme with an upstream Microsoft-asset notice. A publicly
 distributed ISO therefore requires the distributor to review those artwork and
 trademark rights independently of the open-source software licences.
