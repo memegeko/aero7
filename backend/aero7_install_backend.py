@@ -756,11 +756,11 @@ def enforce_light_desktop_defaults(username: str, runner: CommandRunner) -> None
         ("kdeglobals", "General", "accentColorFromWallpaper", "false"),
         ("kdeglobals", "KDE", "LookAndFeelPackage", "authui7"),
         ("kdeglobals", "KDE", "widgetStyle", "kvantum"),
-        ("plasmarc", "Theme", "name", "breeze-light"),
+        ("plasmarc", "Theme", "name", "Aero7"),
         ("kvantum.kvconfig", "General", "theme", "Windows7Aero"),
         (f"{config_home}/kdedefaults/kdeglobals", "General", "ColorScheme", "Aero7Light"),
         (f"{config_home}/kdedefaults/kdeglobals", "KDE", "LookAndFeelPackage", "authui7"),
-        (f"{config_home}/kdedefaults/plasmarc", "Theme", "name", "breeze-light"),
+        (f"{config_home}/kdedefaults/plasmarc", "Theme", "name", "Aero7"),
     ]
     for group, values in light_values.items():
         for key, value in values.items():
@@ -773,6 +773,16 @@ def enforce_light_desktop_defaults(username: str, runner: CommandRunner) -> None
         runner.run(
             [*command_prefix, "--file", file_name, "--group", group,
              "--key", key, value]
+        )
+
+    for file_name in (
+        "plasmashellrc",
+        f"{config_home}/kdedefaults/plasmashellrc",
+    ):
+        runner.run(
+            [*command_prefix, "--file", file_name,
+             "--group", "PlasmaViews", "--group", "Panel 2",
+             "--key", "panelOpacity", "2"]
         )
 
 
