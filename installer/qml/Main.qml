@@ -46,6 +46,53 @@ ApplicationWindow {
             focus: true
         }
 
+        // QXL and wlroots can otherwise preserve pixels from transparent
+        // regions of the previous Loader item. Cover two render frames with
+        // the canonical background, then remove the cover so the complete
+        // replacement screen is damaged and repainted in one pass.
+        Item {
+            id: fullFrameRepaintGuard
+            anchors.fill: parent
+            visible: false
+            z: 900
+
+            Rectangle {
+                anchors.fill: parent
+                color: window.blackTransition ? "#000000" : "#020915"
+            }
+
+            Image {
+                anchors.fill: parent
+                visible: !window.blackTransition
+                source: "qrc:/assets/aero7-background.png"
+                fillMode: Image.PreserveAspectCrop
+                smooth: true
+            }
+
+            Rectangle {
+                anchors.fill: parent
+                visible: !window.blackTransition
+                color: "#071d4a"
+                opacity: 0.08
+            }
+        }
+
+        Connections {
+            target: controller
+
+            function onScreenChanged() {
+                fullFrameRepaintGuard.visible = true
+                releaseFullFrameRepaint.restart()
+            }
+        }
+
+        Timer {
+            id: releaseFullFrameRepaint
+            interval: 34
+            repeat: false
+            onTriggered: fullFrameRepaintGuard.visible = false
+        }
+
         Rectangle {
             visible: controller.demoMode && !window.blackTransition
             anchors.top: parent.top
