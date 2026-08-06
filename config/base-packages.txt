@@ -34,9 +34,13 @@ kvantum
 oxygen-icons
 cage
 mesa
-konsole
+qterminal
 ark
 fastfetch
+vlc
+spectacle
+kcalc
+featherpad
 plymouth
 imagemagick
 pipewire

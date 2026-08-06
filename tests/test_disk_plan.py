@@ -157,6 +157,7 @@ class DiskPlanTest(unittest.TestCase):
             if value == "--skip-stage"
         ]
         self.assertIn("20-system-update", skipped)
+        self.assertNotIn("70-aero-applications", skipped)
         self.assertIn("100-plymouth", skipped)
         self.assertIn("120-wine", skipped)
 

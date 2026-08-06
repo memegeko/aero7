@@ -37,7 +37,11 @@ then the signed Aero7 repository adds the themed desktop components.
 | Paint | Aero KolourPaint |
 | Gadgets | Aero7 gadgets package |
 | Task Manager | TuxManager |
-| Command Prompt | Konsole with Aero7 launcher branding |
+| Command Prompt | QTerminal with Aero7 launcher branding |
+| Media Player | VLC using the Aero7 Qt desktop theme |
+| Snipping Tool | Spectacle region capture to the clipboard |
+| Calculator | KCalc |
+| Notepad | FeatherPad using the Aero7 Qt desktop theme |
 | Archive support | Ark |
 | Version information | LinVer |
 | Windows executable helper | execbin |
@@ -46,7 +50,8 @@ then the signed Aero7 repository adds the themed desktop components.
 
 - WinXplorer is optional and is not installed by the ISO;
 - Sevulet is excluded until source and redistribution terms can be audited;
-- Kate, Spectacle, Okular, and KCalc are not part of the focused Beta 1 image;
+- Kate and Okular are not part of the focused Beta 1 image;
+- Konsole is replaced by the lighter QTerminal package;
 - CMake, Ninja, `base-devel`, and other source-build tools are not installed on
   the finished binary-package system;
 - Plasma Discover and the broad KDE Applications set are not pulled through a

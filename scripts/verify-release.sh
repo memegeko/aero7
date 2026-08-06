@@ -62,6 +62,12 @@ fi
 unsquashfs -cat "$squashfs" usr/share/aero7/source/lib/applications.sh \
   >"$embedded_applications"
 rg -F 'Name=Command Prompt' "$embedded_applications" >/dev/null
+rg -F 'Name=Media Player' "$embedded_applications" >/dev/null
+rg -F 'Name=Snipping Tool' "$embedded_applications" >/dev/null
+rg -F 'Name=Calculator' "$embedded_applications" >/dev/null
+rg -F 'Name=Notepad' "$embedded_applications" >/dev/null
+rg -F 'Exec=/usr/bin/spectacle -r -b -c' "$embedded_applications" >/dev/null
+rg -F 'aero7-snipping-tool-print.desktop' "$embedded_applications" >/dev/null
 rg -F 'kbuildsycoca6 --noincremental' "$embedded_applications" >/dev/null
 unsquashfs -cat "$squashfs" usr/share/aero7/branding/aero7-login-background.jpg \
   >/dev/null
@@ -70,7 +76,10 @@ unsquashfs -cat "$squashfs" usr/share/aero7/base-packages.txt \
   >"$embedded_base_packages"
 cmp -s "$project_root/config/base-packages.txt" "$embedded_base_packages"
 grep -Fqx plasma-desktop "$embedded_base_packages"
-for excluded_target_package in plasma-meta kde-applications-meta; do
+for required_desktop_application in qterminal vlc spectacle kcalc featherpad; do
+  grep -Fqx "$required_desktop_application" "$embedded_base_packages"
+done
+for excluded_target_package in plasma-meta kde-applications-meta konsole; do
   if grep -Fqx "$excluded_target_package" "$embedded_base_packages"; then
     printf 'The release ISO contains an unwanted desktop meta-package: %s\n' \
       "$excluded_target_package" >&2

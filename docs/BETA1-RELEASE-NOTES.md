@@ -54,7 +54,12 @@ sha256sum -c aero7-beta1-2026.08.02-x86_64.iso.sha256
 - Linux Control Panel and Device Manager;
 - Aero KolourPaint;
 - Gadgets, execbin, LinVer, and TuxManager;
-- Konsole integration as **Command Prompt**.
+- QTerminal as **Command Prompt**;
+- VLC as **Media Player**;
+- Spectacle as **Snipping Tool**, with Print Screen and Meta+Shift+S region
+  capture shortcuts;
+- KCalc as **Calculator**;
+- FeatherPad as **Notepad**.
 
 WinXplorer is optional and is not installed by the ISO. Sevulet is not included
 because its source and redistribution terms have not been verified.

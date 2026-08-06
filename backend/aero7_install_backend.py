@@ -699,7 +699,6 @@ def shell_image_mode_arguments(username: str) -> list[str]:
         "50-yay",
         "55-binary-repository",
         "60-aeroshell",
-        "70-aero-applications",
         "100-plymouth",
         "120-wine",
     ):

@@ -91,7 +91,9 @@ application meta-packages. Aero7 then adds its own signed desktop set:
 - Aero Gwenview, presented as **Photo Viewer**;
 - Linux Control Panel and Device Manager;
 - Aero KolourPaint, Gadgets, execbin, LinVer, and TuxManager;
-- Konsole integration presented as **Command Prompt**;
+- QTerminal presented as **Command Prompt**;
+- VLC presented as **Media Player**, Spectacle as **Snipping Tool**,
+  KCalc as **Calculator**, and FeatherPad as **Notepad**;
 - Ark archive integration, Wine compatibility components, and branded Fastfetch.
 
 WinXplorer remains optional and is not installed by the ISO. Sevulet is not
