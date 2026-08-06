@@ -272,6 +272,9 @@ class DiskPlanTest(unittest.TestCase):
         self.assertTrue(any("Colors:View --key BackgroundNormal 255,255,255" in line for line in joined))
         self.assertTrue(any("Colors:Complementary --key BackgroundNormal 240,240,240" in line for line in joined))
         self.assertTrue(any("plasmarc --group Theme --key name Aero7" in line for line in joined))
+        self.assertTrue(any("/home/geko/.config/Kvantum" in line for line in joined))
+        self.assertTrue(any("Kvantum/kvantum.kvconfig --group General --key theme Windows7Aero" in line for line in joined))
+        self.assertFalse(any("--file kvantum.kvconfig" in line for line in joined))
         self.assertTrue(any("plasmashellrc --group PlasmaViews --group Panel 2 --key panelOpacity 2" in line for line in joined))
         self.assertTrue(all("HOME=/home/geko" in line for line in joined[1:]))
         with self.assertRaisesRegex(SafetyError, "username"):

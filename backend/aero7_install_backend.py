@@ -721,7 +721,7 @@ def enforce_light_desktop_defaults(username: str, runner: CommandRunner) -> None
     config_home = f"{home}/.config"
     runner.run(
         ["install", "-d", "-m", "0755", "-o", username, "-g", username,
-         config_home, f"{config_home}/kdedefaults"]
+         config_home, f"{config_home}/kdedefaults", f"{config_home}/Kvantum"]
     )
     command_prefix = [
         "runuser", "--user", username, "--", "env", f"HOME={home}",
@@ -757,7 +757,7 @@ def enforce_light_desktop_defaults(username: str, runner: CommandRunner) -> None
         ("kdeglobals", "KDE", "LookAndFeelPackage", "authui7"),
         ("kdeglobals", "KDE", "widgetStyle", "kvantum"),
         ("plasmarc", "Theme", "name", "Aero7"),
-        ("kvantum.kvconfig", "General", "theme", "Windows7Aero"),
+        ("Kvantum/kvantum.kvconfig", "General", "theme", "Windows7Aero"),
         (f"{config_home}/kdedefaults/kdeglobals", "General", "ColorScheme", "Aero7Light"),
         (f"{config_home}/kdedefaults/kdeglobals", "KDE", "LookAndFeelPackage", "authui7"),
         (f"{config_home}/kdedefaults/plasmarc", "Theme", "name", "Aero7"),
