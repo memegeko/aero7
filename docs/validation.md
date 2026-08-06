@@ -47,7 +47,8 @@ ShellCheck is skipped when it is not installed on the host.
 - guarded live backend and one-time autologin cleanup;
 - embedded source lock and focused package manifest;
 - one Aero taskbar rather than a second stock Plasma panel;
-- Command Prompt branding and application cache rebuild;
+- Command Prompt, Media Player, Snipping Tool, Calculator, and Notepad branding,
+  capture shortcuts, and application cache rebuild;
 - Welcome/SDDM artwork and required Aero assets.
 
 ## Interactive VM evidence

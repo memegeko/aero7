@@ -274,7 +274,7 @@ while IFS= read -r package_name; do
   case "$package_name" in
     # Source-build and optional utility packages used by the standalone shell
     # installer are intentionally absent from the binary-package ISO target.
-    cmake|extra-cmake-modules|ninja|base-devel|wayland-protocols|vulkan-headers|kate|spectacle|okular|kcalc)
+    cmake|extra-cmake-modules|ninja|base-devel|wayland-protocols|vulkan-headers|kate|okular)
       continue
       ;;
   esac
@@ -304,9 +304,15 @@ grep -Fqx plasma-desktop "$project_root/config/base-packages.txt" || {
 for excluded_target_package in \
   plasma-meta kde-applications-meta \
   cmake extra-cmake-modules ninja base-devel wayland-protocols vulkan-headers \
-  kate spectacle okular kcalc; do
+  kate okular konsole; do
   if grep -Fqx "$excluded_target_package" "$project_root/config/base-packages.txt"; then
     printf 'Unwanted target package is present: %s\n' "$excluded_target_package" >&2
+    exit 1
+  fi
+done
+for required_desktop_application in qterminal vlc spectacle kcalc featherpad; do
+  if ! grep -Fqx "$required_desktop_application" "$project_root/config/base-packages.txt"; then
+    printf 'Required Aero7 desktop application is missing: %s\n' "$required_desktop_application" >&2
     exit 1
   fi
 done
@@ -348,6 +354,25 @@ grep -Fq 'aero7-login-background.jpg' \
 grep -Fq 'Name=Command Prompt' \
   "$project_root/../aero_desktop/lib/applications.sh" || {
   printf 'The pinned shell is missing Command Prompt application branding.\n' >&2
+  exit 1
+}
+for branded_application in 'Name=Media Player' 'Name=Snipping Tool' \
+  'Name=Calculator' 'Name=Notepad'; do
+  grep -Fq "$branded_application" \
+    "$project_root/../aero_desktop/lib/applications.sh" || {
+    printf 'The pinned shell is missing application branding: %s\n' \
+      "$branded_application" >&2
+    exit 1
+  }
+done
+grep -Fq 'Exec=/usr/bin/spectacle -r -b -c' \
+  "$project_root/../aero_desktop/lib/applications.sh" || {
+  printf 'The pinned shell is missing the Snipping Tool capture command.\n' >&2
+  exit 1
+}
+grep -Fq 'aero7-snipping-tool-print.desktop' \
+  "$project_root/../aero_desktop/lib/applications.sh" || {
+  printf 'The pinned shell is missing the Print Screen shortcut service.\n' >&2
   exit 1
 }
 
