@@ -59,6 +59,11 @@ def configure_and_install(target: Path, runner: Runner, share_dir: Path) -> None
     )
     runner.run(["arch-chroot", str(target), "pacman-key", "--lsign-key", FINGERPRINT])
     requested_packages = read_packages(package_source)
+    # The focused Plasma base installs Arch's libplasma first. Aero7's patched
+    # aeroshell-libplasma-git package declares that package as a conflict and
+    # provider, so approve only pacman's conflict-replacement question. Avoid
+    # piping blanket "yes" responses: unexpected key, corruption, or package
+    # removal questions must continue to fail closed.
     runner.run(
         [
             "arch-chroot",
@@ -66,9 +71,10 @@ def configure_and_install(target: Path, runner: Runner, share_dir: Path) -> None
             "pacman",
             "-Syy",
             "--needed",
+            "--noconfirm",
+            "--ask=4",
             *requested_packages,
-        ],
-        input_text="y\n" * 128,
+        ]
     )
     # pacman can return success when every transaction completed, but verify
     # the exact allowlist as a separate release gate. A partial Aero desktop is

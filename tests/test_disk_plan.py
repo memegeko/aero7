@@ -296,6 +296,14 @@ class DiskPlanTest(unittest.TestCase):
             configure_and_install(target, runner, share)
 
             commands = [call[0] for call in runner.calls]
+            install_call = next(
+                call
+                for call in runner.calls
+                if call[0][2:5] == ["pacman", "-Syy", "--needed"]
+            )
+            self.assertIn("--noconfirm", install_call[0])
+            self.assertIn("--ask=4", install_call[0])
+            self.assertIsNone(install_call[1])
             self.assertIn(
                 ["arch-chroot", str(target), "pacman", "-Q", "--", "one", "two"],
                 commands,
