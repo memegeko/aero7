@@ -61,11 +61,10 @@ if ((mkarchiso_only)); then
   fi
   archiso_work="$work_root/archiso"
   build_stamp="$(date -u +%Y%m%dT%H%M%SZ)"
-  # Preserve incomplete ISO staging directories from interrupted builds for
-  # diagnosis, but keep them out of the next atomic publication attempt.
+  # Interrupted build trees are disposable and can consume tens of gigabytes.
+  # Keep diagnostics in the build log and start from a clean Archiso workspace.
   while IFS= read -r -d '' stale_staging; do
-    mkdir -p "$work_root/archive"
-    mv "$stale_staging" "$work_root/archive/failed-${stale_staging##*/}-$build_stamp"
+    rm -rf --one-file-system -- "$stale_staging"
   done < <(find "$work_root" -mindepth 1 -maxdepth 1 -type d -name 'iso-output-*' -print0)
   if [[ -e "$archiso_work" ]]; then
     stale_source="$archiso_work/x86_64/airootfs"
@@ -85,8 +84,7 @@ if ((mkarchiso_only)); then
         done
       fi
     fi
-    mkdir -p "$work_root/archive"
-    mv "$archiso_work" "$work_root/archive/archiso-$build_stamp"
+    rm -rf --one-file-system -- "$archiso_work"
   fi
   staging_out="$work_root/iso-output-$build_stamp"
   [[ ! -e "$staging_out" ]] || { printf 'ISO staging path already exists: %s\n' "$staging_out" >&2; exit 1; }
@@ -111,16 +109,16 @@ if ((mkarchiso_only)); then
     printf 'Expected exactly one staged Aero7 ISO, found %d.\n' "${#staged_images[@]}" >&2
     exit 1
   fi
-  if find "$out_root" -maxdepth 1 -type f -name 'aero7-*.iso' -print -quit | grep -q .; then
-    mkdir -p "$out_root/archive/$build_stamp"
-    while IFS= read -r -d '' old_image; do
-      mv "$old_image" "$out_root/archive/$build_stamp/"
-    done < <(find "$out_root" -maxdepth 1 -type f -name 'aero7-*.iso' -print0)
-  fi
+  # Keep one published ISO only. Git history and release artifacts preserve
+  # released builds; local archive copies caused repeated storage exhaustion.
+  while IFS= read -r -d '' old_image; do
+    rm -f -- "$old_image"
+  done < <(find "$out_root" -maxdepth 1 -type f -name 'aero7-*.iso' -print0)
   for staged_image in "${staged_images[@]}"; do
     mv "$staged_image" "$out_root/"
   done
   rmdir "$staging_out"
+  rm -rf --one-file-system -- "$archiso_work"
   output_uid="${SUDO_UID:-${PKEXEC_UID:-}}"
   if [[ -z "$output_uid" ]]; then
     project_uid="$(stat -c '%u' "$project_root")"
@@ -133,15 +131,10 @@ if ((mkarchiso_only)); then
     while IFS= read -r -d '' image; do
       chown "$output_uid:$output_gid" "$image"
     done < <(find "$out_root" -maxdepth 1 -type f -name 'aero7-*.iso' -print0)
-    # The normal-user preparation pass archives its previous profile below
-    # this directory. Keep the shared archive root writable after a
-    # privileged mkarchiso pass; archived Archiso trees may remain root-owned.
-    chown "$output_uid:$output_gid" "$work_root/archive"
   elif [[ -n "${SUDO_USER:-}" ]]; then
     while IFS= read -r -d '' image; do
       chown "$SUDO_USER" "$image"
     done < <(find "$out_root" -maxdepth 1 -type f -name 'aero7-*.iso' -print0)
-    chown "$SUDO_USER" "$work_root/archive"
   fi
   printf 'ISO output:\n'
   find "$out_root" -maxdepth 1 -type f -name 'aero7-*.iso' -print
@@ -172,9 +165,7 @@ cmake --build "$build_root/installer"
 ctest --test-dir "$build_root/installer" --output-on-failure
 
 if [[ -e "$profile_root" ]]; then
-  archive_root="$work_root/archive/$(date -u +%Y%m%dT%H%M%SZ)"
-  mkdir -p "$archive_root"
-  mv "$profile_root" "$archive_root/profile"
+  rm -rf --one-file-system -- "$profile_root"
 fi
 mkdir -p "$profile_root"
 cp -a "$project_root/archiso/." "$profile_root/"
@@ -197,9 +188,6 @@ install -m 0644 "$plymouth_source/PlymouthVista.plymouth" "$plymouth_target/Plym
 install -m 0644 "$plymouth_source/PlymouthVista.script" "$plymouth_target/PlymouthVista.script"
 while IFS= read -r -d '' plymouth_asset; do
   asset_name="${plymouth_asset##*/}"
-  case "$asset_name" in
-    aero7-logo-circle.png) continue ;;
-  esac
   install -m 0644 "$plymouth_asset" "$plymouth_target/images/$asset_name"
 done < <(find "$plymouth_source/images" -maxdepth 1 -type f -print0)
 install -Dm644 "$plymouth_source/LICENSE" \

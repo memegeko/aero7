@@ -82,7 +82,6 @@ if ((fresh)); then
 fi
 
 qemu_root="$project_root/work/qemu"
-archive_root="$qemu_root/archive"
 if ((dualboot_fixture)); then
   disk_path="$qemu_root/aero7-dualboot.raw"
   disk_format="raw"
@@ -98,7 +97,7 @@ qmp_path="$qemu_runtime_root/qmp.sock"
 spice_path="$qemu_runtime_root/spice.sock"
 code_path="/usr/share/edk2/x64/OVMF_CODE.4m.fd"
 vars_template="/usr/share/edk2/x64/OVMF_VARS.4m.fd"
-mkdir -p "$qemu_root" "$archive_root" "$qemu_runtime_root"
+mkdir -p "$qemu_root" "$qemu_runtime_root"
 chmod 0700 "$qemu_runtime_root"
 [[ -f "$code_path" && -f "$vars_template" ]] || { printf 'OVMF firmware is missing (install edk2-ovmf).\n' >&2; exit 1; }
 rm -f -- "$monitor_path"
@@ -106,8 +105,9 @@ rm -f -- "$qmp_path"
 rm -f -- "$spice_path"
 
 if ((fresh)) && [[ -e "$disk_path" ]]; then
-  disk_basename="${disk_path##*/}"
-  mv "$disk_path" "$archive_root/${disk_basename%.*}-$(date -u +%Y%m%dT%H%M%SZ).${disk_basename##*.}"
+  # The test disk is explicitly disposable in fresh mode. Archiving every
+  # previous 40 GiB image caused silent storage growth and eventual failures.
+  rm -f -- "$disk_path"
 fi
 if ((installed_only)) && [[ ! -f "$disk_path" ]]; then
   printf 'No installed Aero7 VM disk exists at %s\n' "$disk_path" >&2

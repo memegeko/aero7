@@ -85,25 +85,13 @@ fun ShowSystemUpdate(progress)
 
 fun ReturnNormal() {
 	mode = Plymouth.GetMode();
-	// Why are "update" and "firmware_upgrade" modes here? Because,
-	// - Fedora's BGRT theme shows spinner on "firmware_upgrade"
-	// - Fedora's BGRT theme shows spinner on "update"
+	// Firmware and package-update modes reuse the normal Aero7 boot animation.
 	if (mode == "boot" || mode == "update" || mode == "firmware_upgrade") {
-		if (global.UseLegacyBootScreen) {
-			if (global.ReturnFromHibernation && global.UseNoGuiResume) {
-				BootScreen = NewNoGUIBoot();
-			}
-			else {
-				BootScreen = LegacyBootScreenNew();
-			}
+		if (global.ReturnFromHibernation) {
+			BootScreen = SevenBootScreenNew("resume");
 		}
 		else {
-			if (global.ReturnFromHibernation) {
-				BootScreen = SevenBootScreenNew("resume");
-			}
-			else {
-				BootScreen = SevenBootScreenNew("boot");
-			}
+			BootScreen = SevenBootScreenNew("boot");
 		}
 		Plymouth.SetRefreshRate(12);
 	}

@@ -1,78 +1,4 @@
 // PlymouthVista
-// bootlegacy.sp
-// Defines the standard Vista (graphicsmodedisabled yes) boot screen class
-
-fun LegacyBootScreenNew() {
-	local.self = [];
-	
-	self.BaseSprite = Sprite();
-	self.ProgressSprite = Sprite();
-
-	self.BaseImage = Image("base.png");
-	self.ProgressImage = Image("progress.png");
-
-	self.State = "fadein";
-	self.Opacity = 0;
-	self.FadeSteps = 15;
-
-	// I could directly use the screen width & height here, but
-	// I want to follow the pattern of using the scale factors.
-	self.BaseScaledWidth = self.BaseImage.GetWidth() * ScaleFactorX;
-	self.BaseScaledHeight = self.BaseImage.GetHeight() * ScaleFactorY;
-
-	self.ProgressScaledWidth = self.ProgressImage.GetWidth() * ScaleFactorX;
-	self.ProgressScaledHeight = self.ProgressImage.GetHeight() * ScaleFactorY;
-
-	self.BaseImageScaled = self.BaseImage.Scale(self.BaseScaledWidth, self.BaseScaledHeight);
-	self.ProgressImageScaled = self.ProgressImage.Scale(self.ProgressScaledWidth, self.ProgressScaledHeight);
-
-	self.BaseSprite.SetImage(self.BaseImageScaled);
-	self.BaseSprite.SetOpacity(0);
-	self.BaseSprite.SetZ(1);
-
-	// Progress co-ordinate stuff
-	self.ProgressOriginX = 234 * ScaleFactorX;
-	self.ProgressReturnX = (234 + (18 * 8)) * ScaleFactorX;
-	self.ProgressCurrentX = self.ProgressOriginX;
-	self.ProgressStepX = 8 * ScaleFactorX;
-	self.ProgressY = 354 * ScaleFactorY;
-
-	self.ProgressSprite.SetImage(self.ProgressImageScaled);
-	self.ProgressSprite.SetOpacity(0);
-	self.ProgressSprite.SetZ(0);
-	self.ProgressSprite.SetX(self.ProgressCurrentX);
-	self.ProgressSprite.SetY(self.ProgressY);
-	
-	fun Update(self) {
-		// What state are we in?
-		if (self.State == "fadein") {
-			// Fade in, let's increment our opacity
-			self.Opacity += (1 / self.FadeSteps);
-			
-			if (self.Opacity >= 1) {
-				self.State = "progress";
-				self.Opacity = 1;
-			}
-			
-			self.BaseSprite.SetOpacity(self.Opacity);
-		}
-		if (self.State == "progress") {
-			// Progress, let's increment the position of the progress dots
-			self.ProgressSprite.SetOpacity(1);
-			self.ProgressCurrentX += self.ProgressStepX;
-			self.ProgressSprite.SetX(self.ProgressCurrentX);
-			
-			if (self.ProgressCurrentX > self.ProgressReturnX) {
-				self.ProgressCurrentX = self.ProgressOriginX;
-			}
-		}
-	}
-
-	self.Update = Update;
-	
-	return self;
-}
-// PlymouthVista
 // boot7.sp
 // Defines the Aero7 boot screen class.
 
@@ -324,8 +250,8 @@ global.DisableWall = 0;
 //Must be a single line of text,
 //Allowed up to 74 characters.
 //Default value:
-//"Windows Boot Manager"
-global.PasswordTitle = "Windows Boot Manager";
+//"Aero7 Boot Manager"
+global.PasswordTitle = "Aero7 Boot Manager";
 
 //Overrides the message of the password screen with its value.
 //Prerequisites:
@@ -346,8 +272,8 @@ global.PasswordText = "Password";
 //Must be a single line of text,
 //Allowed up to 74 characters.
 //Default value:
-//"Windows Boot Manager"
-global.AnswerTitle = "Windows Boot Manager";
+//"Aero7 Boot Manager"
+global.AnswerTitle = "Aero7 Boot Manager";
 
 //Overrides the message of the password screen with its value.
 //Prerequisites:
@@ -378,7 +304,7 @@ global.ScaleBootManager = 0;
 global.ShutdownText = "Shutting down...";
 
 //Text that is shown when the system is rebooting.
-//Both Windows 7 and Windows Vista use Shutting Down... instead of Rebooting... but to make this screen make more sense, you will see Rebooting... as the default value.
+//Use distinct shutdown and reboot labels so the current action is clear.
 //Prerequisites:
 //Only a single line of text is allowed. Don't use /n.
 //If you modified this key after installation, please re-run gen_blur.sh.
@@ -400,54 +326,33 @@ global.LogoffText = "Logging off...";
 //If you modified this key after installation, please re-run gen_blur.sh.
 //Prerequisites
 //Default Value:
-//"Configuring Windows updates\n%i% complete\nDo not turn off your computer.
-global.UpdateTextMTL = "Configuring Windows updates\n%i% complete\nDo not turn off your computer.";
-
-//Defines whether the Vista boot screen should be used or not:
-//Accepted values:
-//1 - Use the Vista boot screen.
-//0 - Use the 7 boot screen.
-global.UseLegacyBootScreen = 0;
+//"Configuring Aero7 updates\n%i% complete\nDo not turn off your computer."
+global.UpdateTextMTL = "Configuring Aero7 updates\n%i% complete\nDo not turn off your computer.";
 
 //Defines whether the shadow effect should be applied or not.
 //Setting this value to 1 after installation requires re-running gen_blur.sh.
 //Accepted values:
-//0: Windows Vista style, don't show text shadow.
-//1: Windows 7 style, show text shadow.
+//0: Don't show a text shadow.
+//1: Show a text shadow.
 global.UseShadow = 1;
 
-//Sets the background and branding image of the shutdown, reboot, and update screen.
-//Accepted values:
-//"7": Use Windows 7 background and branding.
-//"vista": Use Windows Vista background and branding.
+//Selects the Aero7 shutdown, reboot, and update artwork.
 global.AuthuiStyle = "7";
 
-//The text that is displayed on Windows 7 boot screen when the system is starting normally.
+//The text displayed while Aero7 starts normally.
 //Default value:
-//"Starting Windows"
+//"Starting Aero7"
 global.StartingText = "Starting Aero7";
 
-//The text that is displayed on Windows 7 boot screen when the system is returning from hibernation.
+//The text displayed while Aero7 returns from hibernation.
 //Default value:
-//"Resuming Windows"
+//"Resuming Aero7"
 global.ResumingText = "Resuming Aero7";
 
-//Copyright text of the Windows 7 boot screen that is displayed on bottom center of the screen.
+//Project text displayed at the bottom center of the boot screen.
 //Default value:
-//"© Microsoft Corporation"
+//"Aero7 Open Project"
 global.CopyrightText = "Aero7 Open Project";
-
-//Defines whether Windows Vista's no GUI resume screen will be used or not.
-//This only applies when UseLegacyBootScreen is set to 1.
-//Accepted values:
-//1 - Use Windows Vista's no GUI resume screen.
-//0 - Don't use Windows Vista's no GUI resume screen.
-global.UseNoGuiResume = 1;
-
-//Text that is shown below of the progress bar on the Windows Vista hibernation resume screen.
-//Default value:
-//"Resuming Windows..."
-global.NoGuiResumeText = "Resuming Windows...";
 
 //Slows down your boot in seconds.
 //Works when the plymouth-vista-slow-boot-animation.service is enabled.
@@ -455,9 +360,6 @@ global.NoGuiResumeText = "Resuming Windows...";
 //Default value:
 //0
 global.BootSlowdown = 0;
-
-// Want to make your own Windows 9, see this:
-// https://crustywindo.ws/w/images/2/2a/Dilshad9-Boot.png
 
 #END_USED_BY_PV_CONF
 
@@ -526,7 +428,7 @@ fun CreateMany(char, times) {
 
     return text;
 }// PlymouthVista
-// Windows Updates screen
+// Aero7 updates screen
 // wupdate.sp
 
 fun UpdateScreenNew() {
@@ -787,67 +689,7 @@ fun ShutdownScreenNew(textName) {
 
     return self;
 }
-// vistaresume.sp
-// Windows Vista resume screen.
-
-fun NewNoGUIBoot(text) {
-    local.self = [];
-
-    scaleFactorX = GlobalWidth / 1024;
-    scaleFactorY = GlobalHeight / 768;
-
-    self.NoGuiImage = Image("resumevista.png");
-    self.NoGuiScaledX = self.NoGuiImage.GetWidth() * scaleFactorX;
-    self.NoGuiScaledY = self.NoGuiImage.GetHeight() * scaleFactorY;
-    self.NoGuiScaled = self.NoGuiImage.Scale(self.NoGuiScaledX, self.NoGuiScaledY);
-
-    self.NoGuiSprite = Sprite(self.NoGuiScaled);
-    self.NoGuiSprite.SetZ(0);
-    self.NoGuiSprite.SetOpacity(1);
-
-    fontSize = 18 * (GlobalHeight / 768);
-    self.ResumeText = Image.Text(global.NoGuiResumeText, 0.7, 0.7, 0.7, 1, "Lucida Console " + fontSize);
-    textY = GlobalHeight - 48 * scaleFactorY;
-    
-    self.ResumeTextSprite = Sprite(self.ResumeText);
-    self.ResumeTextSprite.SetZ(1);
-    self.ResumeTextSprite.SetX((GlobalWidth - self.ResumeText.GetWidth()) / 2);
-    self.ResumeTextSprite.SetY(textY);
-
-    for (i = 1; i < 11; i++) {
-        resumeBarImage = Image("resumebar" + i + ".png");
-        resumeBarScaleX = resumeBarImage.GetWidth() * scaleFactorX;
-        resumeBarScaleY = resumeBarImage.GetHeight() * scaleFactorY;
-        resumeBarImageScaled = resumeBarImage.Scale(resumeBarScaleX, resumeBarScaleY);
-
-        resumeBarSprite = Sprite(resumeBarImageScaled);
-        resumeBarSprite.SetOpacity(0);
-        resumeBarSprite.SetX((GlobalWidth - resumeBarImageScaled.GetWidth()) / 2);
-        resumeBarSprite.SetY(textY - 48 * scaleFactorY);
-        resumeBarSprite.SetZ(1);
-
-        self.ResumeBars[i - 1] = resumeBarSprite;
-    }
-
-    self.CurrentStep = 0;
-    self.LastStep = 9;
-
-    fun Update(self) {
-        self.ResumeBars[self.CurrentStep].SetOpacity(1);
-        self.ResumeBars[self.LastStep].SetOpacity(0);
-        self.LastStep = self.CurrentStep;
-        if (self.CurrentStep >= 9) {
-            self.CurrentStep = 0;
-        }
-        else {
-            self.CurrentStep++;
-        }
-    }
-
-    self.Update = Update;
-
-    return self;
-}// PlymouthVista
+// PlymouthVista
 // Plymouth theme to emulate the Windows Vista and 7 boot sequences and shutdown sequences.
 // 
 // Distributed images are owned by Microsoft Corporation!
@@ -934,25 +776,13 @@ fun ShowSystemUpdate(progress)
 
 fun ReturnNormal() {
 	mode = Plymouth.GetMode();
-	// Why are "update" and "firmware_upgrade" modes here? Because,
-	// - Fedora's BGRT theme shows spinner on "firmware_upgrade"
-	// - Fedora's BGRT theme shows spinner on "update"
+	// Firmware and package-update modes reuse the normal Aero7 boot animation.
 	if (mode == "boot" || mode == "update" || mode == "firmware_upgrade") {
-		if (global.UseLegacyBootScreen) {
-			if (global.ReturnFromHibernation && global.UseNoGuiResume) {
-				BootScreen = NewNoGUIBoot();
-			}
-			else {
-				BootScreen = LegacyBootScreenNew();
-			}
+		if (global.ReturnFromHibernation) {
+			BootScreen = SevenBootScreenNew("resume");
 		}
 		else {
-			if (global.ReturnFromHibernation) {
-				BootScreen = SevenBootScreenNew("resume");
-			}
-			else {
-				BootScreen = SevenBootScreenNew("boot");
-			}
+			BootScreen = SevenBootScreenNew("boot");
 		}
 		Plymouth.SetRefreshRate(12);
 	}

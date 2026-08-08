@@ -91,8 +91,15 @@ if grep -Fq 'findmnt -Rrn -o TARGET "$source_root"' \
   printf 'The SquashFS guard still assumes its source root is a mount point.\n' >&2
   exit 1
 fi
-grep -Fq "failed-\${stale_staging##*/}-\$build_stamp" \
+grep -Fq 'rm -rf --one-file-system -- "$stale_staging"' \
   "$project_root/scripts/build-iso.sh"
+grep -Fq 'rm -rf --one-file-system -- "$archiso_work"' \
+  "$project_root/scripts/build-iso.sh"
+if rg -n 'work_root/archive|out_root/archive' \
+    "$project_root/scripts/build-iso.sh" >/dev/null 2>&1; then
+  printf 'The ISO builder still accumulates local build archives.\n' >&2
+  exit 1
+fi
 
 printf 'Live package mirrors\n'
 mirrorlist="$project_root/archiso/airootfs/etc/pacman.d/mirrorlist"
@@ -231,8 +238,7 @@ printf '%s  %s\n' \
   exit 1
 }
 printf '%s  %s\n' \
-  '6ec00420b85aa5f1a12c9af365a47694033a6160079f2b08959ca49111dacc42' "$project_root/third_party/PlymouthVista/PlymouthVista.script" \
-  '66dfe9233d96f9a189c2d2e0c5270c3cb8f21a4ab538bba5b27553751500ffa2' "$project_root/third_party/PlymouthVista/images/aero7-logo-circle.png" \
+  '1e2b19e4a706259462169ff25d5a7cc659b29f5989d45c4ba588fc8ac002727c' "$project_root/third_party/PlymouthVista/PlymouthVista.script" \
   '5632d386115028d42b07eaca5c345ed03203ebe61dcd7bd222f1a644ee93d1c6' "$project_root/third_party/PlymouthVista/images/aero7-logo-plain.png" \
   '7852558af39cea34b64f20e87a3ee0f2b3009f70f8f45c4261b1b4e15c1bc305' "$project_root/third_party/PlymouthVista/images/flag0.png" \
   'f65b1c839e1db631bfd985209ef18942e38f7c830a48577276667bd459ceb2cf' "$project_root/third_party/PlymouthVista/images/flag104.png" \
@@ -268,8 +274,11 @@ if cmp -s "$project_root/installer/assets/aero7-logo-circle.png" \
   exit 1
 fi
 grep -Fqx 'ModuleName=script' "$project_root/third_party/PlymouthVista/PlymouthVista.plymouth"
-grep -Fq 'global.UseLegacyBootScreen = 0;' "$project_root/third_party/PlymouthVista/PlymouthVista.script"
+grep -Fq 'global.PasswordTitle = "Aero7 Boot Manager";' "$project_root/third_party/PlymouthVista/PlymouthVista.script"
+grep -Fq 'global.AnswerTitle = "Aero7 Boot Manager";' "$project_root/third_party/PlymouthVista/PlymouthVista.script"
+grep -Fq 'global.UpdateTextMTL = "Configuring Aero7 updates\n%i% complete\nDo not turn off your computer.";' "$project_root/third_party/PlymouthVista/PlymouthVista.script"
 grep -Fq 'global.StartingText = "Starting Aero7";' "$project_root/third_party/PlymouthVista/PlymouthVista.script"
+grep -Fq 'global.ResumingText = "Resuming Aero7";' "$project_root/third_party/PlymouthVista/PlymouthVista.script"
 grep -Fq 'global.CopyrightText = "Aero7 Open Project";' "$project_root/third_party/PlymouthVista/PlymouthVista.script"
 grep -Fq 'self.Current = 76;' "$project_root/third_party/PlymouthVista/PlymouthVista.script"
 grep -Fq 'Image("flag" + i + ".png")' "$project_root/third_party/PlymouthVista/PlymouthVista.script"
@@ -281,12 +290,21 @@ if rg -n 'Image\("branding_|Image\("authui_' "$project_root/third_party/Plymouth
   exit 1
 fi
 for removed_asset in \
-  authui_7.png authui_vista.png branding_7.png branding_vista.png; do
+  authui_7.png authui_vista.png branding_7.png branding_vista.png \
+  base.png progress.png resumevista.png \
+  resumebar1.png resumebar2.png resumebar3.png resumebar4.png \
+  resumebar5.png resumebar6.png resumebar7.png resumebar8.png \
+  resumebar9.png resumebar10.png; do
   if [[ -e "$project_root/third_party/PlymouthVista/images/$removed_asset" ]]; then
     printf 'Unused upstream Plymouth bitmap returned: %s\n' "$removed_asset" >&2
     exit 1
   fi
 done
+if rg -n 'LegacyBootScreen|UseLegacyBootScreen|UseNoGuiResume|NoGuiResumeText|Windows Boot Manager|Configuring Windows updates|Resuming Windows' \
+    "$project_root/third_party/PlymouthVista/PlymouthVista.script" >/dev/null 2>&1; then
+  printf 'Plymouth script still contains removed legacy boot code or Windows labels.\n' >&2
+  exit 1
+fi
 if [[ -e "$project_root/installer/assets/aero7-mark.png" \
     || -e "$project_root/installer/assets/aero7-mark.svg" ]] \
     || rg -n 'aero7-mark' "$project_root/installer" >/dev/null 2>&1; then
