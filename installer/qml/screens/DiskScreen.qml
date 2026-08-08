@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Dialogs
 import "../components"
 
 SetupPage {
@@ -9,6 +10,23 @@ SetupPage {
     description: ""
     showBack: true
     nextEnabled: controller.diskSelectionReady
+    property string pendingAction: ""
+    property string pendingTitle: ""
+    property string pendingMessage: ""
+    property url pendingDriver: ""
+
+    function closeEditors() {
+        newPanel.visible = false
+        shrinkPanel.visible = false
+        extendPanel.visible = false
+    }
+
+    function confirmAction(action, title, message) {
+        pendingAction = action
+        pendingTitle = title
+        pendingMessage = message
+        confirmationOverlay.visible = true
+    }
 
     function rowIsVisible(item) {
         return controller.advancedDriveOptions
@@ -108,7 +126,7 @@ SetupPage {
                         anchors.fill: parent
                         enabled: targetRow.shown
                         onClicked: {
-                            shrinkPanel.visible = false
+                            root.closeEditors()
                             controller.selectDisk(targetRow.index)
                         }
                     }
@@ -122,32 +140,22 @@ SetupPage {
             anchors.left: parent.left
             anchors.top: parent.top
             anchors.topMargin: controller.advancedDriveOptions ? 240 : 225
-            spacing: 28
+            spacing: 34
 
-            Row {
-                width: 88
-                height: 19
-                spacing: 5
-                Image { width: 19; height: 19; source: "qrc:/assets/icons/refresh.svg" }
-                Text { text: qsTr("Refresh"); color: "#0067b1"; font.pixelSize: 12; font.underline: refreshMouse.containsMouse }
-                MouseArea {
-                    id: refreshMouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        shrinkPanel.visible = false
-                        controller.refreshDisks()
-                    }
+            DriveAction {
+                text: qsTr("Refresh")
+                iconSource: "qrc:/assets/icons/refresh.svg"
+                toolTipText: qsTr("Rescan all disks and partitions and update the list.")
+                onTriggered: {
+                    root.closeEditors()
+                    controller.refreshDisks()
                 }
             }
-            Row {
-                width: 100
-                height: 19
-                opacity: 0.55
-                spacing: 5
-                Image { width: 19; height: 19; source: "qrc:/assets/icons/harddisk.svg" }
-                Text { text: qsTr("Load Driver"); color: "#0067b1"; font.pixelSize: 12 }
+            DriveAction {
+                text: qsTr("Load Driver")
+                iconSource: "qrc:/assets/icons/load-driver.svg"
+                toolTipText: qsTr("Load an additional storage or controller driver when a disk is not detected.")
+                onTriggered: driverDialog.open()
             }
         },
 
@@ -167,7 +175,7 @@ SetupPage {
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
                 onClicked: {
-                    shrinkPanel.visible = false
+                    root.closeEditors()
                     controller.setAdvancedDriveOptions(!controller.advancedDriveOptions)
                 }
             }
@@ -179,63 +187,108 @@ SetupPage {
             anchors.left: parent.left
             anchors.top: parent.top
             anchors.topMargin: 278
-            spacing: 28
+            spacing: 26
 
-            Text {
+            DriveAction {
                 text: qsTr("Delete")
-                color: "#8a9298"
-                font.pixelSize: 12
-                opacity: 0.6
+                iconSource: "qrc:/assets/icons/delete-partition.svg"
+                actionEnabled: controller.selectedDisk.can_delete === true
+                toolTipText: qsTr("Delete the selected partition and turn its space into unallocated space.")
+                onTriggered: root.confirmAction(
+                    "delete",
+                    qsTr("Delete this partition?"),
+                    qsTr("All files and data on %1 will be permanently lost. This action cannot be undone.")
+                        .arg(controller.selectedDisk.display_name || qsTr("the selected partition")))
             }
-            Text {
+            DriveAction {
                 text: qsTr("Format")
-                color: controller.selectedDisk.can_format
-                       && controller.selectedDisk.target_kind === "partition"
-                       ? "#0067b1" : "#8a9298"
-                font.pixelSize: 12
-                font.underline: formatMouse.containsMouse && formatMouse.enabled
-                MouseArea {
-                    id: formatMouse
-                    anchors.fill: parent
-                    enabled: controller.selectedDisk.can_format
-                             && controller.selectedDisk.target_kind === "partition"
-                    hoverEnabled: true
-                    cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-                    onClicked: controller.useSelectedPartition()
-                }
+                iconSource: "qrc:/assets/icons/format-partition.svg"
+                actionEnabled: controller.selectedDisk.can_format === true
+                toolTipText: qsTr("Format the selected partition for Aero7.")
+                onTriggered: root.confirmAction(
+                    "format",
+                    qsTr("Format this partition?"),
+                    qsTr("All existing data on %1 will be erased when installation begins.")
+                        .arg(controller.selectedDisk.display_name || qsTr("the selected partition")))
             }
-            Text {
+            DriveAction {
                 text: qsTr("New")
-                color: controller.selectedDisk.target_kind === "free" ? "#0067b1" : "#8a9298"
-                font.pixelSize: 12
-                font.underline: newMouse.containsMouse && newMouse.enabled
-                MouseArea {
-                    id: newMouse
-                    anchors.fill: parent
-                    enabled: controller.selectedDisk.target_kind === "free"
-                    hoverEnabled: true
-                    cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-                    onClicked: controller.useSelectedFreeSpace()
+                iconSource: "qrc:/assets/icons/new-partition.svg"
+                actionEnabled: controller.selectedDisk.target_kind === "free"
+                               && controller.selectedDisk.can_install === true
+                toolTipText: qsTr("Create a new Aero7 target from the selected unallocated space.")
+                onTriggered: {
+                    root.closeEditors()
+                    newAmount.text = Math.floor(Number(controller.selectedDisk.region_size_bytes) / 1073741824).toString()
+                    newPanel.visible = true
                 }
             }
-            Text {
+            DriveAction {
                 text: qsTr("Shrink")
-                color: controller.selectedDisk.can_shrink
-                       && controller.selectedDisk.target_kind === "partition"
-                       ? "#0067b1" : "#8a9298"
-                font.pixelSize: 12
-                font.underline: shrinkMouse.containsMouse && shrinkMouse.enabled
-                MouseArea {
-                    id: shrinkMouse
-                    anchors.fill: parent
-                    enabled: controller.selectedDisk.can_shrink
-                             && controller.selectedDisk.target_kind === "partition"
-                    hoverEnabled: true
-                    cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-                    onClicked: shrinkPanel.visible = true
+                iconSource: "qrc:/assets/icons/extend-partition.svg"
+                actionEnabled: controller.selectedDisk.can_shrink === true
+                toolTipText: qsTr("Shrink the selected NTFS partition to release unallocated space for Aero7.")
+                onTriggered: {
+                    root.closeEditors()
+                    shrinkPanel.visible = true
                 }
             }
-            Text { text: qsTr("Extend"); color: "#8a9298"; font.pixelSize: 12; opacity: 0.6 }
+            DriveAction {
+                text: qsTr("Extend")
+                iconSource: "qrc:/assets/icons/extend-partition.svg"
+                actionEnabled: controller.selectedDisk.can_extend === true
+                toolTipText: qsTr("Increase the selected partition using adjacent unallocated space.")
+                onTriggered: {
+                    root.closeEditors()
+                    extendAmount.text = Math.floor(Number(controller.selectedDisk.adjacent_free_size_bytes) / 1073741824).toString()
+                    extendPanel.visible = true
+                }
+            }
+        },
+
+        Rectangle {
+            id: newPanel
+            visible: false
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.topMargin: 319
+            height: 64
+            color: "#f4f8fb"
+            border.color: "#aeb8bf"
+
+            Row {
+                anchors.left: parent.left
+                anchors.leftMargin: 12
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 9
+                Text {
+                    text: qsTr("New Aero7 partition size (GiB):")
+                    color: "#27343d"
+                    font.pixelSize: 12
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+                AeroTextField {
+                    id: newAmount
+                    width: 72
+                    inputMethodHints: Qt.ImhDigitsOnly
+                    validator: IntValidator {
+                        bottom: 17
+                        top: Math.max(17, Math.floor(Number(controller.selectedDisk.region_size_bytes || 0) / 1073741824))
+                    }
+                }
+                AeroButton {
+                    width: 80
+                    text: qsTr("Apply")
+                    enabled: newAmount.acceptableInput
+                    onClicked: {
+                        controller.useSelectedFreeSpace(parseInt(newAmount.text))
+                        if (controller.diskSelectionReady)
+                            newPanel.visible = false
+                    }
+                }
+                AeroButton { width: 80; text: qsTr("Cancel"); onClicked: newPanel.visible = false }
+            }
         },
 
         Rectangle {
@@ -244,8 +297,8 @@ SetupPage {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
-            anchors.topMargin: 309
-            height: 60
+            anchors.topMargin: 319
+            height: 64
             color: "#f4f8fb"
             border.color: "#aeb8bf"
 
@@ -283,6 +336,148 @@ SetupPage {
                     onClicked: shrinkPanel.visible = false
                 }
             }
+        },
+
+        Rectangle {
+            id: extendPanel
+            visible: false
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.topMargin: 319
+            height: 64
+            color: "#f4f8fb"
+            border.color: "#aeb8bf"
+
+            Row {
+                anchors.left: parent.left
+                anchors.leftMargin: 12
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 9
+                Text {
+                    text: qsTr("Space to add from the adjacent unallocated area (GiB):")
+                    color: "#27343d"
+                    font.pixelSize: 12
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+                AeroTextField {
+                    id: extendAmount
+                    width: 72
+                    inputMethodHints: Qt.ImhDigitsOnly
+                    validator: IntValidator {
+                        bottom: 1
+                        top: Math.max(1, Math.floor(Number(controller.selectedDisk.adjacent_free_size_bytes || 0) / 1073741824))
+                    }
+                }
+                AeroButton {
+                    width: 80
+                    text: qsTr("Apply")
+                    enabled: extendAmount.acceptableInput
+                    onClicked: root.confirmAction(
+                        "extend",
+                        qsTr("Extend this partition?"),
+                        qsTr("Aero7 will add %1 GiB to %2. Back up important data before changing a partition boundary.")
+                            .arg(extendAmount.text)
+                            .arg(controller.selectedDisk.display_name || qsTr("the selected partition")))
+                }
+                AeroButton { width: 80; text: qsTr("Cancel"); onClicked: extendPanel.visible = false }
+            }
+        },
+
+        Rectangle {
+            id: confirmationOverlay
+            visible: false
+            anchors.fill: parent
+            z: 100
+            color: "#88000000"
+
+            Rectangle {
+                anchors.centerIn: parent
+                width: 480
+                height: 176
+                color: "#ffffff"
+                border.color: "#657681"
+                border.width: 1
+
+                Image {
+                    anchors.left: parent.left
+                    anchors.leftMargin: 18
+                    anchors.top: parent.top
+                    anchors.topMargin: 22
+                    width: 36
+                    height: 36
+                    source: "qrc:/assets/icons/warning.svg"
+                }
+                Text {
+                    anchors.left: parent.left
+                    anchors.leftMargin: 66
+                    anchors.right: parent.right
+                    anchors.rightMargin: 18
+                    anchors.top: parent.top
+                    anchors.topMargin: 19
+                    text: root.pendingTitle
+                    color: "#15242d"
+                    font.pixelSize: 16
+                    font.bold: true
+                }
+                Text {
+                    anchors.left: parent.left
+                    anchors.leftMargin: 66
+                    anchors.right: parent.right
+                    anchors.rightMargin: 18
+                    anchors.top: parent.top
+                    anchors.topMargin: 52
+                    text: root.pendingMessage
+                    color: "#27343d"
+                    font.pixelSize: 12
+                    wrapMode: Text.WordWrap
+                }
+                Row {
+                    anchors.right: parent.right
+                    anchors.rightMargin: 16
+                    anchors.bottom: parent.bottom
+                    anchors.bottomMargin: 14
+                    spacing: 9
+                    AeroButton {
+                        width: 92
+                        text: root.pendingAction === "delete" ? qsTr("Delete") : qsTr("Continue")
+                        onClicked: {
+                            confirmationOverlay.visible = false
+                            if (root.pendingAction === "delete")
+                                controller.deleteSelectedPartition()
+                            else if (root.pendingAction === "format")
+                                controller.useSelectedPartition()
+                            else if (root.pendingAction === "extend") {
+                                controller.extendSelectedPartition(parseInt(extendAmount.text))
+                                extendPanel.visible = false
+                            } else if (root.pendingAction === "driver")
+                                controller.loadStorageDriver(root.pendingDriver)
+                            root.pendingAction = ""
+                        }
+                    }
+                    AeroButton {
+                        width: 92
+                        text: qsTr("Cancel")
+                        onClicked: {
+                            confirmationOverlay.visible = false
+                            root.pendingAction = ""
+                        }
+                    }
+                }
+            }
         }
     ]
+
+    FileDialog {
+        id: driverDialog
+        title: qsTr("Load a storage driver")
+        nameFilters: [qsTr("Linux kernel modules (*.ko *.ko.xz *.ko.zst)")]
+        onAccepted: {
+            root.pendingDriver = selectedFile
+            root.confirmAction(
+                "driver",
+                qsTr("Load this storage driver?"),
+                qsTr("Load only a trusted driver built for this Aero7 kernel. An incompatible kernel module can make the live installer unstable."))
+        }
+    }
 }

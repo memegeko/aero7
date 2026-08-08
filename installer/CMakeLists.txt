@@ -42,6 +42,7 @@ set(AERO7_QML_FILES
     qml/components/Brand.qml
     qml/components/CaptionButton.qml
     qml/components/GlassWindow.qml
+    qml/components/DriveAction.qml
     qml/components/ProgressFooter.qml
     qml/components/SetupPage.qml
     qml/screens/AccountScreen.qml
@@ -83,6 +84,11 @@ qt_add_resources(aero7-installer "art_resources"
         assets/cursors/aero-pointer.svg
         assets/fonts/AdwaitaSans-Regular.ttf
         assets/icons/harddisk.svg
+        assets/icons/delete-partition.svg
+        assets/icons/format-partition.svg
+        assets/icons/new-partition.svg
+        assets/icons/extend-partition.svg
+        assets/icons/load-driver.svg
         assets/icons/install-clean.svg
         assets/icons/install-alongside.svg
         assets/icons/install-manual.svg

@@ -5,6 +5,7 @@
 #include <QObject>
 #include <QProcess>
 #include <QTimer>
+#include <QUrl>
 #include <QVariantList>
 #include <QVariantMap>
 
@@ -68,9 +69,12 @@ public:
     Q_INVOKABLE void selectDisk(int index);
     Q_INVOKABLE void refreshDisks();
     Q_INVOKABLE void setAdvancedDriveOptions(bool enabled);
-    Q_INVOKABLE void useSelectedFreeSpace();
+    Q_INVOKABLE void useSelectedFreeSpace(int sizeGiB);
     Q_INVOKABLE void useSelectedPartition();
     Q_INVOKABLE void prepareSelectedNtfsShrink(int releaseGiB);
+    Q_INVOKABLE void deleteSelectedPartition();
+    Q_INVOKABLE void extendSelectedPartition(int amountGiB);
+    Q_INVOKABLE void loadStorageDriver(const QUrl &source);
     Q_INVOKABLE void openRecoveryShell();
     Q_INVOKABLE void restartSystem();
     Q_INVOKABLE void resetDemo();
@@ -108,8 +112,10 @@ private:
     void startInstallation();
     void startOobeFinalization();
     void startDemoProgress(bool oobe);
-    void startBackend(const QStringList &arguments, const QString &planPath);
+    void startBackend(const QStringList &arguments, const QString &planPath,
+                      const QString &purpose = QStringLiteral("install"));
     QString writeInstallPlan() const;
+    QString writeStorageActionPlan(const QString &action, int amountGiB = 0) const;
     QString writeOobePlan() const;
     bool validateCurrentScreen();
     void handleBackendEvent(const QByteArray &line);
@@ -121,6 +127,7 @@ private:
     QString m_backendPath;
     QVariantList m_disks;
     QVariantMap m_selectedDisk;
+    int m_selectedDiskIndex = -1;
     bool m_advancedDriveOptions = false;
     int m_progress = 0;
     int m_progressStageIndex = 0;
@@ -137,6 +144,7 @@ private:
     QProcess m_backend;
     QByteArray m_backendBuffer;
     QString m_activePlanPath;
+    QString m_backendPurpose;
 
     QString m_language = QStringLiteral("English");
     QString m_timeFormat = QStringLiteral("English (United States)");
