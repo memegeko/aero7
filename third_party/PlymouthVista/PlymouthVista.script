@@ -141,7 +141,9 @@ fun SevenBootScreenNew(status) {
 
         self.LastStep = self.Current;
         if (self.Current == 104) {
-            self.Current = 60;
+            // Frames 56-75 reveal the Aero7 mark. Loop only the settled
+            // breathing animation so a completed boot logo never flashes.
+            self.Current = 76;
         }
         else {
             self.Current++;
@@ -433,7 +435,7 @@ global.ResumingText = "Resuming Aero7";
 //Copyright text of the Windows 7 boot screen that is displayed on bottom center of the screen.
 //Default value:
 //"© Microsoft Corporation"
-global.CopyrightText = "Aero7";
+global.CopyrightText = "Aero7 Open Project";
 
 //Defines whether Windows Vista's no GUI resume screen will be used or not.
 //This only applies when UseLegacyBootScreen is set to 1.

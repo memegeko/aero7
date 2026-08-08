@@ -165,7 +165,7 @@ global.ResumingText = "Resuming Aero7";
 //Copyright text of the Windows 7 boot screen that is displayed on bottom center of the screen.
 //Default value:
 //"© Microsoft Corporation"
-global.CopyrightText = "Aero7";
+global.CopyrightText = "Aero7 Open Project";
 
 //Defines whether Windows Vista's no GUI resume screen will be used or not.
 //This only applies when UseLegacyBootScreen is set to 1.

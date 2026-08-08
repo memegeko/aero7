@@ -172,6 +172,7 @@ fi
 printf 'Pinned visual assets\n'
 for required_file in \
   "$project_root/third_party/PlymouthVista/LICENSE" \
+  "$project_root/third_party/PlymouthVista/generate-aero7-boot-frames.sh" \
   "$project_root/third_party/PlymouthVista/PlymouthVista.plymouth" \
   "$project_root/third_party/PlymouthVista/PlymouthVista.script" \
   "$project_root/third_party/PlymouthVista/images/aero7-logo-plain.png" \
@@ -210,13 +211,13 @@ printf '%s  %s\n' \
   exit 1
 }
 printf '%s  %s\n' \
-  '51b0152683a10829365a7105b3bf3681142f9564a6698573fb2513af6a0e3bc2' "$project_root/third_party/PlymouthVista/PlymouthVista.script" \
+  '6ec00420b85aa5f1a12c9af365a47694033a6160079f2b08959ca49111dacc42' "$project_root/third_party/PlymouthVista/PlymouthVista.script" \
   '66dfe9233d96f9a189c2d2e0c5270c3cb8f21a4ab538bba5b27553751500ffa2' "$project_root/third_party/PlymouthVista/images/aero7-logo-circle.png" \
-  'f3912a918743471b776be6c96d72a91ab00cf88acab0a6f1263542e4a46f9e83' "$project_root/third_party/PlymouthVista/images/aero7-logo-plain.png" \
+  '5632d386115028d42b07eaca5c345ed03203ebe61dcd7bd222f1a644ee93d1c6' "$project_root/third_party/PlymouthVista/images/aero7-logo-plain.png" \
   '7852558af39cea34b64f20e87a3ee0f2b3009f70f8f45c4261b1b4e15c1bc305' "$project_root/third_party/PlymouthVista/images/flag0.png" \
-  '3b9814d55cde346e3d15845df5c5114e9260a0553be49bd1bc8846ac84605f54' "$project_root/third_party/PlymouthVista/images/flag104.png" \
+  'f65b1c839e1db631bfd985209ef18942e38f7c830a48577276667bd459ceb2cf' "$project_root/third_party/PlymouthVista/images/flag104.png" \
   | sha256sum --check --status || {
-  printf 'Plymouth assets changed even though the theme is locked.\n' >&2
+  printf 'Plymouth assets differ from the approved Aero7 animation.\n' >&2
   exit 1
 }
 branding_geometry="$(magick identify -format '%wx%h' "$project_root/installer/assets/aero7-sddm-branding.png")"
@@ -249,6 +250,8 @@ fi
 grep -Fqx 'ModuleName=script' "$project_root/third_party/PlymouthVista/PlymouthVista.plymouth"
 grep -Fq 'global.UseLegacyBootScreen = 0;' "$project_root/third_party/PlymouthVista/PlymouthVista.script"
 grep -Fq 'global.StartingText = "Starting Aero7";' "$project_root/third_party/PlymouthVista/PlymouthVista.script"
+grep -Fq 'global.CopyrightText = "Aero7 Open Project";' "$project_root/third_party/PlymouthVista/PlymouthVista.script"
+grep -Fq 'self.Current = 76;' "$project_root/third_party/PlymouthVista/PlymouthVista.script"
 grep -Fq 'Image("flag" + i + ".png")' "$project_root/third_party/PlymouthVista/PlymouthVista.script"
 if rg -n 'Image\("branding_|Image\("authui_' "$project_root/third_party/PlymouthVista/PlymouthVista.script" >/dev/null 2>&1; then
   printf 'Plymouth script still references replaced branding or auth artwork.\n' >&2

@@ -67,7 +67,9 @@ fun SevenBootScreenNew(status) {
 
         self.LastStep = self.Current;
         if (self.Current == 104) {
-            self.Current = 60;
+            // Frames 56-75 reveal the Aero7 mark. Loop only the settled
+            // breathing animation so a completed boot logo never flashes.
+            self.Current = 76;
         }
         else {
             self.Current++;
