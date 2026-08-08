@@ -63,3 +63,20 @@ copy of the exact request is stored at:
 ```text
 /var/lib/aero7/requested-aero7-packages.txt
 ```
+
+## Current application captures
+
+| File Explorer | Photo Viewer |
+| --- | --- |
+| ![File Explorer](images/app-file-explorer.png) | ![Photo Viewer](images/app-photo-viewer.png) |
+
+| Control Panel | Command Prompt |
+| --- | --- |
+| ![Control Panel](images/app-control-panel.png) | ![Command Prompt](images/app-command-prompt.png) |
+
+| Media Player | Task Manager |
+| --- | --- |
+| ![Media Player](images/app-media-player.png) | ![Task Manager](images/app-task-manager.png) |
+
+See the [Screenshot Gallery](Screenshot-Gallery.md) for the remaining desktop,
+application, system-menu, lock-screen, and authentication captures.

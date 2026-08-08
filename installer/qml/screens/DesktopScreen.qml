@@ -145,7 +145,7 @@ Item {
     }
 
     AeroButton {
-        visible: controller.demoMode
+        visible: controller.demoMode && !documentationMode
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.rightMargin: 146

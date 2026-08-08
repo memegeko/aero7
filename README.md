@@ -54,7 +54,7 @@ base. The goal is familiar interaction without pretending to be Windows or
 hiding the open-source system underneath.
 
 <p align="center">
-  <img src="docs/screenshots/installer-language.png" width="900" alt="Aero7 Beta 1 graphical installer language screen">
+  <img src="docs/screenshots/desktop-overview.png" width="900" alt="Aero7 desktop">
 </p>
 
 ## What makes it different
@@ -80,9 +80,16 @@ choose a password and computer name, review update and regional settings, and
 arrive at the desktop through the Welcome and Preparing your desktop screens.
 
 <p align="center">
-  <img src="docs/screenshots/first-boot-account.png" width="48%" alt="Aero7 first-boot account page">
-  <img src="docs/screenshots/finalizing.png" width="48%" alt="Aero7 finalizing screen">
+  <img src="docs/screenshots/oobe-03-account.png" width="48%" alt="Aero7 first-boot account page">
+  <img src="docs/screenshots/oobe-08-finalizing.png" width="48%" alt="Aero7 finalizing screen">
 </p>
+
+Every installer and first-boot page is shown in the
+[Installer Guide](wiki/Installer-Guide.md) and
+[First Boot and OOBE](wiki/First-Boot-and-OOBE.md) handbook pages. The
+[Screenshot Gallery](wiki/Screenshot-Gallery.md) also shows the installed
+desktop, Start menu, applications, system popups, lock screen, and
+authentication prompt.
 
 ## Included desktop
 
@@ -137,6 +144,7 @@ versioned pages are also ready to synchronize to GitHub Wiki:
 - [Installer guide](wiki/Installer-Guide.md)
 - [First boot and OOBE](wiki/First-Boot-and-OOBE.md)
 - [Included software](wiki/Included-Software.md)
+- [Screenshot gallery](wiki/Screenshot-Gallery.md)
 - [Troubleshooting](wiki/Troubleshooting.md)
 - [Known issues](wiki/Known-Issues.md)
 - [Architecture](wiki/Architecture.md)

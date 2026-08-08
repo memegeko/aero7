@@ -1,24 +1,36 @@
 # Validation Report — Aero7 Beta 1
 
-## Release artifact
+## Published private Beta 1 artifact
 
-The Beta 1 release candidate was assembled on 2026-08-02:
+The prerelease published on GitHub was assembled on 2026-08-02:
 
-`out/aero7-beta1-2026.08.02-x86_64.iso`
+`aero7-beta1-2026.08.02-x86_64.iso`
 
 - byte size: `1,406,070,784`
 - SHA-256: `64115bd497315a871d06786160016487eb9e3eb514fc48900c770a8d9fc6feec`
 - ISO label: `AERO7B1_20260802`
 - application ID: `AERO7 BETA 1 X86_64 UEFI INSTALLATION MEDIUM`
 
-The matching checksum file is
-`out/aero7-beta1-2026.08.02-x86_64.iso.sha256`.
-The checksum is also recorded in version control at
-`docs/checksums/SHA256SUMS`.
+The matching checksum remains recorded in `docs/checksums/SHA256SUMS`.
+
+## Current local validation candidate
+
+The image currently undergoing VM and real-hardware testing is:
+
+- file: `out/aero7-beta1-2026.08.08-x86_64.iso`;
+- byte size: `1,403,297,792`;
+- SHA-256: `a7a41fa71de988ace8dc498867763cce341fc5a38e16e7a0a350a69ba4f60e53`;
+- ISO label: `AERO7B1_20260808`.
+
+It has not replaced the published August 2 asset. Because Aero7-shell advanced
+from the embedded commit `a73f454` to `d2dbfad`, the August 8 image now stops
+the current `verify-release.sh` gate at the intentional source-lock comparison.
+A new ISO build and full gate are required after documentation and hardware
+feedback are finalized.
 
 ## Automated release gate
 
-The current source and release image passed the available unprivileged checks:
+The current source passed the available unprivileged checks:
 
 - Python disk, package, backend, OOBE, branding, and build-safety tests;
 - compiled Qt flow-state and complete-controller walkthrough tests;
@@ -38,7 +50,8 @@ ShellCheck is skipped when it is not installed on the host.
 
 ## ISO inspection
 
-`scripts/verify-release.sh` passed against the exact artifact above. It checked:
+The published release passed `scripts/verify-release.sh` at release time. The
+gate checked:
 
 - bootable ISO 9660, GPT, and UEFI structure;
 - embedded SquashFS readability;
@@ -51,9 +64,16 @@ ShellCheck is skipped when it is not installed on the host.
   capture shortcuts, and application cache rebuild;
 - Welcome/SDDM artwork and required Aero assets.
 
-## Interactive VM evidence
+## Documentation capture and interactive VM evidence
 
-A fresh boot of the August 2 artifact in the supported QEMU/KVM, OVMF, QXL,
+Every installer and OOBE page was regenerated from the current Qt/QML source
+with the non-destructive documentation capture mode. A clean install of the
+August 8 ISO then completed OOBE and first-login repair before the desktop,
+Start menu, application, lock-screen, system-menu, and authentication captures
+were taken. Superseded screenshots were removed from the repository rather
+than retained under alternate names.
+
+A fresh boot of the August 8 artifact in the supported QEMU/KVM, OVMF, QXL,
 SPICE, and VirtIO-tablet configuration reached the clean 1024×768 graphical
 language screen. Input and rendering were responsive in this smoke run.
 
@@ -74,10 +94,9 @@ Verified full-flow results included:
 - `qemu-img check` found no QCOW2 errors after clean shutdown;
 - PlymouthVista itself was not modified.
 
-The final August 2 image adds the focused Plasma package regression changes and
-passes the automated embedded-image checks. A complete new end-to-end install
-was not repeated after that narrow packaging change. Beta testers should report
-any full-flow regression and must use a disposable VM.
+The August 8 candidate completed the full installation and screenshot-capture
+flow in a disposable VM. Real-hardware testing is in progress; no physical
+hardware pass is claimed until its logs are reviewed and archived.
 
 ## Recorded VM quirks
 
@@ -101,9 +120,12 @@ pseudo-filesystems after an interrupted build.
 
 ## Release assessment
 
-The artifact satisfies the Beta 1 source and embedded-image gates and is ready
-for private VM-only prerelease testing. It is not approved for physical disks,
-production systems, or public redistribution without the independent artwork
-rights review described in `THIRD_PARTY.md`.
+The August 8 candidate completes the tested VM flow, but no current-source ISO
+passes the embedded source-lock gate yet and the real-hardware evidence is
+pending. The published August 2 asset remains a private VM-only prerelease. No
+artifact is approved for physical disks, production systems, or public
+redistribution without a fresh build, complete release gate, hardware-log
+review, and the independent artwork rights review described in
+`THIRD_PARTY.md`.
 The public-release history, mark, security, and fresh-candidate gates are
 tracked in `docs/PUBLIC-RELEASE-CHECKLIST.md`.

@@ -61,6 +61,8 @@ The UEFI menu offers:
 
 Normal setup opens directly. There is no general-purpose live desktop.
 
+![Installer language screen](images/installer-01-language.png)
+
 ## 5. Install
 
 Follow the pages described in [Installer Guide](Installer-Guide.md). The
@@ -74,6 +76,8 @@ erase-disk option creates:
 The installer downloads official Arch packages and signed Aero7 packages, so
 the VM must have internet access.
 
+![Installation progress](images/installer-09-progress.png)
+
 ### Guided advanced drive options
 
 Select **Drive options (advanced)** to show existing partitions and unallocated
@@ -85,6 +89,8 @@ regions. The current development build supports:
   partition and replacing its region with an Aero7 ESP and root;
 - **Shrink** on NTFS, leaving at least 16 GiB for the existing filesystem and
   releasing at least 17 GiB for Aero7.
+
+![Guided advanced drive options](images/installer-07-disk-advanced.png)
 
 Delete and Extend remain disabled. Before shrinking, back up the drive, disable
 Windows Fast Startup, and fully shut Windows down. The installer checks NTFS,

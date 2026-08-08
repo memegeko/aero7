@@ -46,6 +46,11 @@ files from the latest tree does not remove copies from earlier commits.
   from the current tree.
 - [x] The upstream four-pane reveal was replaced by a reproducible Aero7 glow,
   settle, and breathing loop while preserving the selected Plymouth theme.
+- [x] Installer, OOBE, desktop, application, system-menu, lock-screen, and
+  authentication screenshots were regenerated from the current source and a
+  clean installed VM; superseded screenshots were removed.
+- [ ] Review and archive the current real-hardware test logs and explicitly
+  record the result before describing physical hardware as supported.
 
 ## Approval record
 

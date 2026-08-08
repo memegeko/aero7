@@ -46,6 +46,11 @@ SetupPage {
                 && controller.selectedDisk.partition_device === item.partition_device
     }
 
+    function displayName(item) {
+        const name = item.display_name || item.model || qsTr("Disk")
+        return documentationMode ? name.replace(" (simulation)", "") : name
+    }
+
     body: [
         Rectangle {
             id: diskTable
@@ -111,7 +116,7 @@ SetupPage {
                         }
                         Text {
                             width: modelData.target_kind === "disk" ? 288 : 278
-                            text: modelData.display_name || modelData.model || qsTr("Disk")
+                            text: root.displayName(modelData)
                             color: "#18252e"
                             font.pixelSize: 12
                             anchors.verticalCenter: parent.verticalCenter

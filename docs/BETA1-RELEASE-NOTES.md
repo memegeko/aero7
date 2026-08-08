@@ -64,6 +64,17 @@ sha256sum -c aero7-beta1-2026.08.02-x86_64.iso.sha256
 WinXplorer is optional and is not installed by the ISO. Sevulet is not included
 because its source and redistribution terms have not been verified.
 
+## Screenshots
+
+![Aero7 desktop](screenshots/desktop-overview.png)
+
+The current development installer, OOBE, desktop, application, lock-screen,
+system-menu, and authentication captures are collected in the
+[Screenshot Gallery](../wiki/Screenshot-Gallery.md). The installer and OOBE
+sequences are generated from the shipping QML source; desktop and application
+captures come from a clean installation of the newer August 8 validation
+candidate. They do not imply that the published August 2 asset was replaced.
+
 ## Beta limitations
 
 - x86-64 UEFI and QEMU/KVM only;
@@ -82,10 +93,12 @@ destructive-operation gates, package manifest, focused Plasma payload, Aero
 layout, application branding, and Beta 1 identity. A clean boot of the release
 artifact reached the graphical language page without rendering corruption.
 
-The full installation/OOBE/first-desktop sequence was previously validated on
-the immediately preceding Beta candidate. The final August 2 image includes
-the verified package-focus regression changes and passed the automated release
-gate; treat it as Beta software and report any full-flow regression.
+The published August 2 asset passed its recorded automated release gate. A
+newer August 8 candidate completed the full installation, OOBE, first-desktop,
+application, lock-screen, authentication, and clean-shutdown flow in the
+supported QEMU/KVM profile. Real-hardware testing of that newer candidate is
+still in progress; do not infer a physical-hardware pass until its logs have
+been reviewed and archived.
 
 See the [validation report](validation.md) and the
 [Aero7 handbook](../wiki/Home.md) for details.
