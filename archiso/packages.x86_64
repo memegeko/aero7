@@ -12,6 +12,8 @@ mesa
 mkinitcpio-archiso
 mtools
 networkmanager
+ntfsprogs
+parted
 polkit
 plymouth
 python

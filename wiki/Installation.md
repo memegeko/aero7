@@ -1,7 +1,8 @@
 # Installation
 
 Beta 1 is designed for a **disposable QEMU/KVM virtual machine**. Its installer
-will reject physical disks and non-VirtIO targets.
+still rejects physical execution. Current development builds can exercise the
+guided advanced layout against a synthetic VirtIO dual-boot disk.
 
 ## 1. Download
 
@@ -63,7 +64,7 @@ Normal setup opens directly. There is no general-purpose live desktop.
 ## 5. Install
 
 Follow the pages described in [Installer Guide](Installer-Guide.md). The
-whole-disk option creates:
+erase-disk option creates:
 
 1. a GPT partition table;
 2. a 1 GiB FAT32 EFI System Partition;
@@ -72,6 +73,28 @@ whole-disk option creates:
 
 The installer downloads official Arch packages and signed Aero7 packages, so
 the VM must have internet access.
+
+### Guided advanced drive options
+
+Select **Drive options (advanced)** to show existing partitions and unallocated
+regions. The current development build supports:
+
+- **New** on at least 17 GiB of unallocated space, preserving existing
+  partitions;
+- **Format** on one selected partition of at least 17 GiB, erasing only that
+  partition and replacing its region with an Aero7 ESP and root;
+- **Shrink** on NTFS, leaving at least 16 GiB for the existing filesystem and
+  releasing at least 17 GiB for Aero7.
+
+Delete and Extend remain disabled. Before shrinking, back up the drive, disable
+Windows Fast Startup, and fully shut Windows down. The installer checks NTFS,
+runs a no-action resize trial, saves the GPT table, shrinks the filesystem
+before its partition boundary, and revalidates exact sector geometry.
+
+Developers can create the non-bootable synthetic preservation fixture with
+`./scripts/run-qemu.sh --fresh --dualboot-fixture`. It contains an existing EFI
+partition, a placeholder Windows data partition, and unallocated space; it is
+for testing preservation and installation, not for testing Windows itself.
 
 ## 6. Restart and personalize
 

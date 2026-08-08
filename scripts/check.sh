@@ -73,6 +73,9 @@ if rg -n -- '-device (usb-tablet|qemu-xhci)' \
   exit 1
 fi
 grep -Fq 'it does not rebuild the ISO' "$project_root/scripts/run-qemu.sh"
+grep -Fq -- '--dualboot-fixture' "$project_root/scripts/run-qemu.sh"
+grep -Fq 'name="Existing EFI"' "$project_root/scripts/run-qemu.sh"
+grep -Fq 'name="Windows"' "$project_root/scripts/run-qemu.sh"
 if grep -Fq -- 'once=d' "$project_root/scripts/run-qemu.sh"; then
   printf 'The QEMU launcher still forces the installer DVD on reboot.\n' >&2
   exit 1
@@ -110,6 +113,19 @@ grep -Fq 'multi-user.target.wants/systemd-resolved.service' \
   "$project_root/scripts/build-iso.sh"
 grep -Fqx 'ExecStart=/usr/bin/pacman-key --populate' \
   "$project_root/archiso/airootfs/etc/systemd/system/pacman-init.service"
+for advanced_storage_package in ntfsprogs parted; do
+  grep -Fqx "$advanced_storage_package" "$project_root/archiso/packages.x86_64" || {
+    printf 'Advanced storage package is missing from the live ISO: %s\n' \
+      "$advanced_storage_package" >&2
+    exit 1
+  }
+done
+grep -Fq 'def backup_partition_table(' \
+  "$project_root/backend/aero7_install_backend.py"
+grep -Fq '"--no-act",' \
+  "$project_root/backend/aero7_install_backend.py"
+grep -Fq 'runner.run(["ntfsresize", "--check", partition])' \
+  "$project_root/backend/aero7_install_backend.py"
 grep -Fqx 'Environment=WLR_RENDERER=pixman' \
   "$project_root/oobe/aero7-oobe.service"
 grep -Fqx 'Environment=WLR_NO_HARDWARE_CURSORS=1' \

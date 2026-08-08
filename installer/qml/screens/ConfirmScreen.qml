@@ -2,11 +2,34 @@ import QtQuick
 import "../components"
 
 SetupPage {
+    id: root
     anchors.fill: parent
     title: qsTr("Confirm the installation")
-    description: qsTr("Review the target disk before setup begins.")
+    description: qsTr("Review the exact disk and partition changes before setup begins.")
     showBack: true
     nextText: controller.demoMode ? qsTr("Simulate install") : qsTr("Install now")
+
+    readonly property string targetKind: controller.selectedDisk.target_kind || "disk"
+
+    function warningTitle() {
+        if (targetKind === "free")
+            return qsTr("Aero7 will use only the selected unallocated space")
+        if (targetKind === "reuse_partition")
+            return qsTr("The selected partition will be erased")
+        if (targetKind === "shrink_ntfs")
+            return qsTr("The selected Windows partition will be shrunk")
+        return qsTr("Everything on this disk will be erased")
+    }
+
+    function warningDetail() {
+        if (targetKind === "free")
+            return qsTr("Setup will preserve all existing partitions and create a separate Aero7 EFI partition and root partition inside this unallocated region.")
+        if (targetKind === "reuse_partition")
+            return qsTr("Setup will erase only the selected partition, split its region into Aero7 EFI and root partitions, and preserve the other partitions on this disk.")
+        if (targetKind === "shrink_ntfs")
+            return qsTr("Setup will first run a read-only NTFS resize test, shrink Windows, and create Aero7 in the released space. Back up Windows and disable Fast Startup before continuing.")
+        return qsTr("Setup will create a new Aero7 installation on the selected disk. This operation cannot be undone.")
+    }
 
     body: [
         Rectangle {
@@ -36,13 +59,13 @@ SetupPage {
                     spacing: 8
                     Text {
                         width: parent.width
-                        text: qsTr("Everything on this disk will be erased")
+                        text: root.warningTitle()
                         color: "#4b340b"
                         font.pixelSize: 16
                     }
                     Text {
                         width: parent.width
-                        text: qsTr("Setup will create a new Aero7 installation on the selected disk. This operation cannot be undone.")
+                        text: root.warningDetail()
                         color: "#4f4b42"
                         font.pixelSize: 12
                         wrapMode: Text.WordWrap
@@ -77,8 +100,14 @@ SetupPage {
                     anchors.rightMargin: 10
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: 3
-                    Text { text: controller.selectedDisk.model || qsTr("Selected disk"); color: "#1d2b34"; font.pixelSize: 13 }
-                    Text { text: qsTr("Capacity: %1     Device: %2").arg(controller.selectedDisk.size || "—").arg(controller.selectedDisk.device || "—"); color: "#536069"; font.pixelSize: 12 }
+                    Text { text: controller.selectedDisk.display_name || controller.selectedDisk.model || qsTr("Selected target"); color: "#1d2b34"; font.pixelSize: 13 }
+                    Text {
+                        text: qsTr("Capacity: %1     Disk: %2")
+                              .arg(controller.selectedDisk.size || controller.selectedDisk.free_space || "—")
+                              .arg(controller.selectedDisk.disk_device || controller.selectedDisk.device || "—")
+                        color: "#536069"
+                        font.pixelSize: 12
+                    }
                 }
             }
         },
@@ -89,7 +118,7 @@ SetupPage {
             anchors.topMargin: 224
             text: controller.demoMode
                   ? qsTr("Simulation mode is active. Setup will show the complete flow without executing disk commands.")
-                  : qsTr("For safety, setup will verify this exact device again immediately before making any changes.")
+                  : qsTr("For safety, setup will verify the disk, partition UUIDs, sizes, and sector boundaries again immediately before making any changes.")
             color: controller.demoMode ? "#18772d" : "#7c2a18"
             font.pixelSize: 12
             wrapMode: Text.WordWrap

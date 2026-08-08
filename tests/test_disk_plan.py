@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import json
+import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -14,11 +17,16 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "backend"))
 
 from aero7_install_backend import (  # noqa: E402
+    ADVANCED_LAYOUT,
     CommandRunner,
+    EFI_SYSTEM_TYPE,
     MIN_DISK_BYTES,
+    MIN_ADVANCED_REGION_BYTES,
     ProgressPulse,
     SUPPORTED_LAYOUT,
     SafetyError,
+    aero7_partition_append_table,
+    backup_partition_table,
     brand_plasma_look_and_feel,
     brand_sddm_themes,
     candidate_disks,
@@ -27,13 +35,21 @@ from aero7_install_backend import (  # noqa: E402
     ensure_shell_payload_modes,
     enable_plymouth_hook,
     ensure_install_network,
+    ensure_install_tools,
     enforce_light_desktop_defaults,
     enforce_execution_gate,
     fingerprint,
+    free_regions,
     install,
+    nest_block_devices,
+    partition_fingerprint,
+    partition_path,
     partition_table,
     pacstrap_arguments,
+    prepare_advanced_target,
+    required_install_commands,
     shell_image_mode_arguments,
+    storage_targets,
     validate_oobe,
     validate_plan,
 )
@@ -72,6 +88,55 @@ def plan_for(value):
     return result
 
 
+def gpt_disk_with_windows(**overrides):
+    sector = 512
+    gib = 1024**3
+    value = disk(
+        size=80 * gib,
+        pttype="gpt",
+        **{"log-sec": sector},
+        children=[
+            {
+                "path": "/dev/vda1",
+                "kname": "vda1",
+                "type": "part",
+                "size": 512 * 1024**2,
+                "start": 2048,
+                "partn": 1,
+                "fstype": "vfat",
+                "parttype": EFI_SYSTEM_TYPE,
+                "partuuid": "ESP-PARTUUID",
+                "uuid": "ESP-UUID",
+                "partlabel": "EFI System Partition",
+                "mountpoints": [None],
+            },
+            {
+                "path": "/dev/vda3",
+                "kname": "vda3",
+                "type": "part",
+                "size": 45 * gib,
+                "start": 1050624,
+                "partn": 3,
+                "fstype": "ntfs",
+                "parttype": "ebd0a0a2-b9e5-4433-87c0-68b6b72699c7",
+                "partuuid": "WINDOWS-PARTUUID",
+                "uuid": "WINDOWS-UUID",
+                "label": "Windows",
+                "mountpoints": [None],
+            },
+        ],
+    )
+    value.update(overrides)
+    return value
+
+
+def advanced_plan(value, target):
+    result = dict(target)
+    result.update(fingerprint(value))
+    result["layout"] = ADVANCED_LAYOUT
+    return result
+
+
 class DiskPlanTest(unittest.TestCase):
     def test_accepts_stable_unmounted_virtio_disk(self):
         value = disk()
@@ -90,6 +155,19 @@ class DiskPlanTest(unittest.TestCase):
         value = disk()
         with self.assertRaisesRegex(SafetyError, "live installation media"):
             validate_plan(plan_for(value), value, {"/dev/vda"})
+
+    def test_rejects_disk_containing_the_live_source_partition(self):
+        value = disk(
+            children=[
+                {
+                    "path": "/dev/vda2",
+                    "type": "part",
+                    "mountpoints": [None],
+                }
+            ]
+        )
+        with self.assertRaisesRegex(SafetyError, "live installation media"):
+            validate_plan(plan_for(value), value, {"/dev/vda2"})
 
     def test_rejects_child_mount(self):
         value = disk(children=[{"path": "/dev/vda1", "type": "part", "mountpoints": ["/boot"]}])
@@ -411,6 +489,238 @@ class DiskPlanTest(unittest.TestCase):
         self.assertIn('name="EFI System"', table)
         self.assertIn('name="Aero7 root"', table)
         self.assertNotIn("GiB", table)
+
+    def test_partition_path_supports_virtio_sata_and_nvme(self):
+        self.assertEqual(partition_path("/dev/vda", 3), "/dev/vda3")
+        self.assertEqual(partition_path("/dev/sda", 3), "/dev/sda3")
+        self.assertEqual(partition_path("/dev/nvme0n1", 3), "/dev/nvme0n1p3")
+
+    def test_storage_inventory_lists_system_windows_and_unallocated_space(self):
+        value = gpt_disk_with_windows()
+        targets = storage_targets(value, 0)
+
+        self.assertEqual(targets[0]["type"], "System")
+        windows = next(item for item in targets if item.get("filesystem") == "ntfs")
+        self.assertEqual(windows["display_name"], "Disk 0 Partition 3: Windows")
+        self.assertTrue(windows["can_shrink"])
+        unallocated = [item for item in targets if item["target_kind"] == "free"]
+        self.assertEqual(len(unallocated), 1)
+        self.assertGreater(
+            unallocated[0]["region_size_bytes"], MIN_ADVANCED_REGION_BYTES
+        )
+        self.assertTrue(unallocated[0]["can_install"])
+
+    def test_flat_lsblk_rows_are_reconstructed_under_their_parent_disk(self):
+        rows = [
+            {"path": "/dev/vda", "kname": "vda", "pkname": None, "type": "disk"},
+            {
+                "path": "/dev/vda1",
+                "kname": "vda1",
+                "pkname": "vda",
+                "type": "part",
+            },
+        ]
+        nested = nest_block_devices(rows)
+        self.assertEqual(len(nested), 1)
+        self.assertEqual(nested[0]["path"], "/dev/vda")
+        self.assertEqual(nested[0]["children"][0]["path"], "/dev/vda1")
+
+    def test_advanced_free_space_plan_requires_the_exact_unchanged_gap(self):
+        value = gpt_disk_with_windows()
+        target = next(
+            item
+            for item in storage_targets(value, 0)
+            if item["target_kind"] == "free"
+        )
+        plan = advanced_plan(value, target)
+        validate_plan(plan, value, set())
+
+        changed = deepcopy(value)
+        changed["children"].append(
+            {
+                "path": "/dev/vda4",
+                "type": "part",
+                "size": 1024**3,
+                "start": target["start_sector"],
+                "partn": 4,
+                "mountpoints": [None],
+            }
+        )
+        with self.assertRaisesRegex(SafetyError, "unallocated region changed"):
+            validate_plan(plan, changed, set())
+
+    def test_advanced_mode_rejects_non_gpt_disks_and_the_efi_partition(self):
+        value = gpt_disk_with_windows()
+        free = next(
+            item
+            for item in storage_targets(value, 0)
+            if item["target_kind"] == "free"
+        )
+        nongpt = deepcopy(value)
+        nongpt["pttype"] = "dos"
+        with self.assertRaisesRegex(SafetyError, "requires a GPT disk"):
+            validate_plan(advanced_plan(nongpt, free), nongpt, set())
+
+        esp = value["children"][0]
+        esp_target = {
+            **partition_fingerprint(esp, value),
+            "target_kind": "reuse_partition",
+        }
+        with self.assertRaisesRegex(SafetyError, "EFI System Partition"):
+            validate_plan(advanced_plan(value, esp_target), value, set())
+
+    def test_ntfs_shrink_plan_keeps_windows_and_releases_enough_space(self):
+        value = gpt_disk_with_windows()
+        windows = value["children"][1]
+        target = {
+            **partition_fingerprint(windows, value),
+            "target_kind": "shrink_ntfs",
+            "shrink_size_bytes": 28 * 1024**3,
+        }
+        plan = advanced_plan(value, target)
+        validate_plan(plan, value, set())
+
+        too_small = dict(plan, shrink_size_bytes=35 * 1024**3)
+        with self.assertRaisesRegex(SafetyError, "release at least 17 GiB"):
+            validate_plan(too_small, value, set())
+
+    def test_ntfs_filesystem_is_shrunk_before_partition_boundary_moves(self):
+        value = gpt_disk_with_windows()
+        windows = value["children"][1]
+        plan = advanced_plan(
+            value,
+            {
+                **partition_fingerprint(windows, value),
+                "target_kind": "shrink_ntfs",
+                "shrink_size_bytes": 28 * 1024**3,
+            },
+        )
+        runner = RecordingRunner()
+        with patch(
+            "aero7_install_backend.append_aero7_partitions",
+            return_value=("/dev/vda4", "/dev/vda5"),
+        ):
+            esp, root = prepare_advanced_target(plan, value, runner)
+
+        self.assertEqual((esp, root), ("/dev/vda4", "/dev/vda5"))
+        commands = [call[0] for call in runner.calls]
+        real_resize = next(
+            index
+            for index, command in enumerate(commands)
+            if command[:2] == ["ntfsresize", "--no-progress-bar"]
+        )
+        partition_resize = next(
+            index for index, command in enumerate(commands) if command[0] == "parted"
+        )
+        self.assertLess(real_resize, partition_resize)
+        self.assertEqual(commands[0], ["ntfsresize", "--check", "/dev/vda3"])
+        self.assertIn("--no-action", commands[1])
+        self.assertTrue(
+            all(
+                "--force" not in command
+                for command in commands
+                if command[0] == "ntfsresize"
+            )
+        )
+
+    def test_shrink_preflight_requires_ntfs_tools_before_disk_changes(self):
+        plan = {"target_kind": "shrink_ntfs"}
+        self.assertIn("ntfsresize", required_install_commands(plan))
+        self.assertIn("parted", required_install_commands(plan))
+        with patch(
+            "aero7_install_backend.shutil.which",
+            side_effect=lambda name: None if name == "ntfsresize" else f"/usr/bin/{name}",
+        ):
+            with self.assertRaisesRegex(SafetyError, "ntfsresize.*not changed"):
+                ensure_install_tools(plan)
+
+    def test_advanced_partition_table_backup_is_private_and_restorable(self):
+        with tempfile.TemporaryDirectory() as directory:
+            destination = Path(directory) / "before.sfdisk"
+            dump = "label: gpt\n/dev/vda1 : start=2048, size=1048576\n"
+            result = SimpleNamespace(returncode=0, stdout=dump, stderr="")
+            with patch("aero7_install_backend.subprocess.run", return_value=result) as run:
+                written = backup_partition_table("/dev/vda", destination)
+
+            self.assertEqual(written, destination)
+            self.assertEqual(destination.read_text(encoding="utf-8"), dump)
+            self.assertEqual(destination.stat().st_mode & 0o777, 0o600)
+            self.assertEqual(run.call_args.args[0], ["sfdisk", "--dump", "/dev/vda"])
+
+    def test_advanced_install_stops_if_partition_table_backup_fails(self):
+        result = SimpleNamespace(returncode=1, stdout="", stderr="read failure")
+        with patch("aero7_install_backend.subprocess.run", return_value=result):
+            with self.assertRaisesRegex(SafetyError, "disk was not changed"):
+                backup_partition_table("/dev/vda", Path("/tmp/not-written.sfdisk"))
+
+    def test_partition_append_table_reserves_one_gib_for_efi(self):
+        sector = 512
+        start = 2048
+        end = start + (20 * 1024**3 // sector) - 1
+        table, esp_start, root_start = aero7_partition_append_table(
+            start, end, sector
+        )
+        self.assertEqual(esp_start, 2048)
+        self.assertEqual(root_start - esp_start, 1024**3 // sector)
+        self.assertIn('name="Aero7 EFI"', table)
+        self.assertIn('name="Aero7 root"', table)
+
+    @unittest.skipUnless(shutil.which("sfdisk"), "sfdisk is not installed")
+    def test_real_sfdisk_append_preserves_existing_dual_boot_partitions(self):
+        with tempfile.NamedTemporaryFile(suffix=".raw") as fixture:
+            fixture.truncate(40 * 1024**3)
+            existing = (
+                "label: gpt\n"
+                "unit: sectors\n\n"
+                "start=2048, size=1048576, "
+                f"type={EFI_SYSTEM_TYPE}, name=\"Existing EFI\"\n"
+                "start=1050624, size=16777216, "
+                "type=EBD0A0A2-B9E5-4433-87C0-68B6B72699C7, "
+                "name=\"Windows\"\n"
+            )
+            subprocess.run(
+                ["sfdisk", fixture.name],
+                input=existing,
+                text=True,
+                capture_output=True,
+                check=True,
+            )
+            table, esp_start, root_start = aero7_partition_append_table(
+                17827840, 83886046, 512
+            )
+            for extra in (("--no-act",), ()):
+                subprocess.run(
+                    [
+                        "sfdisk",
+                        *extra,
+                        "--append",
+                        "--wipe",
+                        "never",
+                        "--wipe-partitions",
+                        "never",
+                        fixture.name,
+                    ],
+                    input=table,
+                    text=True,
+                    capture_output=True,
+                    check=True,
+                )
+            result = subprocess.run(
+                ["sfdisk", "--json", fixture.name],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            partitions = json.loads(result.stdout)["partitiontable"]["partitions"]
+
+        self.assertEqual(len(partitions), 4)
+        self.assertEqual((partitions[0]["start"], partitions[0]["size"]), (2048, 1048576))
+        self.assertEqual(
+            (partitions[1]["start"], partitions[1]["size"]),
+            (1050624, 16777216),
+        )
+        self.assertEqual(partitions[2]["start"], esp_start)
+        self.assertEqual(partitions[3]["start"], root_start)
 
     def test_pacstrap_uses_populated_live_keyring(self):
         arguments = pacstrap_arguments(Path("/mnt/aero7-target"), ["base", "linux"])

@@ -8,7 +8,7 @@ Archiso boot
        -> guarded live state machine (default)
        -> aero7-install-backend
             -> validate immutable disk fingerprint
-            -> GPT + ESP + ext4
+            -> whole-disk GPT + ESP + ext4, or guarded advanced GPT target
             -> pacstrap complete Arch/Plasma dependency set
             -> signed Aero7 binary packages
             -> pinned PlymouthVista theme and initramfs
@@ -44,9 +44,12 @@ the real Plasma desktop without a second reboot or manual Continue button.
 ## Trust boundaries
 
 QML never runs partitioning commands. The unprivileged UI sends a complete disk
-fingerprint and exact confirmation path to one narrow backend. Immediately
-before modifying anything, the backend repeats `lsblk`, mount, live-media, VM,
-size, model, serial, read-only, and removable checks.
+and target fingerprint plus an exact confirmation path to one narrow backend.
+Immediately before modifying anything, the backend repeats `lsblk`, mount,
+live-media, VM, size, model, serial, read-only, removable, GPT, UUID, and sector
+geometry checks. Advanced mode then saves a private restorable partition-table
+dump. Unallocated, replace-one-partition, and NTFS-shrink plans are fixed in the
+backend; arbitrary partitioning commands never cross the UI boundary.
 
 The ISO service runs as root because Arch installation is privileged. This is
 not carried into the installed desktop. OOBE also runs only for the first boot

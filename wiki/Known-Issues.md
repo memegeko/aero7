@@ -2,11 +2,15 @@
 
 ## Beta 1 limitations
 
-- Installation is VM-only and whole-disk only.
+- Installation execution is still VM-only. Development builds now expose
+  guided advanced targets for preservation testing.
 - Only x86-64 UEFI is supported.
 - Internet access is required for Arch and Aero7 package downloads.
-- There is no dual boot, encryption, manual partitioning, offline installation,
-  legacy BIOS, or physical-hardware path.
+- Delete, Extend, encryption, free-form manual partitioning, offline
+  installation, legacy BIOS, and physical-hardware execution are unavailable.
+- Advanced mode currently installs its own Aero7 ESP. Existing firmware boot
+  entries are preserved, so another OS may be selected through the firmware
+  boot menu rather than the Aero7 systemd-boot menu.
 - Language and regional choices are limited to the currently validated flow.
 
 ## Display and input

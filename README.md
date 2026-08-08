@@ -29,9 +29,12 @@ glassy desktop design of the late 2000s.
 
 > [!IMPORTANT]
 > **Beta 1 is a VM-only testing release.** Its destructive installer accepts
-> only a disposable VirtIO disk inside a supported virtual machine. Physical
-> disks, dual boot, encryption, manual partitioning, and legacy BIOS are
-> intentionally blocked in this release.
+> only a disposable VirtIO disk inside a supported virtual machine. Current
+> development builds add guided advanced options for unallocated space,
+> replacing one selected partition, and shrinking an NTFS partition, but these
+> must pass the dual-boot VM and real-hardware test gates before physical-disk
+> execution is enabled. Encryption, free-form manual partitioning, and legacy
+> BIOS remain unsupported.
 >
 > **Public redistribution is not approved yet.** The repository and prerelease
 > remain private while the retained Plymouth animation, project marks, and full
@@ -63,7 +66,7 @@ hiding the open-source system underneath.
 | **Aero from boot to desktop** | Matching boot animation, installer frame, setup screens, login branding, sounds, icons, taskbar, Start menu, and applications. |
 | **Modern Linux foundation** | Arch Linux, KDE Plasma 6 Wayland, PipeWire, NetworkManager, systemd, and a focused `plasma-desktop` installation. |
 | **Signed Aero7 packages** | Desktop components and applications come from the dedicated signed [Aero7 package repository](https://github.com/memegeko/aero7-repo). |
-| **Safety-first Beta** | Disk identity is fingerprinted and checked again immediately before the VM disk is erased. |
+| **Safety-first Beta** | Disk and partition identities are fingerprinted, rechecked immediately before changes, and backed up before an advanced layout is written. |
 
 ## The setup experience
 

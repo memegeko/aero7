@@ -9,7 +9,7 @@
 | Hypervisor | QEMU/KVM |
 | RAM | 4 GiB minimum; 8 GiB recommended |
 | CPU allocation | 2 minimum; 4 recommended |
-| Target disk | Disposable VirtIO disk (`/dev/vd*`) |
+| Target disk | Disposable VirtIO disk (`/dev/vd*`), optionally with a synthetic GPT layout |
 | Disk size | 16 GiB minimum; 40 GiB recommended |
 | Display | QXL/SPICE recommended |
 | Network | Required during installation |
@@ -20,10 +20,9 @@
 - physical hardware installation;
 - legacy BIOS/CSM boot;
 - SATA, NVMe, USB, or host block devices as install targets;
-- dual boot or installing alongside another operating system;
+- physical dual-boot installation (guided preservation is under VM testing);
 - full-disk encryption;
-- manual partitioning;
-- preserving data or existing partitions;
+- free-form manual partitioning, Delete, or Extend;
 - offline package installation;
 - Plasma X11 sessions.
 

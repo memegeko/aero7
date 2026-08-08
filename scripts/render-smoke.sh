@@ -21,6 +21,9 @@ for screen in "${installer_screens[@]}"; do
   env QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software \
     "$binary" --demo --screen "$screen" --size 1024x768 --screenshot "$output_root/$screen-1024x768.png"
 done
+env QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software \
+  "$binary" --demo --screen DiskScreen --advanced-drive --size 1024x768 \
+  --screenshot "$output_root/DiskScreen-advanced-1024x768.png"
 for screen in "${oobe_screens[@]}"; do
   env QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software \
     "$binary" --demo --oobe --screen "$screen" --size 1024x768 --screenshot "$output_root/$screen-1024x768.png"
@@ -38,4 +41,4 @@ for size in 1366x768 1920x1080; do
 done
 
 printf 'Rendered %d screen/resolution smoke captures in %s\n' \
-  "$(( ${#installer_screens[@]} + ${#oobe_screens[@]} + 8 ))" "$output_root"
+  "$(( ${#installer_screens[@]} + ${#oobe_screens[@]} + 9 ))" "$output_root"
