@@ -73,9 +73,10 @@ distributor remains responsible for any additional permission required.
   `third_party/PlymouthVista/generate-aero7-boot-frames.sh` from the
   project-owner-supplied Aero7 emblem. They replace the upstream four-pane
   reveal with an original Aero7 glow, settle, and breathing loop. The same
-  emblem replaces the older shutdown/update mark. Unused upstream
-  `branding_*.png` and `authui_*.png` files are not installed. Earlier commits
-  still contain the replaced files.
+  emblem replaces the older shutdown/update mark. The unused upstream legacy
+  boot, resume, `branding_*.png`, and `authui_*.png` artwork is not installed;
+  this includes the former `base.png` image carrying a Microsoft copyright
+  line. Earlier commits still contain the replaced files.
 - The installer frame, caption buttons, and back-button sprite come from the
   AeroThemePlasma/SMOD projects at the revisions recorded in `sources.lock`.
   Their copied assets and the mechanical Kvantum button crops remain under the

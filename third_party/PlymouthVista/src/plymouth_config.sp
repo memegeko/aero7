@@ -54,8 +54,8 @@ global.DisableWall = 0;
 //Must be a single line of text,
 //Allowed up to 74 characters.
 //Default value:
-//"Windows Boot Manager"
-global.PasswordTitle = "Windows Boot Manager";
+//"Aero7 Boot Manager"
+global.PasswordTitle = "Aero7 Boot Manager";
 
 //Overrides the message of the password screen with its value.
 //Prerequisites:
@@ -76,8 +76,8 @@ global.PasswordText = "Password";
 //Must be a single line of text,
 //Allowed up to 74 characters.
 //Default value:
-//"Windows Boot Manager"
-global.AnswerTitle = "Windows Boot Manager";
+//"Aero7 Boot Manager"
+global.AnswerTitle = "Aero7 Boot Manager";
 
 //Overrides the message of the password screen with its value.
 //Prerequisites:
@@ -108,7 +108,7 @@ global.ScaleBootManager = 0;
 global.ShutdownText = "Shutting down...";
 
 //Text that is shown when the system is rebooting.
-//Both Windows 7 and Windows Vista use Shutting Down... instead of Rebooting... but to make this screen make more sense, you will see Rebooting... as the default value.
+//Use distinct shutdown and reboot labels so the current action is clear.
 //Prerequisites:
 //Only a single line of text is allowed. Don't use /n.
 //If you modified this key after installation, please re-run gen_blur.sh.
@@ -130,54 +130,33 @@ global.LogoffText = "Logging off...";
 //If you modified this key after installation, please re-run gen_blur.sh.
 //Prerequisites
 //Default Value:
-//"Configuring Windows updates\n%i% complete\nDo not turn off your computer.
-global.UpdateTextMTL = "Configuring Windows updates\n%i% complete\nDo not turn off your computer.";
-
-//Defines whether the Vista boot screen should be used or not:
-//Accepted values:
-//1 - Use the Vista boot screen.
-//0 - Use the 7 boot screen.
-global.UseLegacyBootScreen = 0;
+//"Configuring Aero7 updates\n%i% complete\nDo not turn off your computer."
+global.UpdateTextMTL = "Configuring Aero7 updates\n%i% complete\nDo not turn off your computer.";
 
 //Defines whether the shadow effect should be applied or not.
 //Setting this value to 1 after installation requires re-running gen_blur.sh.
 //Accepted values:
-//0: Windows Vista style, don't show text shadow.
-//1: Windows 7 style, show text shadow.
+//0: Don't show a text shadow.
+//1: Show a text shadow.
 global.UseShadow = 1;
 
-//Sets the background and branding image of the shutdown, reboot, and update screen.
-//Accepted values:
-//"7": Use Windows 7 background and branding.
-//"vista": Use Windows Vista background and branding.
+//Selects the Aero7 shutdown, reboot, and update artwork.
 global.AuthuiStyle = "7";
 
-//The text that is displayed on Windows 7 boot screen when the system is starting normally.
+//The text displayed while Aero7 starts normally.
 //Default value:
-//"Starting Windows"
+//"Starting Aero7"
 global.StartingText = "Starting Aero7";
 
-//The text that is displayed on Windows 7 boot screen when the system is returning from hibernation.
+//The text displayed while Aero7 returns from hibernation.
 //Default value:
-//"Resuming Windows"
+//"Resuming Aero7"
 global.ResumingText = "Resuming Aero7";
 
-//Copyright text of the Windows 7 boot screen that is displayed on bottom center of the screen.
+//Project text displayed at the bottom center of the boot screen.
 //Default value:
-//"© Microsoft Corporation"
+//"Aero7 Open Project"
 global.CopyrightText = "Aero7 Open Project";
-
-//Defines whether Windows Vista's no GUI resume screen will be used or not.
-//This only applies when UseLegacyBootScreen is set to 1.
-//Accepted values:
-//1 - Use Windows Vista's no GUI resume screen.
-//0 - Don't use Windows Vista's no GUI resume screen.
-global.UseNoGuiResume = 1;
-
-//Text that is shown below of the progress bar on the Windows Vista hibernation resume screen.
-//Default value:
-//"Resuming Windows..."
-global.NoGuiResumeText = "Resuming Windows...";
 
 //Slows down your boot in seconds.
 //Works when the plymouth-vista-slow-boot-animation.service is enabled.
@@ -185,9 +164,6 @@ global.NoGuiResumeText = "Resuming Windows...";
 //Default value:
 //0
 global.BootSlowdown = 0;
-
-// Want to make your own Windows 9, see this:
-// https://crustywindo.ws/w/images/2/2a/Dilshad9-Boot.png
 
 #END_USED_BY_PV_CONF
 

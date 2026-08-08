@@ -10,14 +10,12 @@ script_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 script_parts_dir="$script_root/src"
 output="$script_root/PlymouthVista.script"
 files=(
-  bootlegacy.sp
   boot7.sp
   bootmgr.sp
   plymouth_config.sp
   stringutils.sp
   wupdate.sp
   shutdown.sp
-  vistaresume.sp
   main.sp
 )
 

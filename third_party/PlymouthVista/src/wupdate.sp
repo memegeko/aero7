@@ -1,5 +1,5 @@
 // PlymouthVista
-// Windows Updates screen
+// Aero7 updates screen
 // wupdate.sp
 
 fun UpdateScreenNew() {
