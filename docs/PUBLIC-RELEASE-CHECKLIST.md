@@ -13,8 +13,10 @@ files from the latest tree does not remove copies from earlier commits.
 ## Blocking reviews
 
 - [ ] Obtain written permission or another documented legal basis to publicly
-  redistribute the retained PlymouthVista `flag*.png` animation frames. The
-  upstream project says its visual resources belong to Microsoft Corporation.
+  redistribute the retained PlymouthVista light-orb frames 0-55, or replace
+  them with project-owned artwork. Frames 56-104 and the final mark are now
+  reproducible Aero7 project artwork, but the upstream notice still applies to
+  the retained opening frames.
 - [ ] Review the current four-pane Aero7 marks for trademark and confusingly
   similar design risk. The temporary blue “A” mark is not used.
 - [ ] Confirm that the redistribution decision covers the full Git history,
@@ -41,7 +43,9 @@ files from the latest tree does not remove copies from earlier commits.
 - [x] Dependency updates are configured for GitHub Actions.
 - [x] Beta 1 checksum is recorded in the repository.
 - [x] Unused upstream Plymouth login and product-branding bitmaps were removed
-  from the current tree without changing the retained animation.
+  from the current tree.
+- [x] The upstream four-pane reveal was replaced by a reproducible Aero7 glow,
+  settle, and breathing loop while preserving the selected Plymouth theme.
 
 ## Approval record
 

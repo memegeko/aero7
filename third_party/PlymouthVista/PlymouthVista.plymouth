@@ -1,6 +1,6 @@
 [Plymouth Theme]
 Name=PlymouthVista
-Description=PlymouthVista is a boot screen which re-creates the Windows Vista start-up sequence.
+Description=Aero7 Open Project boot and shutdown screen based on the PlymouthVista script engine.
 ModuleName=script
 
 [script]
