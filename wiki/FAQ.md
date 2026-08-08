@@ -13,9 +13,12 @@ VirtIO disk in QEMU/KVM. Physical-hardware support is a later milestone.
 
 ## Can it dual boot or keep my files?
 
-No. The only enabled path erases the selected VM disk and creates a fixed GPT,
-FAT32 ESP, and ext4 root layout. Upgrade, install-alongside, encryption, and
-manual partitioning are unavailable.
+Current development builds can preserve existing GPT partitions by installing
+into unallocated space, replace one selected partition, or shrink NTFS and use
+the released space. The destructive backend is still VM-gated while those
+paths complete dual-boot and real-hardware validation. This is not a backup:
+partitioning can still cause data loss, and encryption and free-form manual
+partitioning remain unavailable.
 
 ## Why is Upgrade greyed out?
 

@@ -36,6 +36,11 @@ Beta 1 lists only safe targets. Check that the disk:
 - is not the live ISO source;
 - is inside a supported DMI-identified virtual machine.
 
+Advanced mode additionally requires GPT. New needs at least 17 GiB of exact
+unallocated space. Format needs a non-ESP partition of at least 17 GiB. Shrink
+needs NTFS, at least 16 GiB left for the existing filesystem, and at least
+17 GiB released for Aero7. Refresh the list if another tool changed the disk.
+
 ## Package installation fails
 
 The installer downloads the signed Arch base system during installation. If

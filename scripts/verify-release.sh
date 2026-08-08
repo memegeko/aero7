@@ -46,6 +46,13 @@ unsquashfs -cat "$squashfs" usr/lib/aero7/aero7-install-backend \
   | rg -F 'aero7-first-login-cleanup.timer' >/dev/null
 unsquashfs -cat "$squashfs" usr/lib/aero7/aero7-install-backend \
   | rg -F 'ExecStartPre=/usr/bin/sleep' >/dev/null
+unsquashfs -cat "$squashfs" usr/lib/aero7/aero7-install-backend \
+  | rg -F 'def backup_partition_table(' >/dev/null
+unsquashfs -cat "$squashfs" usr/lib/aero7/aero7-install-backend \
+  | rg -F '"ntfsresize", "--check", partition' >/dev/null
+for advanced_storage_binary in usr/bin/ntfsresize usr/bin/parted; do
+  unsquashfs -cat "$squashfs" "$advanced_storage_binary" >/dev/null
+done
 unsquashfs -cat "$squashfs" usr/bin/aero7-installer \
   | strings | rg -F 'Aero7 is beta software supplied without warranty' >/dev/null
 unsquashfs -cat "$squashfs" usr/bin/aero7-installer \

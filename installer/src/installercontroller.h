@@ -17,6 +17,8 @@ class InstallerController final : public QObject
     Q_PROPERTY(bool canGoBack READ canGoBack NOTIFY screenChanged)
     Q_PROPERTY(QVariantList disks READ disks NOTIFY disksChanged)
     Q_PROPERTY(QVariantMap selectedDisk READ selectedDisk NOTIFY selectedDiskChanged)
+    Q_PROPERTY(bool diskSelectionReady READ diskSelectionReady NOTIFY selectedDiskChanged)
+    Q_PROPERTY(bool advancedDriveOptions READ advancedDriveOptions NOTIFY advancedDriveOptionsChanged)
     Q_PROPERTY(int progress READ progress NOTIFY progressChanged)
     Q_PROPERTY(int progressStageIndex READ progressStageIndex NOTIFY progressChanged)
     Q_PROPERTY(int progressStagePercent READ progressStagePercent NOTIFY progressChanged)
@@ -50,6 +52,8 @@ public:
     [[nodiscard]] bool canGoBack() const;
     [[nodiscard]] QVariantList disks() const;
     [[nodiscard]] QVariantMap selectedDisk() const;
+    [[nodiscard]] bool diskSelectionReady() const;
+    [[nodiscard]] bool advancedDriveOptions() const;
     [[nodiscard]] int progress() const;
     [[nodiscard]] int progressStageIndex() const;
     [[nodiscard]] int progressStagePercent() const;
@@ -63,6 +67,10 @@ public:
     Q_INVOKABLE void goBack();
     Q_INVOKABLE void selectDisk(int index);
     Q_INVOKABLE void refreshDisks();
+    Q_INVOKABLE void setAdvancedDriveOptions(bool enabled);
+    Q_INVOKABLE void useSelectedFreeSpace();
+    Q_INVOKABLE void useSelectedPartition();
+    Q_INVOKABLE void prepareSelectedNtfsShrink(int releaseGiB);
     Q_INVOKABLE void openRecoveryShell();
     Q_INVOKABLE void restartSystem();
     Q_INVOKABLE void resetDemo();
@@ -72,6 +80,7 @@ signals:
     void screenChanged();
     void disksChanged();
     void selectedDiskChanged();
+    void advancedDriveOptionsChanged();
     void progressChanged();
     void statusChanged();
     void busyChanged();
@@ -112,6 +121,7 @@ private:
     QString m_backendPath;
     QVariantList m_disks;
     QVariantMap m_selectedDisk;
+    bool m_advancedDriveOptions = false;
     int m_progress = 0;
     int m_progressStageIndex = 0;
     int m_progressStagePercent = 0;

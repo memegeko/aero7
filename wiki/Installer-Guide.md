@@ -14,23 +14,28 @@ recovery shell, and switches to it.
 ## License notice
 
 The notice explains that Aero7 is an independent Linux system, lists the
-open-source licensing model, warns about whole-disk data loss, documents network
-package access, and provides the Beta no-warranty statement. Acceptance is
-required before continuing.
+open-source licensing model, warns about whole-disk, format, and shrink risks,
+documents network package access, and provides the Beta no-warranty statement.
+Acceptance is required before continuing.
 
 ## Installation type
 
-Only **Custom** is active. Upgrade and in-place preservation are unavailable.
+Only **Custom** is active. Upgrade remains unavailable; guided preservation is
+provided on the following disk page through Drive options (advanced).
 
 ## Disk selection
 
-The backend lists only devices passing all safety rules. A valid Beta 1 target
-is an unmounted, writable, non-removable VirtIO whole disk that is not the live
-ISO source and has at least 16 GiB capacity.
+The backend lists only devices passing all safety rules. A valid Beta 1 parent
+is an unmounted, writable, non-removable VirtIO disk that is not the live ISO
+source. Basic mode selects the whole disk. Advanced mode lists its exact GPT
+partitions and unallocated ranges and enables New, Format, or Shrink only where
+the fixed layout fits.
 
 The final confirmation repeats the exact device identity. Setup immediately
 re-reads the disk and rejects it if its path, size, model, serial, major/minor
-number, mount state, or removability has changed.
+number, mount state, removability, partition UUID, filesystem, or sector
+geometry has changed. Advanced setup also requires a successful partition-table
+backup before its first write.
 
 ## Installing
 

@@ -25,8 +25,14 @@ from aero7_shell_adapter import configure_and_install
 
 
 MIN_DISK_BYTES = 16 * 1024**3
+MIN_ROOT_BYTES = 16 * 1024**3
+ADVANCED_ESP_BYTES = 1024**3
+MIN_ADVANCED_REGION_BYTES = MIN_ROOT_BYTES + ADVANCED_ESP_BYTES
 GUARD_TOKEN = "YES-I-AM-IN-A-DISPOSABLE-AERO7-VM"
 SUPPORTED_LAYOUT = "uefi-gpt-esp-ext4"
+ADVANCED_LAYOUT = "uefi-gpt-preserve-esp-ext4"
+EFI_SYSTEM_TYPE = "c12a7328-f81f-11d2-ba4b-00a0c93ec93b"
+LINUX_ROOT_X86_64_TYPE = "4f68bce3-e8cd-4db1-96e7-fbcaf984b709"
 INSTALL_STAGES = (
     "Preparing disk",
     "Copying system files",
@@ -42,6 +48,7 @@ PACKAGE_MIRROR_HOSTS = (
     "fastly.mirror.pkgbuild.com",
 )
 TARGET_ROOT = Path("/mnt/aero7-target")
+PARTITION_TABLE_BACKUP = Path("/var/log/aero7-partition-table-before.sfdisk")
 IMAGE_MODE_GUARD = "YES-I-AM-IN-AERO7-FIRST-BOOT"
 SHELL_INSTALLER = Path("/usr/local/lib/aero7-shell-installer/install.sh")
 SDDM_BRANDING = Path("/usr/share/aero7/branding/aero7-sddm-branding.png")
@@ -134,8 +141,40 @@ def flatten_devices(nodes: Iterable[dict[str, Any]]) -> Iterable[dict[str, Any]]
         yield from flatten_devices(node.get("children", []))
 
 
+def nest_block_devices(nodes: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Normalize lsblk output into a tree even when PKNAME flattens JSON rows."""
+    flattened: list[dict[str, Any]] = []
+    for source in flatten_devices(nodes):
+        item = {key: value for key, value in source.items() if key != "children"}
+        item["children"] = []
+        flattened.append(item)
+
+    by_kname = {
+        str(item.get("kname")): item
+        for item in flattened
+        if item.get("kname")
+    }
+    roots: list[dict[str, Any]] = []
+    for item in flattened:
+        parent = by_kname.get(str(item.get("pkname") or ""))
+        if parent is None:
+            roots.append(item)
+        else:
+            parent["children"].append(item)
+    return roots
+
+
 def device_has_mounts(node: dict[str, Any]) -> bool:
     return any(normalized_mountpoints(item.get("mountpoints")) for item in flatten_devices([node]))
+
+
+def disk_contains_source(node: dict[str, Any], sources: set[str]) -> bool:
+    excluded = {str(Path(path).resolve()) for path in sources}
+    for item in flatten_devices([node]):
+        path = str(item.get("path") or "")
+        if path and str(Path(path).resolve()) in excluded:
+            return True
+    return False
 
 
 def live_sources() -> set[str]:
@@ -154,14 +193,18 @@ def live_sources() -> set[str]:
 
 
 def query_lsblk() -> list[dict[str, Any]]:
-    fields = "PATH,KNAME,TYPE,SIZE,MODEL,SERIAL,RO,RM,MAJ:MIN,MOUNTPOINTS,TRAN"
+    fields = (
+        "PATH,KNAME,PKNAME,TYPE,SIZE,START,PARTN,MODEL,SERIAL,RO,RM,"
+        "MAJ:MIN,MOUNTPOINTS,TRAN,FSTYPE,FSAVAIL,FSUSE%,LABEL,PARTLABEL,"
+        "PARTTYPE,PARTUUID,UUID,LOG-SEC,PTTYPE"
+    )
     completed = subprocess.run(
         ["lsblk", "--json", "--bytes", "--output", fields],
         check=True,
         capture_output=True,
         text=True,
     )
-    return json.loads(completed.stdout).get("blockdevices", [])
+    return nest_block_devices(json.loads(completed.stdout).get("blockdevices", []))
 
 
 def fingerprint(node: dict[str, Any]) -> dict[str, Any]:
@@ -174,23 +217,169 @@ def fingerprint(node: dict[str, Any]) -> dict[str, Any]:
         "size": human_size(size),
         "size_bytes": size,
         "maj_min": str(node.get("maj:min") or ""),
+        "pttype": str(node.get("pttype") or ""),
     }
+
+
+def supported_disk_path(path: str) -> bool:
+    return bool(
+        re.fullmatch(
+            r"/dev/(?:vd[a-z]|sd[a-z]|nvme\d+n\d+|mmcblk\d+)", path
+        )
+    )
+
+
+def align_up(value: int, alignment: int) -> int:
+    if alignment <= 0:
+        raise ValueError("alignment must be positive")
+    return ((value + alignment - 1) // alignment) * alignment
+
+
+def partition_fingerprint(node: dict[str, Any], disk_node: dict[str, Any]) -> dict[str, Any]:
+    sector_size = int(disk_node.get("log-sec") or 512)
+    size_bytes = int(node.get("size") or 0)
+    return {
+        "partition_device": str(node.get("path") or ""),
+        "partition_number": int(node.get("partn") or 0),
+        "partition_start_sector": int(node.get("start") or 0),
+        "partition_size_sectors": size_bytes // sector_size,
+        "partition_size_bytes": size_bytes,
+        "partition_partuuid": str(node.get("partuuid") or ""),
+        "partition_uuid": str(node.get("uuid") or ""),
+        "partition_type": str(node.get("parttype") or "").lower(),
+        "filesystem": str(node.get("fstype") or "").lower(),
+        "label": str(node.get("label") or ""),
+        "partlabel": str(node.get("partlabel") or ""),
+    }
+
+
+def free_regions(disk_node: dict[str, Any]) -> list[dict[str, int]]:
+    """Return aligned, unallocated GPT ranges without modifying the disk."""
+    sector_size = int(disk_node.get("log-sec") or 512)
+    if sector_size <= 0:
+        raise SafetyError("disk reports an invalid logical sector size")
+    alignment = max(1, (1024 * 1024) // sector_size)
+    total_sectors = int(disk_node.get("size") or 0) // sector_size
+    if total_sectors <= alignment + 34:
+        return []
+
+    partitions: list[tuple[int, int]] = []
+    for child in flatten_devices(disk_node.get("children", [])):
+        if child.get("type") != "part":
+            continue
+        start = int(child.get("start") or 0)
+        length = int(child.get("size") or 0) // sector_size
+        if start > 0 and length > 0:
+            partitions.append((start, start + length))
+    partitions.sort()
+
+    cursor = alignment
+    usable_end = max(cursor, total_sectors - 34)
+    regions: list[dict[str, int]] = []
+    for start, end_exclusive in partitions:
+        gap_start = align_up(cursor, alignment)
+        gap_end = min(start, usable_end)
+        if gap_end > gap_start:
+            regions.append(
+                {
+                    "start_sector": gap_start,
+                    "end_sector": gap_end - 1,
+                    "size_sectors": gap_end - gap_start,
+                    "size_bytes": (gap_end - gap_start) * sector_size,
+                }
+            )
+        cursor = max(cursor, end_exclusive)
+
+    gap_start = align_up(cursor, alignment)
+    if usable_end > gap_start:
+        regions.append(
+            {
+                "start_sector": gap_start,
+                "end_sector": usable_end - 1,
+                "size_sectors": usable_end - gap_start,
+                "size_bytes": (usable_end - gap_start) * sector_size,
+            }
+        )
+    return regions
+
+
+def storage_targets(disk_node: dict[str, Any], disk_index: int) -> list[dict[str, Any]]:
+    disk_info = fingerprint(disk_node)
+    disk_device = disk_info["device"]
+    targets: list[dict[str, Any]] = []
+    for child in flatten_devices(disk_node.get("children", [])):
+        if child.get("type") != "part":
+            continue
+        part = partition_fingerprint(child, disk_node)
+        filesystem = part["filesystem"]
+        part_type = part["partition_type"]
+        name = part["label"] or part["partlabel"]
+        if part_type == EFI_SYSTEM_TYPE:
+            description = name or "EFI System Partition"
+            row_type = "System"
+        elif filesystem == "ntfs":
+            description = name or "Windows NTFS"
+            row_type = "Primary"
+        else:
+            description = name or (filesystem.upper() if filesystem else "Partition")
+            row_type = "Primary"
+        targets.append(
+            {
+                **disk_info,
+                **part,
+                "target_kind": "partition",
+                "disk_device": disk_device,
+                "disk_index": disk_index,
+                "display_name": (
+                    f"Disk {disk_index} Partition {part['partition_number']}: {description}"
+                ),
+                "size": human_size(part["partition_size_bytes"]),
+                "free_space": "—",
+                "type": row_type,
+                "can_shrink": filesystem == "ntfs",
+                "can_format": (
+                    part_type != EFI_SYSTEM_TYPE
+                    and part["partition_size_bytes"] >= MIN_ADVANCED_REGION_BYTES
+                ),
+            }
+        )
+
+    for region_index, region in enumerate(free_regions(disk_node)):
+        targets.append(
+            {
+                **disk_info,
+                "start_sector": region["start_sector"],
+                "end_sector": region["end_sector"],
+                "size_sectors": region["size_sectors"],
+                "region_size_bytes": region["size_bytes"],
+                "target_kind": "free",
+                "disk_device": disk_device,
+                "disk_index": disk_index,
+                "region_index": region_index,
+                "display_name": f"Disk {disk_index} Unallocated Space",
+                "size": human_size(region["size_bytes"]),
+                "free_space": human_size(region["size_bytes"]),
+                "type": "",
+                "can_install": region["size_bytes"] >= MIN_ADVANCED_REGION_BYTES,
+            }
+        )
+    return targets
 
 
 def candidate_disks(nodes: list[dict[str, Any]], excluded_sources: set[str] | None = None) -> list[dict[str, Any]]:
     excluded = {str(Path(path).resolve()) for path in (excluded_sources or set())}
     candidates: list[dict[str, Any]] = []
-    for node in nodes:
+    for disk_index, node in enumerate(nodes):
         path = str(node.get("path") or "")
         if node.get("type") != "disk" or not path.startswith("/dev/"):
             continue
-        if not re.fullmatch(r"/dev/vd[a-z]", path):
+        if not supported_disk_path(path):
             continue
         try:
             resolved = str(Path(path).resolve())
         except OSError:
             continue
-        if resolved in excluded:
+        if resolved in excluded or disk_contains_source(node, excluded):
             continue
         if bool(node.get("ro")) or bool(node.get("rm")):
             continue
@@ -198,7 +387,19 @@ def candidate_disks(nodes: list[dict[str, Any]], excluded_sources: set[str] | No
             continue
         if device_has_mounts(node):
             continue
-        candidates.append(fingerprint(node))
+        item = fingerprint(node)
+        item.update(
+            {
+                "target_kind": "disk",
+                "disk_device": path,
+                "disk_index": disk_index,
+                "display_name": f"Disk {disk_index}: {item['model']}",
+                "free_space": item["size"],
+                "type": "",
+                "targets": storage_targets(node, disk_index),
+            }
+        )
+        candidates.append(item)
     return candidates
 
 
@@ -213,15 +414,29 @@ def find_disk(nodes: list[dict[str, Any]], device: str) -> dict[str, Any] | None
     return None
 
 
+def find_partition(disk_node: dict[str, Any], device: str) -> dict[str, Any] | None:
+    wanted = str(Path(device).resolve())
+    for node in flatten_devices(disk_node.get("children", [])):
+        if node.get("type") != "part":
+            continue
+        path = str(node.get("path") or "")
+        if path and str(Path(path).resolve()) == wanted:
+            return node
+    return None
+
+
 def validate_plan(plan: dict[str, Any], current: dict[str, Any], excluded_sources: set[str]) -> None:
-    if plan.get("layout") != SUPPORTED_LAYOUT:
+    layout = str(plan.get("layout") or "")
+    if layout not in {SUPPORTED_LAYOUT, ADVANCED_LAYOUT}:
         raise SafetyError("unsupported disk layout")
     if current.get("type") != "disk":
         raise SafetyError("selected target is not a whole disk")
     device = str(plan.get("device") or "")
-    if not re.fullmatch(r"/dev/vd[a-z]", device):
+    if layout == SUPPORTED_LAYOUT and not re.fullmatch(r"/dev/vd[a-z]", device):
         raise SafetyError("MVP live installs accept only a QEMU VirtIO /dev/vdX disk")
-    if str(Path(device).resolve()) in {str(Path(item).resolve()) for item in excluded_sources}:
+    if layout == ADVANCED_LAYOUT and not supported_disk_path(device):
+        raise SafetyError("advanced target uses an unsupported disk path")
+    if disk_contains_source(current, excluded_sources):
         raise SafetyError("selected disk contains the live installation media")
     if bool(current.get("ro")):
         raise SafetyError("selected disk is read-only")
@@ -233,9 +448,94 @@ def validate_plan(plan: dict[str, Any], current: dict[str, Any], excluded_source
         raise SafetyError("selected disk is smaller than 16 GiB")
 
     actual = fingerprint(current)
-    for key in ("device", "kname", "model", "serial", "size_bytes", "maj_min"):
+    for key in ("device", "kname", "model", "serial", "size_bytes", "maj_min", "pttype"):
         if plan.get(key) != actual.get(key):
             raise SafetyError(f"disk fingerprint changed: {key}")
+
+    if layout == SUPPORTED_LAYOUT:
+        return
+    if str(current.get("pttype") or "").lower() != "gpt":
+        raise SafetyError("advanced installation currently requires a GPT disk")
+
+    target_kind = str(plan.get("target_kind") or "")
+    if target_kind == "free":
+        expected = {
+            "start_sector": int(plan.get("start_sector") or 0),
+            "end_sector": int(plan.get("end_sector") or 0),
+            "size_sectors": int(plan.get("size_sectors") or 0),
+            "size_bytes": int(plan.get("region_size_bytes") or 0),
+        }
+        if expected["size_bytes"] < MIN_ADVANCED_REGION_BYTES:
+            raise SafetyError("selected unallocated space is smaller than 17 GiB")
+        if expected not in free_regions(current):
+            raise SafetyError("selected unallocated region changed before installation")
+        aero7_partition_append_table(
+            expected["start_sector"],
+            expected["end_sector"],
+            int(current.get("log-sec") or 512),
+        )
+        return
+
+    if target_kind not in {"reuse_partition", "shrink_ntfs"}:
+        raise SafetyError("advanced target action is unsupported")
+    partition_device = str(plan.get("partition_device") or "")
+    partition = find_partition(current, partition_device)
+    if partition is None:
+        raise SafetyError("selected partition disappeared before installation")
+    if device_has_mounts(partition):
+        raise SafetyError("selected partition is mounted")
+    actual_partition = partition_fingerprint(partition, current)
+    for key in (
+        "partition_device",
+        "partition_number",
+        "partition_start_sector",
+        "partition_size_sectors",
+        "partition_size_bytes",
+        "partition_partuuid",
+        "partition_uuid",
+        "partition_type",
+        "filesystem",
+    ):
+        if plan.get(key) != actual_partition.get(key):
+            raise SafetyError(f"partition fingerprint changed: {key}")
+    if actual_partition["partition_type"] == EFI_SYSTEM_TYPE:
+        raise SafetyError("the EFI System Partition cannot be used as an Aero7 root target")
+
+    if target_kind == "reuse_partition":
+        if actual_partition["partition_size_bytes"] < MIN_ADVANCED_REGION_BYTES:
+            raise SafetyError("selected partition is smaller than 17 GiB")
+        aero7_partition_append_table(
+            actual_partition["partition_start_sector"],
+            actual_partition["partition_start_sector"]
+            + actual_partition["partition_size_sectors"]
+            - 1,
+            int(current.get("log-sec") or 512),
+        )
+        return
+
+    if actual_partition["filesystem"] != "ntfs":
+        raise SafetyError("only NTFS partitions can use the Windows shrink action")
+    new_size_bytes = int(plan.get("shrink_size_bytes") or 0)
+    sector_size = int(current.get("log-sec") or 512)
+    if new_size_bytes % sector_size:
+        raise SafetyError("requested Windows size is not sector-aligned")
+    released_bytes = actual_partition["partition_size_bytes"] - new_size_bytes
+    if new_size_bytes < MIN_ROOT_BYTES:
+        raise SafetyError("the Windows partition must remain at least 16 GiB")
+    if released_bytes < MIN_ADVANCED_REGION_BYTES:
+        raise SafetyError("shrinking must release at least 17 GiB for Aero7")
+    new_end = (
+        actual_partition["partition_start_sector"]
+        + new_size_bytes // sector_size
+        - 1
+    )
+    aero7_partition_append_table(
+        align_up(new_end + 1, max(1, (1024 * 1024) // sector_size)),
+        actual_partition["partition_start_sector"]
+        + actual_partition["partition_size_sectors"]
+        - 1,
+        sector_size,
+    )
 
 
 def read_dmi() -> str:
@@ -256,6 +556,58 @@ def enforce_execution_gate() -> None:
     dmi = read_dmi()
     if not any(marker in dmi for marker in VM_MARKERS):
         raise SafetyError("real installation is restricted to a recognized virtual machine")
+
+
+def required_install_commands(plan: dict[str, Any]) -> tuple[str, ...]:
+    """Return every external command that must exist before disk changes begin."""
+    commands = [
+        "arch-chroot",
+        "blkid",
+        "genfstab",
+        "mkfs.ext4",
+        "mkfs.fat",
+        "mount",
+        "pacstrap",
+        "sfdisk",
+        "sync",
+        "udevadm",
+        "umount",
+        "wipefs",
+    ]
+    if str(plan.get("target_kind") or "") == "shrink_ntfs":
+        commands.extend(("ntfsresize", "parted"))
+    return tuple(sorted(set(commands)))
+
+
+def ensure_install_tools(plan: dict[str, Any]) -> None:
+    missing = [name for name in required_install_commands(plan) if shutil.which(name) is None]
+    if missing:
+        raise SafetyError(
+            "required installer tools are missing: " + ", ".join(missing)
+            + ". The target disk was not changed"
+        )
+
+
+def backup_partition_table(
+    device: str, destination: Path = PARTITION_TABLE_BACKUP
+) -> Path:
+    """Save a restorable sfdisk dump before an advanced layout is changed."""
+    completed = subprocess.run(
+        ["sfdisk", "--dump", device],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if completed.returncode != 0 or not completed.stdout.strip():
+        detail = completed.stderr.strip()
+        message = "could not back up the existing partition table; the disk was not changed"
+        if detail:
+            message += f": {detail[-500:]}"
+        raise SafetyError(message)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text(completed.stdout, encoding="utf-8")
+    destination.chmod(0o600)
+    return destination
 
 
 def load_plan(path: Path) -> dict[str, Any]:
@@ -344,9 +696,10 @@ class CommandRunner:
 
 
 def partition_path(device: str, number: int) -> str:
-    if not re.fullmatch(r"/dev/vd[a-z]", device):
-        raise SafetyError("partition naming is implemented only for QEMU VirtIO disks")
-    return f"{device}{number}"
+    if not supported_disk_path(device):
+        raise SafetyError("unsupported partition device path")
+    separator = "p" if device[-1].isdigit() else ""
+    return f"{device}{separator}{number}"
 
 
 def partition_table() -> str:
@@ -360,6 +713,156 @@ def partition_table() -> str:
         "type=C12A7328-F81F-11D2-BA4B-00A0C93EC93B, name=\"EFI System\"\n"
         "type=4F68BCE3-E8CD-4DB1-96E7-FBCAF984B709, name=\"Aero7 root\"\n"
     )
+
+
+def aero7_partition_append_table(
+    start_sector: int, end_sector: int, sector_size: int
+) -> tuple[str, int, int]:
+    if sector_size <= 0:
+        raise SafetyError("invalid logical sector size")
+    alignment = max(1, (1024 * 1024) // sector_size)
+    esp_sectors = align_up(ADVANCED_ESP_BYTES // sector_size, alignment)
+    esp_start = align_up(start_sector, alignment)
+    root_start = align_up(esp_start + esp_sectors, alignment)
+    root_sectors = end_sector - root_start + 1
+    if root_sectors * sector_size < MIN_ROOT_BYTES:
+        raise SafetyError("selected region cannot fit the Aero7 EFI and root partitions")
+    table = (
+        f"start={esp_start}, size={esp_sectors}, type={EFI_SYSTEM_TYPE}, "
+        'name="Aero7 EFI"\n'
+        f"start={root_start}, size={root_sectors}, type={LINUX_ROOT_X86_64_TYPE}, "
+        'name="Aero7 root"\n'
+    )
+    return table, esp_start, root_start
+
+
+def wait_for_partitions_at_starts(
+    device: str, starts: tuple[int, int], timeout: float = 15.0
+) -> tuple[str, str]:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        disk_node = find_disk(query_lsblk(), device)
+        if disk_node is not None:
+            by_start = {
+                int(node.get("start") or 0): str(node.get("path") or "")
+                for node in flatten_devices(disk_node.get("children", []))
+                if node.get("type") == "part"
+            }
+            paths = tuple(by_start.get(start, "") for start in starts)
+            if all(path and Path(path).is_block_device() for path in paths):
+                return paths[0], paths[1]
+        time.sleep(0.25)
+    raise RuntimeError("new Aero7 partition devices did not appear in time")
+
+
+def append_aero7_partitions(
+    device: str,
+    start_sector: int,
+    end_sector: int,
+    sector_size: int,
+    runner: CommandRunner,
+) -> tuple[str, str]:
+    table, esp_start, root_start = aero7_partition_append_table(
+        start_sector, end_sector, sector_size
+    )
+    runner.run(
+        [
+            "sfdisk",
+            "--no-act",
+            "--append",
+            "--wipe",
+            "never",
+            "--wipe-partitions",
+            "never",
+            device,
+        ],
+        input_text=table,
+    )
+    runner.run(
+        ["sfdisk", "--append", "--wipe", "never", "--wipe-partitions", "never", device],
+        input_text=table,
+    )
+    runner.run(["udevadm", "settle"])
+    return wait_for_partitions_at_starts(device, (esp_start, root_start))
+
+
+def prepare_advanced_target(
+    plan: dict[str, Any], current: dict[str, Any], runner: CommandRunner
+) -> tuple[str, str]:
+    device = str(plan["device"])
+    sector_size = int(current.get("log-sec") or 512)
+    target_kind = str(plan["target_kind"])
+
+    if target_kind == "free":
+        start_sector = int(plan["start_sector"])
+        end_sector = int(plan["end_sector"])
+    elif target_kind == "reuse_partition":
+        start_sector = int(plan["partition_start_sector"])
+        size_sectors = int(plan["partition_size_sectors"])
+        end_sector = start_sector + size_sectors - 1
+        runner.run(
+            ["sfdisk", "--delete", device, str(plan["partition_number"])]
+        )
+        runner.run(["udevadm", "settle"])
+    elif target_kind == "shrink_ntfs":
+        partition = str(plan["partition_device"])
+        number = int(plan["partition_number"])
+        start_sector = int(plan["partition_start_sector"])
+        original_sectors = int(plan["partition_size_sectors"])
+        final_partition_bytes = int(plan["shrink_size_bytes"])
+        final_partition_sectors = final_partition_bytes // sector_size
+        if final_partition_sectors <= 0:
+            raise SafetyError("invalid requested Windows partition size")
+        filesystem_bytes = final_partition_bytes - 16 * 1024**2
+        if filesystem_bytes <= 0:
+            raise SafetyError("invalid requested NTFS filesystem size")
+
+        runner.run(["ntfsresize", "--check", partition])
+        runner.run(
+            [
+                "ntfsresize",
+                "--no-action",
+                "--size",
+                str(filesystem_bytes),
+                partition,
+            ]
+        )
+        runner.run(
+            [
+                "ntfsresize",
+                "--no-progress-bar",
+                "--size",
+                str(filesystem_bytes),
+                partition,
+            ]
+        )
+        new_end = start_sector + final_partition_sectors - 1
+        runner.run(
+            [
+                "parted",
+                "--script",
+                device,
+                "unit",
+                "s",
+                "resizepart",
+                str(number),
+                f"{new_end}s",
+            ]
+        )
+        runner.run(["udevadm", "settle"])
+        start_sector = align_up(new_end + 1, max(1, (1024 * 1024) // sector_size))
+        end_sector = int(plan["partition_start_sector"]) + original_sectors - 1
+    else:
+        raise SafetyError("unsupported advanced target action")
+
+    esp, root = append_aero7_partitions(
+        device, start_sector, end_sector, sector_size, runner
+    )
+    runner.run(["wipefs", "--all", "--force", esp])
+    runner.run(["wipefs", "--all", "--force", root])
+    runner.run(["mkfs.fat", "-F", "32", "-n", "AERO7_ESP", esp])
+    runner.run(["mkfs.ext4", "-F", "-L", "AERO7_ROOT", root])
+    return esp, root
 
 
 def pacstrap_arguments(target: Path, packages: Iterable[str]) -> list[str]:
@@ -800,33 +1303,43 @@ def install(plan: dict[str, Any], confirm_device: str) -> None:
     # connectivity before wipefs/sfdisk so missing DHCP or DNS cannot destroy
     # the selected disk and only then reveal that installation cannot proceed.
     ensure_install_network()
+    ensure_install_tools(plan)
 
     log_path = Path("/var/log/aero7-installer.log")
     log_path.parent.mkdir(parents=True, exist_ok=True)
     runner = CommandRunner(log_path)
     device = confirm_device
-    esp = partition_path(device, 1)
-    root = partition_path(device, 2)
     mounted = False
+    partition_backup: Path | None = None
+
+    if plan.get("layout") == ADVANCED_LAYOUT:
+        partition_backup = backup_partition_table(device)
 
     try:
         copying_disk = ProgressPulse(
             INSTALL_STAGES[0], 2, 17, stage_start=0, stage_end=65
         )
         copying_disk.emit()
-        runner.run(["wipefs", "--all", "--force", device])
-        copying_disk.emit(10)
-        runner.run(
-            ["sfdisk", "--wipe", "always", device], input_text=partition_table()
-        )
-        copying_disk.emit(25)
-        runner.run(["udevadm", "settle"])
-        copying_disk.emit(35)
-        wait_for_partitions((esp, root))
-        copying_disk.emit(45)
-        runner.run(["mkfs.fat", "-F", "32", "-n", "AERO7_ESP", esp])
-        copying_disk.emit(55)
-        runner.run(["mkfs.ext4", "-F", "-L", "AERO7_ROOT", root])
+        if plan.get("layout") == SUPPORTED_LAYOUT:
+            esp = partition_path(device, 1)
+            root = partition_path(device, 2)
+            runner.run(["wipefs", "--all", "--force", device])
+            copying_disk.emit(10)
+            runner.run(
+                ["sfdisk", "--wipe", "always", device], input_text=partition_table()
+            )
+            copying_disk.emit(25)
+            runner.run(["udevadm", "settle"])
+            copying_disk.emit(35)
+            wait_for_partitions((esp, root))
+            copying_disk.emit(45)
+            runner.run(["mkfs.fat", "-F", "32", "-n", "AERO7_ESP", esp])
+            copying_disk.emit(55)
+            runner.run(["mkfs.ext4", "-F", "-L", "AERO7_ROOT", root])
+        else:
+            copying_disk.emit(10)
+            esp, root = prepare_advanced_target(plan, current, runner)
+            copying_disk.emit(55)
         copying_disk.complete()
 
         copying_files = ProgressPulse(
@@ -837,6 +1350,10 @@ def install(plan: dict[str, Any], confirm_device: str) -> None:
         TARGET_ROOT.mkdir(parents=True, exist_ok=True)
         runner.run(["mount", root, str(TARGET_ROOT)])
         mounted = True
+        if partition_backup is not None:
+            installed_backup = TARGET_ROOT / "var/log/aero7-partition-table-before.sfdisk"
+            installed_backup.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(partition_backup, installed_backup)
         copying_files.emit(82)
         (TARGET_ROOT / "boot").mkdir(parents=True, exist_ok=True)
         runner.run(["mount", esp, str(TARGET_ROOT / "boot")])

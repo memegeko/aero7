@@ -24,6 +24,9 @@ const QStringList kInstallStages = {
 };
 const QString kFirstLoginCleanupTimer =
     QStringLiteral("aero7-first-login-cleanup.timer");
+constexpr qulonglong kGiB = 1024ULL * 1024ULL * 1024ULL;
+constexpr qulonglong kMinRootBytes = 16ULL * kGiB;
+constexpr qulonglong kMinAdvancedRegionBytes = 17ULL * kGiB;
 }
 
 InstallerController::InstallerController(bool oobeMode, bool demoMode,
@@ -77,6 +80,16 @@ bool InstallerController::canGoBack() const
 }
 QVariantList InstallerController::disks() const { return m_disks; }
 QVariantMap InstallerController::selectedDisk() const { return m_selectedDisk; }
+bool InstallerController::diskSelectionReady() const
+{
+    const QString kind = m_selectedDisk.value(QStringLiteral("target_kind")).toString();
+    if (kind == QStringLiteral("disk") || kind == QStringLiteral("reuse_partition")
+        || kind == QStringLiteral("shrink_ntfs"))
+        return true;
+    return kind == QStringLiteral("free")
+        && m_selectedDisk.value(QStringLiteral("can_install")).toBool();
+}
+bool InstallerController::advancedDriveOptions() const { return m_advancedDriveOptions; }
 int InstallerController::progress() const { return m_progress; }
 int InstallerController::progressStageIndex() const { return m_progressStageIndex; }
 int InstallerController::progressStagePercent() const { return m_progressStagePercent; }
@@ -263,8 +276,8 @@ bool InstallerController::validateCurrentScreen()
         setStatus(QStringLiteral("Accept the Aero7 license terms to continue."));
         return false;
     }
-    if (current == QStringLiteral("DiskScreen") && m_selectedDisk.isEmpty()) {
-        setStatus(QStringLiteral("Select a target disk."));
+    if (current == QStringLiteral("DiskScreen") && !diskSelectionReady()) {
+        setStatus(QStringLiteral("Select a disk or prepare an advanced partition target."));
         return false;
     }
     if (current == QStringLiteral("AccountScreen")) {
@@ -305,7 +318,103 @@ void InstallerController::selectDisk(int index)
     if (index < 0 || index >= m_disks.size())
         return;
     m_selectedDisk = m_disks.at(index).toMap();
+    const QString kind = m_selectedDisk.value(QStringLiteral("target_kind")).toString();
+    if (kind == QStringLiteral("partition")) {
+        if (m_selectedDisk.value(QStringLiteral("can_shrink")).toBool())
+            setStatus(QStringLiteral("Choose Shrink to release space from this Windows partition, or Format to erase only this partition."));
+        else if (m_selectedDisk.value(QStringLiteral("can_format")).toBool())
+            setStatus(QStringLiteral("Choose Format to use only this partition for Aero7."));
+        else
+            setStatus(QStringLiteral("This system or small partition cannot be used as the Aero7 target."));
+    } else if (kind == QStringLiteral("free")
+               && !m_selectedDisk.value(QStringLiteral("can_install")).toBool()) {
+        setStatus(QStringLiteral("Aero7 needs at least 17 GiB of unallocated space."));
+    } else {
+        setStatus({});
+    }
+    emit selectedDiskChanged();
+}
+
+void InstallerController::setAdvancedDriveOptions(bool enabled)
+{
+    if (m_advancedDriveOptions == enabled)
+        return;
+    m_advancedDriveOptions = enabled;
+    const QString selectedKind =
+        m_selectedDisk.value(QStringLiteral("target_kind")).toString();
+    if ((enabled && selectedKind == QStringLiteral("disk"))
+        || (!enabled && !selectedKind.isEmpty()
+            && selectedKind != QStringLiteral("disk"))) {
+        m_selectedDisk.clear();
+        emit selectedDiskChanged();
+    }
     setStatus({});
+    emit advancedDriveOptionsChanged();
+}
+
+void InstallerController::useSelectedFreeSpace()
+{
+    if (m_selectedDisk.value(QStringLiteral("target_kind")).toString()
+            != QStringLiteral("free")
+        || !m_selectedDisk.value(QStringLiteral("can_install")).toBool()) {
+        setStatus(QStringLiteral("Select at least 17 GiB of unallocated space first."));
+        return;
+    }
+    m_selectedDisk.insert(QStringLiteral("planned_action"), QStringLiteral("create-partitions"));
+    setStatus(QStringLiteral("Setup will create a 1 GiB Aero7 EFI partition and use the remaining selected space for Aero7."));
+    emit selectedDiskChanged();
+}
+
+void InstallerController::useSelectedPartition()
+{
+    if (m_selectedDisk.value(QStringLiteral("target_kind")).toString()
+            != QStringLiteral("partition")
+        || !m_selectedDisk.value(QStringLiteral("can_format")).toBool()) {
+        setStatus(QStringLiteral("Select a non-system partition of at least 17 GiB first."));
+        return;
+    }
+    m_selectedDisk.insert(QStringLiteral("target_kind"), QStringLiteral("reuse_partition"));
+    m_selectedDisk.insert(QStringLiteral("planned_action"), QStringLiteral("format-partition"));
+    m_selectedDisk.insert(QStringLiteral("type"), QStringLiteral("Aero7 (format)"));
+    setStatus(QStringLiteral("Only this selected partition will be erased when installation begins."));
+    emit selectedDiskChanged();
+}
+
+void InstallerController::prepareSelectedNtfsShrink(int releaseGiB)
+{
+    if (m_selectedDisk.value(QStringLiteral("target_kind")).toString()
+            != QStringLiteral("partition")
+        || !m_selectedDisk.value(QStringLiteral("can_shrink")).toBool()) {
+        setStatus(QStringLiteral("Select an NTFS Windows partition first."));
+        return;
+    }
+    if (releaseGiB < 17) {
+        setStatus(QStringLiteral("Release at least 17 GiB for Aero7."));
+        return;
+    }
+    const qulonglong original =
+        m_selectedDisk.value(QStringLiteral("partition_size_bytes")).toULongLong();
+    const qulonglong released = static_cast<qulonglong>(releaseGiB) * kGiB;
+    if (released >= original || original - released < kMinRootBytes) {
+        setStatus(QStringLiteral("The Windows partition must keep at least 16 GiB."));
+        return;
+    }
+    const qulonglong finalBytes = ((original - released) / (1024ULL * 1024ULL))
+        * (1024ULL * 1024ULL);
+    if (original - finalBytes < kMinAdvancedRegionBytes) {
+        setStatus(QStringLiteral("Release at least 17 GiB after alignment."));
+        return;
+    }
+    m_selectedDisk.insert(QStringLiteral("target_kind"), QStringLiteral("shrink_ntfs"));
+    m_selectedDisk.insert(QStringLiteral("planned_action"), QStringLiteral("shrink-windows"));
+    m_selectedDisk.insert(QStringLiteral("shrink_size_bytes"), finalBytes);
+    m_selectedDisk.insert(QStringLiteral("released_size_bytes"), original - finalBytes);
+    m_selectedDisk.insert(
+        QStringLiteral("free_space"),
+        QStringLiteral("%1 GiB").arg((original - finalBytes) / kGiB));
+    m_selectedDisk.insert(QStringLiteral("type"), QStringLiteral("Windows + Aero7"));
+    setStatus(QStringLiteral("Setup will test the NTFS resize first, then release %1 GiB for Aero7. Back up Windows before continuing.")
+                  .arg((original - finalBytes) / kGiB));
     emit selectedDiskChanged();
 }
 
@@ -314,16 +423,87 @@ void InstallerController::refreshDisks()
     m_disks.clear();
     m_selectedDisk.clear();
     if (m_demoMode) {
-        m_disks.append(QVariantMap{
+        QVariantMap demoDisk{
             {QStringLiteral("device"), QStringLiteral("/dev/vda")},
             {QStringLiteral("model"), QStringLiteral("QEMU HARDDISK (simulation)")},
-            {QStringLiteral("size"), QStringLiteral("40.0 GiB")},
-            {QStringLiteral("free_space"), QStringLiteral("40.0 GiB")},
+            {QStringLiteral("size"), QStringLiteral("80.0 GiB")},
+            {QStringLiteral("free_space"), QStringLiteral("80.0 GiB")},
             {QStringLiteral("type"), QStringLiteral("")},
-            {QStringLiteral("size_bytes"), 42949672960ULL},
+            {QStringLiteral("size_bytes"), 80ULL * kGiB},
             {QStringLiteral("serial"), QStringLiteral("AERO7-DEMO-0001")},
             {QStringLiteral("maj_min"), QStringLiteral("252:0")},
             {QStringLiteral("kname"), QStringLiteral("vda")},
+            {QStringLiteral("pttype"), QStringLiteral("gpt")},
+            {QStringLiteral("target_kind"), QStringLiteral("disk")},
+            {QStringLiteral("disk_device"), QStringLiteral("/dev/vda")},
+            {QStringLiteral("disk_index"), 0},
+            {QStringLiteral("display_name"), QStringLiteral("Disk 0: QEMU HARDDISK (simulation)")},
+        };
+        m_disks.append(demoDisk);
+        m_disks.append(QVariantMap{
+            {QStringLiteral("device"), QStringLiteral("/dev/vda")},
+            {QStringLiteral("disk_device"), QStringLiteral("/dev/vda")},
+            {QStringLiteral("model"), QStringLiteral("QEMU HARDDISK (simulation)")},
+            {QStringLiteral("serial"), QStringLiteral("AERO7-DEMO-0001")},
+            {QStringLiteral("size_bytes"), 80ULL * kGiB},
+            {QStringLiteral("maj_min"), QStringLiteral("252:0")},
+            {QStringLiteral("kname"), QStringLiteral("vda")},
+            {QStringLiteral("pttype"), QStringLiteral("gpt")},
+            {QStringLiteral("target_kind"), QStringLiteral("partition")},
+            {QStringLiteral("partition_device"), QStringLiteral("/dev/vda1")},
+            {QStringLiteral("partition_number"), 1},
+            {QStringLiteral("partition_size_bytes"), 512ULL * 1024ULL * 1024ULL},
+            {QStringLiteral("partition_type"), QStringLiteral("c12a7328-f81f-11d2-ba4b-00a0c93ec93b")},
+            {QStringLiteral("filesystem"), QStringLiteral("vfat")},
+            {QStringLiteral("display_name"), QStringLiteral("Disk 0 Partition 1: EFI System Partition")},
+            {QStringLiteral("size"), QStringLiteral("512.0 MiB")},
+            {QStringLiteral("free_space"), QStringLiteral("—")},
+            {QStringLiteral("type"), QStringLiteral("System")},
+            {QStringLiteral("can_shrink"), false},
+            {QStringLiteral("can_format"), false},
+        });
+        m_disks.append(QVariantMap{
+            {QStringLiteral("device"), QStringLiteral("/dev/vda")},
+            {QStringLiteral("disk_device"), QStringLiteral("/dev/vda")},
+            {QStringLiteral("model"), QStringLiteral("QEMU HARDDISK (simulation)")},
+            {QStringLiteral("serial"), QStringLiteral("AERO7-DEMO-0001")},
+            {QStringLiteral("size_bytes"), 80ULL * kGiB},
+            {QStringLiteral("maj_min"), QStringLiteral("252:0")},
+            {QStringLiteral("kname"), QStringLiteral("vda")},
+            {QStringLiteral("pttype"), QStringLiteral("gpt")},
+            {QStringLiteral("target_kind"), QStringLiteral("partition")},
+            {QStringLiteral("partition_device"), QStringLiteral("/dev/vda3")},
+            {QStringLiteral("partition_number"), 3},
+            {QStringLiteral("partition_size_bytes"), 45ULL * kGiB},
+            {QStringLiteral("partition_type"), QStringLiteral("ebd0a0a2-b9e5-4433-87c0-68b6b72699c7")},
+            {QStringLiteral("filesystem"), QStringLiteral("ntfs")},
+            {QStringLiteral("display_name"), QStringLiteral("Disk 0 Partition 3: Windows")},
+            {QStringLiteral("size"), QStringLiteral("45.0 GiB")},
+            {QStringLiteral("free_space"), QStringLiteral("20.0 GiB")},
+            {QStringLiteral("type"), QStringLiteral("Primary")},
+            {QStringLiteral("can_shrink"), true},
+            {QStringLiteral("can_format"), true},
+        });
+        m_disks.append(QVariantMap{
+            {QStringLiteral("device"), QStringLiteral("/dev/vda")},
+            {QStringLiteral("disk_device"), QStringLiteral("/dev/vda")},
+            {QStringLiteral("model"), QStringLiteral("QEMU HARDDISK (simulation)")},
+            {QStringLiteral("serial"), QStringLiteral("AERO7-DEMO-0001")},
+            {QStringLiteral("size_bytes"), 80ULL * kGiB},
+            {QStringLiteral("maj_min"), QStringLiteral("252:0")},
+            {QStringLiteral("kname"), QStringLiteral("vda")},
+            {QStringLiteral("pttype"), QStringLiteral("gpt")},
+            {QStringLiteral("target_kind"), QStringLiteral("free")},
+            {QStringLiteral("start_sector"), 104857600},
+            {QStringLiteral("end_sector"), 167770111},
+            {QStringLiteral("size_sectors"), 62912512},
+            {QStringLiteral("size_bytes"), 80ULL * kGiB},
+            {QStringLiteral("region_size_bytes"), 30ULL * kGiB},
+            {QStringLiteral("display_name"), QStringLiteral("Disk 0 Unallocated Space")},
+            {QStringLiteral("size"), QStringLiteral("30.0 GiB")},
+            {QStringLiteral("free_space"), QStringLiteral("30.0 GiB")},
+            {QStringLiteral("type"), QStringLiteral("")},
+            {QStringLiteral("can_install"), true},
         });
         m_selectedDisk = m_disks.first().toMap();
     } else {
@@ -331,8 +511,14 @@ void InstallerController::refreshDisks()
         scan.start(m_backendPath, {QStringLiteral("list-disks"), QStringLiteral("--json")});
         if (scan.waitForFinished(5000) && scan.exitCode() == 0) {
             const QJsonDocument document = QJsonDocument::fromJson(scan.readAllStandardOutput());
-            for (const QJsonValue &value : document.array())
-                m_disks.append(value.toObject().toVariantMap());
+            for (const QJsonValue &value : document.array()) {
+                const QJsonObject diskObject = value.toObject();
+                QVariantMap disk = diskObject.toVariantMap();
+                disk.remove(QStringLiteral("targets"));
+                m_disks.append(disk);
+                for (const QJsonValue &target : diskObject.value(QStringLiteral("targets")).toArray())
+                    m_disks.append(target.toObject().toVariantMap());
+            }
         } else {
             setStatus(QStringLiteral("Disk scan failed: %1")
                           .arg(QString::fromUtf8(scan.readAllStandardError()).trimmed()));
@@ -390,7 +576,7 @@ void InstallerController::startInstallation()
         return;
     }
     startBackend({QStringLiteral("install"), QStringLiteral("--plan"), planPath,
-                  QStringLiteral("--confirm-device"), m_selectedDisk.value(QStringLiteral("device")).toString(),
+                  QStringLiteral("--confirm-device"), m_selectedDisk.value(QStringLiteral("disk_device"), m_selectedDisk.value(QStringLiteral("device"))).toString(),
                   QStringLiteral("--execute")}, planPath);
 }
 
@@ -469,7 +655,12 @@ QString InstallerController::writeInstallPlan() const
     if (!file.open(QIODevice::WriteOnly))
         return {};
     QJsonObject object = QJsonObject::fromVariantMap(m_selectedDisk);
-    object.insert(QStringLiteral("layout"), QStringLiteral("uefi-gpt-esp-ext4"));
+    const QString kind = object.value(QStringLiteral("target_kind")).toString();
+    object.insert(
+        QStringLiteral("layout"),
+        kind == QStringLiteral("disk")
+            ? QStringLiteral("uefi-gpt-esp-ext4")
+            : QStringLiteral("uefi-gpt-preserve-esp-ext4"));
     object.insert(QStringLiteral("language"), m_language);
     object.insert(QStringLiteral("keyboard"), m_keyboard);
     file.write(QJsonDocument(object).toJson(QJsonDocument::Indented));

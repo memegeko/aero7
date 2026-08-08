@@ -37,6 +37,8 @@ int main(int argc, char *argv[])
                       QStringLiteral("path"), QStringLiteral("/usr/lib/aero7/aero7-install-backend")});
     parser.addOption({QStringLiteral("screen"), QStringLiteral("Open a named screen in demo mode"),
                       QStringLiteral("id")});
+    parser.addOption({QStringLiteral("advanced-drive"),
+                      QStringLiteral("Open the advanced drive options in demo mode")});
     parser.addOption({QStringLiteral("screenshot"), QStringLiteral("Capture the rendered window and exit"),
                       QStringLiteral("path")});
     parser.addOption({QStringLiteral("size"), QStringLiteral("Capture size as WIDTHxHEIGHT"),
@@ -51,6 +53,8 @@ int main(int argc, char *argv[])
         qCritical("Unknown or disallowed demo screen");
         return 2;
     }
+    if (parser.isSet(QStringLiteral("advanced-drive")))
+        controller.setAdvancedDriveOptions(true);
 
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty(QStringLiteral("controller"), &controller);

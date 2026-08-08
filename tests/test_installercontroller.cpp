@@ -94,6 +94,50 @@ private slots:
         QVERIFY(controller.statusText().contains(QStringLiteral("TTY2")));
         QCOMPARE(controller.screenId(), QStringLiteral("LanguageScreen"));
     }
+
+    void preparesAdvancedPartitionTargetsInSimulation()
+    {
+        InstallerController controller(false, true, QStringLiteral("/unused/backend"));
+        QCOMPARE(controller.disks().size(), 4);
+        QVERIFY(controller.diskSelectionReady());
+
+        controller.setAdvancedDriveOptions(true);
+        QVERIFY(controller.advancedDriveOptions());
+        QVERIFY(controller.selectedDisk().isEmpty());
+        QVERIFY(!controller.diskSelectionReady());
+
+        controller.selectDisk(1);
+        QCOMPARE(controller.selectedDisk().value(QStringLiteral("type")).toString(),
+                 QStringLiteral("System"));
+        QVERIFY(!controller.diskSelectionReady());
+
+        controller.selectDisk(2);
+        QVERIFY(!controller.diskSelectionReady());
+        controller.prepareSelectedNtfsShrink(17);
+        QCOMPARE(
+            controller.selectedDisk().value(QStringLiteral("target_kind")).toString(),
+            QStringLiteral("shrink_ntfs"));
+        QVERIFY(controller.diskSelectionReady());
+
+        controller.selectDisk(3);
+        QCOMPARE(
+            controller.selectedDisk().value(QStringLiteral("target_kind")).toString(),
+            QStringLiteral("free"));
+        QVERIFY(controller.diskSelectionReady());
+        controller.useSelectedFreeSpace();
+        QVERIFY(controller.statusText().contains(QStringLiteral("1 GiB")));
+
+        controller.selectDisk(2);
+        controller.useSelectedPartition();
+        QCOMPARE(
+            controller.selectedDisk().value(QStringLiteral("target_kind")).toString(),
+            QStringLiteral("reuse_partition"));
+        QVERIFY(controller.diskSelectionReady());
+
+        controller.setAdvancedDriveOptions(false);
+        QVERIFY(controller.selectedDisk().isEmpty());
+        QVERIFY(!controller.diskSelectionReady());
+    }
 };
 
 QTEST_GUILESS_MAIN(InstallerControllerTest)

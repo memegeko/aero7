@@ -31,7 +31,7 @@ SetupPage {
                 selected: controller.installType === "erase"
                 iconSource: "qrc:/assets/icons/install-clean.svg"
                 title: qsTr("Custom (advanced)")
-                detail: qsTr("Install a new copy of Aero7. You will choose a target disk on the next screen. The current safety milestone supports only a complete whole-disk installation.")
+                detail: qsTr("Install a new copy of Aero7. You can erase a complete disk, use unallocated space, format one selected partition, or shrink an NTFS Windows partition after opening Drive options (advanced).")
                 onChosen: {
                     controller.installType = "erase"
                     controller.goNext()
