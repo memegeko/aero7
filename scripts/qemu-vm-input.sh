@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-project_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
-qemu_root="$project_root/work/qemu"
-qmp_socket="$qemu_root/aero7-qmp.sock"
-hmp_socket="$qemu_root/aero7-monitor.sock"
+qemu_runtime_root="${XDG_RUNTIME_DIR:-/tmp}/aero7-qemu-$UID"
+qmp_socket="$qemu_runtime_root/qmp.sock"
+hmp_socket="$qemu_runtime_root/monitor.sock"
 
 usage() {
   printf 'Usage: %s click X Y | key QEMU_KEY | text LOWERCASE_TEXT\n' "${0##*/}" >&2

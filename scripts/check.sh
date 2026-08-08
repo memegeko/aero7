@@ -57,6 +57,10 @@ grep -Fq 'display_backend="spice"' "$project_root/scripts/run-qemu.sh"
 grep -Fq 'display_spec="sdl,gl=off"' "$project_root/scripts/run-qemu.sh"
 grep -Fq 'SDL_RENDER_SCALE_QUALITY=linear' "$project_root/scripts/run-qemu.sh"
 grep -Fq 'remote-viewer --auto-resize=never' "$project_root/scripts/run-qemu.sh"
+grep -Fq 'qemu_runtime_root="${XDG_RUNTIME_DIR:-/tmp}/aero7-qemu-$UID"' \
+  "$project_root/scripts/run-qemu.sh"
+grep -Fq 'qemu_runtime_root="${XDG_RUNTIME_DIR:-/tmp}/aero7-qemu-$UID"' \
+  "$project_root/scripts/qemu-vm-input.sh"
 grep -Fq 'image-compression=off,streaming-video=off' \
   "$project_root/scripts/run-qemu.sh"
 grep -Fq -- '-machine "q35,accel=$accel,vmport=off"' \
