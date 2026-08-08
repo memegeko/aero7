@@ -257,6 +257,9 @@ grep -Fq 'global.StartingText = "Starting Aero7";' "$project_root/third_party/Pl
 grep -Fq 'global.CopyrightText = "Aero7 Open Project";' "$project_root/third_party/PlymouthVista/PlymouthVista.script"
 grep -Fq 'self.Current = 76;' "$project_root/third_party/PlymouthVista/PlymouthVista.script"
 grep -Fq 'Image("flag" + i + ".png")' "$project_root/third_party/PlymouthVista/PlymouthVista.script"
+grep -Fqx 'logo_size=108' "$project_root/third_party/PlymouthVista/generate-aero7-boot-frames.sh"
+grep -Fq 'scale=${logo_size}:${logo_size}' "$project_root/third_party/PlymouthVista/generate-aero7-boot-frames.sh"
+grep -Fq 'overlay=(W-w)/2:(H-h)/2' "$project_root/third_party/PlymouthVista/generate-aero7-boot-frames.sh"
 if rg -n 'Image\("branding_|Image\("authui_' "$project_root/third_party/PlymouthVista/PlymouthVista.script" >/dev/null 2>&1; then
   printf 'Plymouth script still references replaced branding or auth artwork.\n' >&2
   exit 1

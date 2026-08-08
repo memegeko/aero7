@@ -6,6 +6,7 @@ theme_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 project_root="$(cd -- "$theme_root/../.." && pwd)"
 images_dir="$theme_root/images"
 logo_source="$project_root/installer/assets/aero7-logo-plain.png"
+logo_size=108
 
 command -v ffmpeg >/dev/null 2>&1 || {
   printf 'ffmpeg is required to regenerate the Aero7 Plymouth frames.\n' >&2
@@ -19,27 +20,27 @@ command -v ffmpeg >/dev/null 2>&1 || {
 
 for frame in $(seq 56 104); do
   if (( frame <= 61 )); then
-    read -r intensity radius opacity size < <(
+    read -r intensity radius opacity < <(
       awk -v frame="$frame" 'BEGIN {
         t = (frame - 56) / 5;
         opacity = (t <= 0.2) ? 0 : (t - 0.2) / 0.8;
-        printf "%.4f %.4f %.4f %.2f\n", 1.0 - (0.35 * t), 24 - (6 * t), opacity, 80 + (28 * t)
+        printf "%.4f %.4f %.4f\n", 1.0 - (0.35 * t), 24 - (6 * t), opacity
       }'
     )
   elif (( frame <= 75 )); then
-    read -r intensity radius opacity size < <(
+    read -r intensity radius opacity < <(
       awk -v frame="$frame" 'BEGIN {
         t = (frame - 62) / 13;
-        printf "%.4f %.4f 1.0000 %.2f\n", 0.60 - (0.36 * t), 18 + (12 * t), 113 - (5 * t)
+        printf "%.4f %.4f 1.0000\n", 0.60 - (0.36 * t), 18 + (12 * t)
       }'
     )
   else
-    read -r intensity radius opacity size < <(
+    read -r intensity radius opacity < <(
       awk -v frame="$frame" 'BEGIN {
         pi = atan2(0, -1);
         phase = 2 * pi * (frame - 76) / 28;
         pulse = (1 - cos(phase)) / 2;
-        printf "%.4f 30.0000 1.0000 %.2f\n", 0.20 + (0.04 * pulse), 108 + (2 * pulse)
+        printf "%.4f 30.0000 1.0000\n", 0.20 + (0.04 * pulse)
       }'
     )
   fi
@@ -53,7 +54,7 @@ for frame in $(seq 56 104); do
     -f lavfi -i "$glow" \
     -i "$logo_source" \
     -filter_complex \
-      "[1:v]scale=${size}:${size}:force_original_aspect_ratio=decrease:flags=lanczos,format=rgba,colorchannelmixer=aa=${opacity}[logo];[0:v][logo]overlay=(W-w)/2:(H-h)/2,format=rgba" \
+      "[1:v]scale=${logo_size}:${logo_size}:force_original_aspect_ratio=decrease:flags=lanczos,format=rgba,colorchannelmixer=aa=${opacity}[logo];[0:v][logo]overlay=(W-w)/2:(H-h)/2,format=rgba" \
     -frames:v 1 "$images_dir/flag${frame}.png"
 done
 
