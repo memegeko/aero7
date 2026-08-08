@@ -7,6 +7,8 @@
 Welcome to the handbook for **Aero7**, an independent Arch Linux-based operating
 system with a Windows-7-era-inspired installer and KDE Plasma 6 Wayland desktop.
 
+![Aero7 desktop](images/desktop-overview.png)
+
 > **Beta 1 is a VM-only testing release.** The installer intentionally accepts
 > only a disposable VirtIO disk inside a supported virtual machine. Do not use
 > it for a personal workstation or irreplaceable data.
@@ -24,6 +26,7 @@ system with a Windows-7-era-inspired installer and KDE Plasma 6 Wayland desktop.
 | Understand every setup page | [Installer Guide](Installer-Guide.md) |
 | Learn what happens after restart | [First Boot and OOBE](First-Boot-and-OOBE.md) |
 | See which programs are included | [Included Software](Included-Software.md) |
+| Browse the current interface | [Screenshot Gallery](Screenshot-Gallery.md) |
 | Fix a failed or black-screen boot | [Troubleshooting](Troubleshooting.md) |
 | Open the recovery console | [Recovery and Logs](Recovery-and-Logs.md) |
 | Review Beta limitations | [Known Issues](Known-Issues.md) |
@@ -38,7 +41,7 @@ system with a Windows-7-era-inspired installer and KDE Plasma 6 Wayland desktop.
 - [Credits and Licensing](Credits-and-Licensing.md)
 - [FAQ](FAQ.md)
 
-## Beta 1 artifact
+## Published private Beta 1 artifact
 
 | | |
 | --- | --- |
@@ -51,6 +54,12 @@ system with a Windows-7-era-inspired installer and KDE Plasma 6 Wayland desktop.
 
 Authorized private testers can download it from the
 [Beta 1 GitHub release](https://github.com/memegeko/aero7/releases/tag/v0.1.0-beta.1).
+
+The newer local validation candidate is
+`aero7-beta1-2026.08.08-x86_64.iso` (SHA-256
+`a7a41fa71de988ace8dc498867763cce341fc5a38e16e7a0a350a69ba4f60e53`).
+It is the source of the current installed-system screenshots and is undergoing
+real-hardware testing. It has not replaced the published prerelease asset.
 
 ## Project links
 

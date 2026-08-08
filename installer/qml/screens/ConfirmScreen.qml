@@ -7,9 +7,16 @@ SetupPage {
     title: qsTr("Confirm the installation")
     description: qsTr("Review the exact disk and partition changes before setup begins.")
     showBack: true
-    nextText: controller.demoMode ? qsTr("Simulate install") : qsTr("Install now")
+    nextText: controller.demoMode && !documentationMode ? qsTr("Simulate install") : qsTr("Install now")
 
     readonly property string targetKind: controller.selectedDisk.target_kind || "disk"
+
+    function selectedDisplayName() {
+        const name = controller.selectedDisk.display_name
+                     || controller.selectedDisk.model
+                     || qsTr("Selected target")
+        return documentationMode ? name.replace(" (simulation)", "") : name
+    }
 
     function warningTitle() {
         if (targetKind === "free")
@@ -100,7 +107,7 @@ SetupPage {
                     anchors.rightMargin: 10
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: 3
-                    Text { text: controller.selectedDisk.display_name || controller.selectedDisk.model || qsTr("Selected target"); color: "#1d2b34"; font.pixelSize: 13 }
+                    Text { text: root.selectedDisplayName(); color: "#1d2b34"; font.pixelSize: 13 }
                     Text {
                         text: qsTr("Capacity: %1     Disk: %2")
                               .arg(controller.selectedDisk.size || controller.selectedDisk.free_space || "—")
@@ -116,10 +123,10 @@ SetupPage {
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.topMargin: 224
-            text: controller.demoMode
+            text: controller.demoMode && !documentationMode
                   ? qsTr("Simulation mode is active. Setup will show the complete flow without executing disk commands.")
                   : qsTr("For safety, setup will verify the disk, partition UUIDs, sizes, and sector boundaries again immediately before making any changes.")
-            color: controller.demoMode ? "#18772d" : "#7c2a18"
+            color: controller.demoMode && !documentationMode ? "#18772d" : "#7c2a18"
             font.pixelSize: 12
             wrapMode: Text.WordWrap
         }

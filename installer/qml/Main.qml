@@ -94,7 +94,7 @@ ApplicationWindow {
         }
 
         Rectangle {
-            visible: controller.demoMode && !window.blackTransition
+            visible: controller.demoMode && !documentationMode && !window.blackTransition
             anchors.top: parent.top
             anchors.right: parent.right
             anchors.margins: 18

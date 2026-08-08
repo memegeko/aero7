@@ -6,6 +6,7 @@
 - [Installer Guide](Installer-Guide.md)
 - [First Boot and OOBE](First-Boot-and-OOBE.md)
 - [Included Software](Included-Software.md)
+- [Screenshot Gallery](Screenshot-Gallery.md)
 
 ## Help
 

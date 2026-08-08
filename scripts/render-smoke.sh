@@ -19,25 +19,25 @@ oobe_screens=(
 
 for screen in "${installer_screens[@]}"; do
   env QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software \
-    "$binary" --demo --screen "$screen" --size 1024x768 --screenshot "$output_root/$screen-1024x768.png"
+    "$binary" --demo --documentation-screenshot --screen "$screen" --size 1024x768 --screenshot "$output_root/$screen-1024x768.png"
 done
 env QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software \
-  "$binary" --demo --screen DiskScreen --advanced-drive --size 1024x768 \
+  "$binary" --demo --documentation-screenshot --screen DiskScreen --advanced-drive --size 1024x768 \
   --screenshot "$output_root/DiskScreen-advanced-1024x768.png"
 for screen in "${oobe_screens[@]}"; do
   env QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software \
-    "$binary" --demo --oobe --screen "$screen" --size 1024x768 --screenshot "$output_root/$screen-1024x768.png"
+    "$binary" --demo --documentation-screenshot --oobe --screen "$screen" --size 1024x768 --screenshot "$output_root/$screen-1024x768.png"
 done
 
 for size in 1366x768 1920x1080; do
   for screen in LanguageScreen ProgressScreen; do
     env QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software \
-      "$binary" --demo --screen "$screen" --size "$size" --screenshot "$output_root/$screen-$size.png"
+      "$binary" --demo --documentation-screenshot --screen "$screen" --size "$size" --screenshot "$output_root/$screen-$size.png"
   done
   env QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software \
-    "$binary" --demo --oobe --screen AccountScreen --size "$size" --screenshot "$output_root/AccountScreen-$size.png"
+    "$binary" --demo --documentation-screenshot --oobe --screen AccountScreen --size "$size" --screenshot "$output_root/AccountScreen-$size.png"
   env QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software \
-    "$binary" --demo --oobe --screen FinalizingScreen --size "$size" --screenshot "$output_root/FinalizingScreen-$size.png"
+    "$binary" --demo --documentation-screenshot --oobe --screen FinalizingScreen --size "$size" --screenshot "$output_root/FinalizingScreen-$size.png"
 done
 
 printf 'Rendered %d screen/resolution smoke captures in %s\n' \

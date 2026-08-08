@@ -41,6 +41,8 @@ int main(int argc, char *argv[])
                       QStringLiteral("Open the advanced drive options in demo mode")});
     parser.addOption({QStringLiteral("screenshot"), QStringLiteral("Capture the rendered window and exit"),
                       QStringLiteral("path")});
+    parser.addOption({QStringLiteral("documentation-screenshot"),
+                      QStringLiteral("Render safe demo data with release-facing labels")});
     parser.addOption({QStringLiteral("size"), QStringLiteral("Capture size as WIDTHxHEIGHT"),
                       QStringLiteral("size"), QStringLiteral("1024x768")});
     parser.process(app);
@@ -68,8 +70,10 @@ int main(int argc, char *argv[])
     }
     captureWidth = sizeMatch.captured(1).toInt();
     captureHeight = sizeMatch.captured(2).toInt();
-    engine.rootContext()->setContextProperty(QStringLiteral("captureMode"),
-                                              parser.isSet(QStringLiteral("screenshot")));
+    const bool captureMode = parser.isSet(QStringLiteral("screenshot"));
+    const bool documentationMode = parser.isSet(QStringLiteral("documentation-screenshot"));
+    engine.rootContext()->setContextProperty(QStringLiteral("captureMode"), captureMode);
+    engine.rootContext()->setContextProperty(QStringLiteral("documentationMode"), documentationMode);
     engine.rootContext()->setContextProperty(QStringLiteral("captureWidth"), captureWidth);
     engine.rootContext()->setContextProperty(QStringLiteral("captureHeight"), captureHeight);
     engine.load(QUrl(QStringLiteral("qrc:/qml/Main.qml")));
