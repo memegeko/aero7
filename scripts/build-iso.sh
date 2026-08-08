@@ -154,9 +154,14 @@ if ((EUID == 0)); then
   exit 2
 fi
 
-for command_name in cmake ninja qmllint python git sha256sum realpath magick; do
+for command_name in cmake ninja python git sha256sum realpath magick; do
   command -v "$command_name" >/dev/null 2>&1 || { printf 'Missing build tool: %s\n' "$command_name" >&2; exit 1; }
 done
+if ! command -v qmllint >/dev/null 2>&1 \
+    && [[ ! -x /usr/lib/qt6/bin/qmllint ]]; then
+  printf 'Missing build tool: qmllint (install qt6-declarative).\n' >&2
+  exit 1
+fi
 
 mkdir -p "$build_root" "$work_root" "$out_root"
 "$project_root/scripts/check.sh"
