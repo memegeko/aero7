@@ -123,8 +123,9 @@ private slots:
         QCOMPARE(
             controller.selectedDisk().value(QStringLiteral("target_kind")).toString(),
             QStringLiteral("free"));
+        QVERIFY(!controller.diskSelectionReady());
+        controller.useSelectedFreeSpace(24);
         QVERIFY(controller.diskSelectionReady());
-        controller.useSelectedFreeSpace();
         QVERIFY(controller.statusText().contains(QStringLiteral("1 GiB")));
 
         controller.selectDisk(2);
@@ -136,6 +137,27 @@ private slots:
 
         controller.setAdvancedDriveOptions(false);
         QVERIFY(controller.selectedDisk().isEmpty());
+        QVERIFY(!controller.diskSelectionReady());
+    }
+
+    void simulatesDeleteAndExtendActions()
+    {
+        InstallerController controller(false, true, QStringLiteral("/unused/backend"));
+        controller.setAdvancedDriveOptions(true);
+        controller.selectDisk(2);
+        QVERIFY(controller.selectedDisk().value(QStringLiteral("can_delete")).toBool());
+        QVERIFY(controller.selectedDisk().value(QStringLiteral("can_extend")).toBool());
+
+        controller.extendSelectedPartition(2);
+        QVERIFY(controller.statusText().contains(QStringLiteral("extended")));
+        QCOMPARE(controller.selectedDisk().value(QStringLiteral("size")).toString(),
+                 QStringLiteral("47 GiB"));
+
+        controller.selectDisk(2);
+        controller.deleteSelectedPartition();
+        QCOMPARE(controller.selectedDisk().value(QStringLiteral("target_kind")).toString(),
+                 QStringLiteral("free"));
+        QVERIFY(controller.statusText().contains(QStringLiteral("unallocated")));
         QVERIFY(!controller.diskSelectionReady());
     }
 };

@@ -303,6 +303,33 @@ def free_regions(disk_node: dict[str, Any]) -> list[dict[str, int]]:
     return regions
 
 
+def adjacent_free_region(
+    disk_node: dict[str, Any], partition: dict[str, Any]
+) -> dict[str, int] | None:
+    """Return unallocated sectors immediately following a partition."""
+    sector_size = int(disk_node.get("log-sec") or 512)
+    alignment = max(1, (1024 * 1024) // sector_size)
+    partition_start = int(partition.get("start") or 0)
+    partition_sectors = int(partition.get("size") or 0) // sector_size
+    if partition_start <= 0 or partition_sectors <= 0:
+        return None
+    first_sector = partition_start + partition_sectors
+    expected_aligned_start = align_up(first_sector, alignment)
+    for region in free_regions(disk_node):
+        if region["start_sector"] != expected_aligned_start:
+            continue
+        size_sectors = region["end_sector"] - first_sector + 1
+        if size_sectors <= 0:
+            return None
+        return {
+            "start_sector": first_sector,
+            "end_sector": region["end_sector"],
+            "size_sectors": size_sectors,
+            "size_bytes": size_sectors * sector_size,
+        }
+    return None
+
+
 def storage_targets(disk_node: dict[str, Any], disk_index: int) -> list[dict[str, Any]]:
     disk_info = fingerprint(disk_node)
     disk_device = disk_info["device"]
@@ -314,6 +341,7 @@ def storage_targets(disk_node: dict[str, Any], disk_index: int) -> list[dict[str
         filesystem = part["filesystem"]
         part_type = part["partition_type"]
         name = part["label"] or part["partlabel"]
+        adjacent = adjacent_free_region(disk_node, child)
         if part_type == EFI_SYSTEM_TYPE:
             description = name or "EFI System Partition"
             row_type = "System"
@@ -340,6 +368,22 @@ def storage_targets(disk_node: dict[str, Any], disk_index: int) -> list[dict[str
                 "can_format": (
                     part_type != EFI_SYSTEM_TYPE
                     and part["partition_size_bytes"] >= MIN_ADVANCED_REGION_BYTES
+                ),
+                "can_delete": part_type != EFI_SYSTEM_TYPE,
+                "can_extend": (
+                    part_type != EFI_SYSTEM_TYPE
+                    and filesystem in {"ntfs", "ext4"}
+                    and adjacent is not None
+                    and adjacent["size_bytes"] >= 1024**3
+                ),
+                "adjacent_free_start_sector": (
+                    adjacent["start_sector"] if adjacent else 0
+                ),
+                "adjacent_free_end_sector": (
+                    adjacent["end_sector"] if adjacent else 0
+                ),
+                "adjacent_free_size_bytes": (
+                    adjacent["size_bytes"] if adjacent else 0
                 ),
             }
         )
@@ -469,10 +513,23 @@ def validate_plan(plan: dict[str, Any], current: dict[str, Any], excluded_source
             raise SafetyError("selected unallocated space is smaller than 17 GiB")
         if expected not in free_regions(current):
             raise SafetyError("selected unallocated region changed before installation")
+        requested_bytes = int(
+            plan.get("install_region_size_bytes") or expected["size_bytes"]
+        )
+        sector_size = int(current.get("log-sec") or 512)
+        if requested_bytes < MIN_ADVANCED_REGION_BYTES:
+            raise SafetyError("new Aero7 target is smaller than 17 GiB")
+        if requested_bytes > expected["size_bytes"]:
+            raise SafetyError("new Aero7 target is larger than the selected free space")
+        if requested_bytes % sector_size:
+            raise SafetyError("new Aero7 target size is not sector-aligned")
+        requested_end = (
+            expected["start_sector"] + requested_bytes // sector_size - 1
+        )
         aero7_partition_append_table(
             expected["start_sector"],
-            expected["end_sector"],
-            int(current.get("log-sec") or 512),
+            requested_end,
+            sector_size,
         )
         return
 
@@ -644,9 +701,19 @@ class CommandRunner:
             self._heartbeat = previous_callback
             self._heartbeat_interval = previous_interval
 
-    def run(self, argv: list[str], *, input_text: str | None = None) -> None:
+    def run(
+        self,
+        argv: list[str],
+        *,
+        input_text: str | None = None,
+        ok_returncodes: tuple[int, ...] = (0,),
+    ) -> None:
         if not argv or not all(isinstance(item, str) and item for item in argv):
             raise RuntimeError("invalid command argument array")
+        if not ok_returncodes or not all(
+            isinstance(code, int) and code >= 0 for code in ok_returncodes
+        ):
+            raise RuntimeError("invalid accepted return codes")
         with self.log_path.open("a", encoding="utf-8") as log:
             log.write("+ " + " ".join(repr(item) for item in argv) + "\n")
             if self._heartbeat is None:
@@ -679,9 +746,9 @@ class CommandRunner:
                         break
                     except subprocess.TimeoutExpired:
                         self._heartbeat()
-                if returncode == 0:
+                if returncode in ok_returncodes:
                     self._heartbeat()
-        if returncode != 0:
+        if returncode not in ok_returncodes:
             try:
                 recent_lines = self.log_path.read_text(
                     encoding="utf-8", errors="replace"
@@ -693,6 +760,200 @@ class CommandRunner:
             if detail:
                 message += f" ({detail[-900:]})"
             raise RuntimeError(message)
+
+
+def validate_storage_action(
+    plan: dict[str, Any], current: dict[str, Any], excluded_sources: set[str]
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, int] | None]:
+    """Revalidate a partition maintenance request against the live disk."""
+    action = str(plan.get("action") or "")
+    if action not in {"delete", "extend"}:
+        raise SafetyError("unsupported storage action")
+    if current.get("type") != "disk":
+        raise SafetyError("selected storage target is not a disk")
+    device = str(plan.get("device") or "")
+    if not supported_disk_path(device):
+        raise SafetyError("storage action uses an unsupported disk path")
+    if str(current.get("pttype") or "").lower() != "gpt":
+        raise SafetyError("advanced storage actions currently require a GPT disk")
+    if disk_contains_source(current, excluded_sources):
+        raise SafetyError("selected disk contains the live installation media")
+    if bool(current.get("ro")) or bool(current.get("rm")):
+        raise SafetyError("selected disk is read-only or removable")
+    if device_has_mounts(current):
+        raise SafetyError("selected disk or one of its partitions is mounted")
+
+    actual_disk = fingerprint(current)
+    for key in ("device", "kname", "model", "serial", "size_bytes", "maj_min", "pttype"):
+        if plan.get(key) != actual_disk.get(key):
+            raise SafetyError(f"disk fingerprint changed: {key}")
+
+    partition = find_partition(current, str(plan.get("partition_device") or ""))
+    if partition is None:
+        raise SafetyError("selected partition disappeared")
+    actual_partition = partition_fingerprint(partition, current)
+    for key in (
+        "partition_device",
+        "partition_number",
+        "partition_start_sector",
+        "partition_size_sectors",
+        "partition_size_bytes",
+        "partition_partuuid",
+        "partition_uuid",
+        "partition_type",
+        "filesystem",
+    ):
+        if plan.get(key) != actual_partition.get(key):
+            raise SafetyError(f"partition fingerprint changed: {key}")
+    if actual_partition["partition_type"] == EFI_SYSTEM_TYPE:
+        raise SafetyError("the EFI System Partition cannot be changed here")
+
+    adjacent = adjacent_free_region(current, partition)
+    if action == "delete":
+        return partition, actual_partition, adjacent
+
+    if actual_partition["filesystem"] not in {"ntfs", "ext4"}:
+        raise SafetyError("only NTFS and ext4 partitions can currently be extended")
+    if adjacent is None:
+        raise SafetyError("the adjacent unallocated space is no longer available")
+    for key, plan_key in (
+        ("start_sector", "adjacent_free_start_sector"),
+        ("end_sector", "adjacent_free_end_sector"),
+        ("size_bytes", "adjacent_free_size_bytes"),
+    ):
+        if int(plan.get(plan_key) or 0) != adjacent[key]:
+            raise SafetyError("adjacent unallocated space changed before extending")
+    amount_bytes = int(plan.get("amount_bytes") or 0)
+    sector_size = int(current.get("log-sec") or 512)
+    if amount_bytes < 1024**3:
+        raise SafetyError("extend amount must be at least 1 GiB")
+    if amount_bytes > adjacent["size_bytes"]:
+        raise SafetyError("extend amount exceeds adjacent unallocated space")
+    if amount_bytes % sector_size:
+        raise SafetyError("extend amount is not sector-aligned")
+    return partition, actual_partition, adjacent
+
+
+def apply_storage_action(plan: dict[str, Any], confirm_device: str) -> None:
+    """Execute one guarded partition maintenance action in the live VM."""
+    enforce_execution_gate()
+    if confirm_device != plan.get("device"):
+        raise SafetyError("final confirmation does not match the selected device")
+    current = find_disk(query_lsblk(), confirm_device)
+    if current is None:
+        raise SafetyError("selected disk disappeared before the storage action")
+    partition, actual, adjacent = validate_storage_action(
+        plan, current, live_sources()
+    )
+    action = str(plan["action"])
+    required = {"sfdisk", "udevadm"}
+    if action == "extend":
+        required.add("parted")
+        if actual["filesystem"] == "ntfs":
+            required.add("ntfsresize")
+        else:
+            required.update({"e2fsck", "resize2fs"})
+    missing = sorted(command for command in required if shutil.which(command) is None)
+    if missing:
+        raise SafetyError(
+            "required storage tools are missing: " + ", ".join(missing)
+            + ". The disk was not changed"
+        )
+
+    backup_partition_table(confirm_device)
+    runner = CommandRunner(Path("/var/log/aero7-storage-actions.log"))
+    partition_path_value = str(actual["partition_device"])
+    partition_number = str(actual["partition_number"])
+    if action == "delete":
+        runner.run(["sfdisk", "--delete", confirm_device, partition_number])
+        runner.run(["udevadm", "settle"])
+        event("status", message="Partition deleted; rescanning disks")
+        return
+
+    assert adjacent is not None
+    sector_size = int(current.get("log-sec") or 512)
+    amount_sectors = int(plan["amount_bytes"]) // sector_size
+    new_end = (
+        int(actual["partition_start_sector"])
+        + int(actual["partition_size_sectors"])
+        + amount_sectors
+        - 1
+    )
+    if new_end > adjacent["end_sector"]:
+        raise SafetyError("calculated partition boundary exceeds free space")
+
+    if actual["filesystem"] == "ntfs":
+        runner.run(["ntfsresize", "--check", partition_path_value])
+    else:
+        runner.run(
+            ["e2fsck", "-f", "-p", partition_path_value],
+            ok_returncodes=(0, 1),
+        )
+    runner.run(
+        [
+            "parted",
+            "--script",
+            confirm_device,
+            "unit",
+            "s",
+            "resizepart",
+            partition_number,
+            f"{new_end}s",
+        ]
+    )
+    runner.run(["udevadm", "settle"])
+    if actual["filesystem"] == "ntfs":
+        runner.run(["ntfsresize", "--no-action", partition_path_value])
+        runner.run(["ntfsresize", "--no-progress-bar", partition_path_value])
+    else:
+        runner.run(["resize2fs", partition_path_value])
+    event("status", message="Partition extended; rescanning disks")
+
+
+def validate_driver_path(path: Path) -> Path:
+    """Accept only a regular kernel module selected from mounted media."""
+    if path.is_symlink():
+        raise SafetyError("storage driver must not be a symbolic link")
+    resolved = path.resolve(strict=True)
+    allowed_roots = tuple(
+        Path(root).resolve()
+        for root in ("/run/media", "/run/archiso/bootmnt", "/mnt", "/media")
+    )
+    if not any(resolved == root or root in resolved.parents for root in allowed_roots):
+        raise SafetyError("storage driver must be loaded from mounted installation media")
+    if not resolved.is_file():
+        raise SafetyError("storage driver is not a regular file")
+    if resolved.stat().st_size <= 0 or resolved.stat().st_size > 128 * 1024**2:
+        raise SafetyError("storage driver has an invalid file size")
+    if not re.search(r"\.ko(?:\.xz|\.zst)?$", resolved.name):
+        raise SafetyError("storage driver must be a .ko, .ko.xz, or .ko.zst module")
+    return resolved
+
+
+def load_storage_driver(path: Path) -> None:
+    enforce_execution_gate()
+    source = validate_driver_path(path)
+    required = ("depmod", "modinfo", "modprobe")
+    missing = [command for command in required if shutil.which(command) is None]
+    if missing:
+        raise SafetyError("required driver tools are missing: " + ", ".join(missing))
+    kernel = os.uname().release
+    vermagic = subprocess.run(
+        ["modinfo", "-F", "vermagic", str(source)],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    if kernel not in vermagic:
+        raise SafetyError("storage driver was built for a different kernel")
+    destination = Path("/usr/lib/modules") / kernel / "updates/aero7" / source.name
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source, destination)
+    runner = CommandRunner(Path("/var/log/aero7-storage-actions.log"))
+    runner.run(["depmod", "-a"])
+    module_name = re.sub(r"\.ko(?:\.xz|\.zst)?$", "", source.name).replace("-", "_")
+    runner.run(["modprobe", module_name])
+    event("status", message=f"Storage driver {module_name} loaded")
 
 
 def partition_path(device: str, number: int) -> str:
@@ -795,7 +1056,10 @@ def prepare_advanced_target(
 
     if target_kind == "free":
         start_sector = int(plan["start_sector"])
-        end_sector = int(plan["end_sector"])
+        requested_bytes = int(
+            plan.get("install_region_size_bytes") or plan["region_size_bytes"]
+        )
+        end_sector = start_sector + requested_bytes // sector_size - 1
     elif target_kind == "reuse_partition":
         start_sector = int(plan["partition_start_sector"])
         size_sectors = int(plan["partition_size_sectors"])
@@ -1542,6 +1806,19 @@ def make_parser() -> argparse.ArgumentParser:
     install_parser.add_argument("--confirm-device", required=True)
     install_parser.add_argument("--execute", action="store_true")
 
+    storage_parser = sub.add_parser(
+        "storage-action", help="perform a guarded advanced partition action"
+    )
+    storage_parser.add_argument("--plan", type=Path, required=True)
+    storage_parser.add_argument("--confirm-device", required=True)
+    storage_parser.add_argument("--execute", action="store_true")
+
+    driver_parser = sub.add_parser(
+        "load-driver", help="load a trusted storage kernel module from mounted media"
+    )
+    driver_parser.add_argument("--path", type=Path, required=True)
+    driver_parser.add_argument("--execute", action="store_true")
+
     oobe_parser = sub.add_parser("oobe-finalize", help="apply first-boot account settings")
     oobe_parser.add_argument("--plan", type=Path, required=True)
     return parser
@@ -1563,6 +1840,14 @@ def main(argv: list[str] | None = None) -> int:
             if not args.execute:
                 raise SafetyError("--execute is required for real installation")
             install(load_plan(args.plan), args.confirm_device)
+        elif args.command == "storage-action":
+            if not args.execute:
+                raise SafetyError("--execute is required for a storage action")
+            apply_storage_action(load_plan(args.plan), args.confirm_device)
+        elif args.command == "load-driver":
+            if not args.execute:
+                raise SafetyError("--execute is required to load a storage driver")
+            load_storage_driver(args.path)
         elif args.command == "oobe-finalize":
             finalize_oobe(load_plan(args.plan))
         return 0

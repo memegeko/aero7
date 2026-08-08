@@ -87,7 +87,9 @@ bool InstallerController::diskSelectionReady() const
         || kind == QStringLiteral("shrink_ntfs"))
         return true;
     return kind == QStringLiteral("free")
-        && m_selectedDisk.value(QStringLiteral("can_install")).toBool();
+        && m_selectedDisk.value(QStringLiteral("can_install")).toBool()
+        && m_selectedDisk.value(QStringLiteral("planned_action")).toString()
+            == QStringLiteral("create-partitions");
 }
 bool InstallerController::advancedDriveOptions() const { return m_advancedDriveOptions; }
 int InstallerController::progress() const { return m_progress; }
@@ -317,11 +319,12 @@ void InstallerController::selectDisk(int index)
 {
     if (index < 0 || index >= m_disks.size())
         return;
+    m_selectedDiskIndex = index;
     m_selectedDisk = m_disks.at(index).toMap();
     const QString kind = m_selectedDisk.value(QStringLiteral("target_kind")).toString();
     if (kind == QStringLiteral("partition")) {
         if (m_selectedDisk.value(QStringLiteral("can_shrink")).toBool())
-            setStatus(QStringLiteral("Choose Shrink to release space from this Windows partition, or Format to erase only this partition."));
+            setStatus(QStringLiteral("Choose Shrink, Extend, Format, or Delete for this partition."));
         else if (m_selectedDisk.value(QStringLiteral("can_format")).toBool())
             setStatus(QStringLiteral("Choose Format to use only this partition for Aero7."));
         else
@@ -346,13 +349,14 @@ void InstallerController::setAdvancedDriveOptions(bool enabled)
         || (!enabled && !selectedKind.isEmpty()
             && selectedKind != QStringLiteral("disk"))) {
         m_selectedDisk.clear();
+        m_selectedDiskIndex = -1;
         emit selectedDiskChanged();
     }
     setStatus({});
     emit advancedDriveOptionsChanged();
 }
 
-void InstallerController::useSelectedFreeSpace()
+void InstallerController::useSelectedFreeSpace(int sizeGiB)
 {
     if (m_selectedDisk.value(QStringLiteral("target_kind")).toString()
             != QStringLiteral("free")
@@ -360,8 +364,18 @@ void InstallerController::useSelectedFreeSpace()
         setStatus(QStringLiteral("Select at least 17 GiB of unallocated space first."));
         return;
     }
+    const qulonglong requested = static_cast<qulonglong>(qMax(0, sizeGiB)) * kGiB;
+    const qulonglong available =
+        m_selectedDisk.value(QStringLiteral("region_size_bytes")).toULongLong();
+    if (requested < kMinAdvancedRegionBytes || requested > available) {
+        setStatus(QStringLiteral("Choose between 17 GiB and the available unallocated space."));
+        return;
+    }
     m_selectedDisk.insert(QStringLiteral("planned_action"), QStringLiteral("create-partitions"));
-    setStatus(QStringLiteral("Setup will create a 1 GiB Aero7 EFI partition and use the remaining selected space for Aero7."));
+    m_selectedDisk.insert(QStringLiteral("install_region_size_bytes"), requested);
+    m_selectedDisk.insert(QStringLiteral("type"), QStringLiteral("Aero7 (%1 GiB)").arg(sizeGiB));
+    setStatus(QStringLiteral("Setup will create a 1 GiB Aero7 EFI partition and an Aero7 root partition in %1 GiB of this unallocated space.")
+                  .arg(sizeGiB));
     emit selectedDiskChanged();
 }
 
@@ -418,10 +432,138 @@ void InstallerController::prepareSelectedNtfsShrink(int releaseGiB)
     emit selectedDiskChanged();
 }
 
+QString InstallerController::writeStorageActionPlan(const QString &action,
+                                                     int amountGiB) const
+{
+    if (m_selectedDisk.isEmpty())
+        return {};
+    QDir().mkpath(QStringLiteral("/run/aero7"));
+    const QString path = QStringLiteral("/run/aero7/storage-action-plan.json");
+    QSaveFile file(path);
+    if (!file.open(QIODevice::WriteOnly))
+        return {};
+    QJsonObject object = QJsonObject::fromVariantMap(m_selectedDisk);
+    object.insert(QStringLiteral("action"), action);
+    if (amountGiB > 0)
+        object.insert(QStringLiteral("amount_bytes"),
+                      static_cast<qint64>(amountGiB) * static_cast<qint64>(kGiB));
+    file.write(QJsonDocument(object).toJson(QJsonDocument::Indented));
+    if (!file.commit())
+        return {};
+    QFile::setPermissions(path, QFileDevice::ReadOwner | QFileDevice::WriteOwner);
+    return path;
+}
+
+void InstallerController::deleteSelectedPartition()
+{
+    if (m_selectedDisk.value(QStringLiteral("target_kind")).toString()
+            != QStringLiteral("partition")
+        || !m_selectedDisk.value(QStringLiteral("can_delete")).toBool()) {
+        setStatus(QStringLiteral("Select a deletable, unmounted non-system partition first."));
+        return;
+    }
+    if (m_demoMode) {
+        const qulonglong bytes =
+            m_selectedDisk.value(QStringLiteral("partition_size_bytes")).toULongLong();
+        QVariantMap free = m_selectedDisk;
+        free.insert(QStringLiteral("target_kind"), QStringLiteral("free"));
+        free.insert(QStringLiteral("start_sector"),
+                    m_selectedDisk.value(QStringLiteral("partition_start_sector")));
+        free.insert(QStringLiteral("end_sector"),
+                    m_selectedDisk.value(QStringLiteral("partition_start_sector")).toULongLong()
+                        + m_selectedDisk.value(QStringLiteral("partition_size_sectors")).toULongLong() - 1);
+        free.insert(QStringLiteral("size_sectors"),
+                    m_selectedDisk.value(QStringLiteral("partition_size_sectors")));
+        free.insert(QStringLiteral("region_size_bytes"), bytes);
+        free.insert(QStringLiteral("display_name"), QStringLiteral("Disk 0 Unallocated Space"));
+        free.insert(QStringLiteral("free_space"), free.value(QStringLiteral("size")));
+        free.insert(QStringLiteral("type"), QString());
+        free.insert(QStringLiteral("can_install"), bytes >= kMinAdvancedRegionBytes);
+        free.remove(QStringLiteral("planned_action"));
+        if (m_selectedDiskIndex >= 0 && m_selectedDiskIndex < m_disks.size())
+            m_disks[m_selectedDiskIndex] = free;
+        m_selectedDisk = free;
+        emit disksChanged();
+        emit selectedDiskChanged();
+        setStatus(QStringLiteral("Simulation: the partition is now unallocated space."));
+        return;
+    }
+    const QString path = writeStorageActionPlan(QStringLiteral("delete"));
+    if (path.isEmpty()) {
+        setStatus(QStringLiteral("Could not create the protected delete plan."));
+        return;
+    }
+    setBusy(true);
+    startBackend({QStringLiteral("storage-action"), QStringLiteral("--plan"), path,
+                  QStringLiteral("--confirm-device"),
+                  m_selectedDisk.value(QStringLiteral("disk_device")).toString(),
+                  QStringLiteral("--execute")}, path, QStringLiteral("storage-delete"));
+}
+
+void InstallerController::extendSelectedPartition(int amountGiB)
+{
+    if (m_selectedDisk.value(QStringLiteral("target_kind")).toString()
+            != QStringLiteral("partition")
+        || !m_selectedDisk.value(QStringLiteral("can_extend")).toBool()) {
+        setStatus(QStringLiteral("Select an extendable partition with adjacent unallocated space first."));
+        return;
+    }
+    const qulonglong requested = static_cast<qulonglong>(qMax(0, amountGiB)) * kGiB;
+    const qulonglong available =
+        m_selectedDisk.value(QStringLiteral("adjacent_free_size_bytes")).toULongLong();
+    if (requested < kGiB || requested > available) {
+        setStatus(QStringLiteral("Choose at least 1 GiB and no more than the adjacent unallocated space."));
+        return;
+    }
+    if (m_demoMode) {
+        const qulonglong original =
+            m_selectedDisk.value(QStringLiteral("partition_size_bytes")).toULongLong();
+        m_selectedDisk.insert(QStringLiteral("partition_size_bytes"), original + requested);
+        m_selectedDisk.insert(QStringLiteral("size"),
+                              QStringLiteral("%1 GiB").arg((original + requested) / kGiB));
+        m_selectedDisk.insert(QStringLiteral("can_extend"), false);
+        m_selectedDisk.insert(QStringLiteral("adjacent_free_size_bytes"), 0);
+        if (m_selectedDiskIndex >= 0 && m_selectedDiskIndex < m_disks.size())
+            m_disks[m_selectedDiskIndex] = m_selectedDisk;
+        emit disksChanged();
+        emit selectedDiskChanged();
+        setStatus(QStringLiteral("Simulation: the partition was extended by %1 GiB.").arg(amountGiB));
+        return;
+    }
+    const QString path = writeStorageActionPlan(QStringLiteral("extend"), amountGiB);
+    if (path.isEmpty()) {
+        setStatus(QStringLiteral("Could not create the protected extend plan."));
+        return;
+    }
+    setBusy(true);
+    startBackend({QStringLiteral("storage-action"), QStringLiteral("--plan"), path,
+                  QStringLiteral("--confirm-device"),
+                  m_selectedDisk.value(QStringLiteral("disk_device")).toString(),
+                  QStringLiteral("--execute")}, path, QStringLiteral("storage-extend"));
+}
+
+void InstallerController::loadStorageDriver(const QUrl &source)
+{
+    const QString path = source.toLocalFile();
+    if (path.isEmpty() || !QFileInfo(path).isFile()) {
+        setStatus(QStringLiteral("Choose a kernel module file from the installation media."));
+        return;
+    }
+    if (m_demoMode) {
+        setStatus(QStringLiteral("Simulation: trusted storage driver %1 would be loaded, then disks rescanned.")
+                      .arg(QFileInfo(path).fileName()));
+        return;
+    }
+    setBusy(true);
+    startBackend({QStringLiteral("load-driver"), QStringLiteral("--path"), path,
+                  QStringLiteral("--execute")}, {}, QStringLiteral("storage-driver"));
+}
+
 void InstallerController::refreshDisks()
 {
     m_disks.clear();
     m_selectedDisk.clear();
+    m_selectedDiskIndex = -1;
     if (m_demoMode) {
         QVariantMap demoDisk{
             {QStringLiteral("device"), QStringLiteral("/dev/vda")},
@@ -453,6 +595,8 @@ void InstallerController::refreshDisks()
             {QStringLiteral("partition_device"), QStringLiteral("/dev/vda1")},
             {QStringLiteral("partition_number"), 1},
             {QStringLiteral("partition_size_bytes"), 512ULL * 1024ULL * 1024ULL},
+            {QStringLiteral("partition_start_sector"), 2048},
+            {QStringLiteral("partition_size_sectors"), 1048576},
             {QStringLiteral("partition_type"), QStringLiteral("c12a7328-f81f-11d2-ba4b-00a0c93ec93b")},
             {QStringLiteral("filesystem"), QStringLiteral("vfat")},
             {QStringLiteral("display_name"), QStringLiteral("Disk 0 Partition 1: EFI System Partition")},
@@ -461,6 +605,8 @@ void InstallerController::refreshDisks()
             {QStringLiteral("type"), QStringLiteral("System")},
             {QStringLiteral("can_shrink"), false},
             {QStringLiteral("can_format"), false},
+            {QStringLiteral("can_delete"), false},
+            {QStringLiteral("can_extend"), false},
         });
         m_disks.append(QVariantMap{
             {QStringLiteral("device"), QStringLiteral("/dev/vda")},
@@ -475,6 +621,8 @@ void InstallerController::refreshDisks()
             {QStringLiteral("partition_device"), QStringLiteral("/dev/vda3")},
             {QStringLiteral("partition_number"), 3},
             {QStringLiteral("partition_size_bytes"), 45ULL * kGiB},
+            {QStringLiteral("partition_start_sector"), 1050624},
+            {QStringLiteral("partition_size_sectors"), 94371840},
             {QStringLiteral("partition_type"), QStringLiteral("ebd0a0a2-b9e5-4433-87c0-68b6b72699c7")},
             {QStringLiteral("filesystem"), QStringLiteral("ntfs")},
             {QStringLiteral("display_name"), QStringLiteral("Disk 0 Partition 3: Windows")},
@@ -483,6 +631,11 @@ void InstallerController::refreshDisks()
             {QStringLiteral("type"), QStringLiteral("Primary")},
             {QStringLiteral("can_shrink"), true},
             {QStringLiteral("can_format"), true},
+            {QStringLiteral("can_delete"), true},
+            {QStringLiteral("can_extend"), true},
+            {QStringLiteral("adjacent_free_start_sector"), 95422464},
+            {QStringLiteral("adjacent_free_end_sector"), 158337023},
+            {QStringLiteral("adjacent_free_size_bytes"), 30ULL * kGiB},
         });
         m_disks.append(QVariantMap{
             {QStringLiteral("device"), QStringLiteral("/dev/vda")},
@@ -506,6 +659,7 @@ void InstallerController::refreshDisks()
             {QStringLiteral("can_install"), true},
         });
         m_selectedDisk = m_disks.first().toMap();
+        m_selectedDiskIndex = 0;
     } else {
         QProcess scan;
         scan.start(m_backendPath, {QStringLiteral("list-disks"), QStringLiteral("--json")});
@@ -602,7 +756,8 @@ void InstallerController::startOobeFinalization()
         setStatus(QStringLiteral("Could not create the protected OOBE plan."));
         return;
     }
-    startBackend({QStringLiteral("oobe-finalize"), QStringLiteral("--plan"), planPath}, planPath);
+    startBackend({QStringLiteral("oobe-finalize"), QStringLiteral("--plan"), planPath},
+                 planPath, QStringLiteral("oobe"));
 }
 
 void InstallerController::startDemoProgress(bool oobe)
@@ -692,13 +847,21 @@ QString InstallerController::writeOobePlan() const
     return path;
 }
 
-void InstallerController::startBackend(const QStringList &arguments, const QString &planPath)
+void InstallerController::startBackend(const QStringList &arguments,
+                                       const QString &planPath,
+                                       const QString &purpose)
 {
     m_activePlanPath = planPath;
+    m_backendPurpose = purpose;
     m_backendBuffer.clear();
     m_backend.setProcessChannelMode(QProcess::SeparateChannels);
     m_backend.start(m_backendPath, arguments);
     if (!m_backend.waitForStarted(3000)) {
+        if (!m_activePlanPath.isEmpty()) {
+            QFile::remove(m_activePlanPath);
+            m_activePlanPath.clear();
+        }
+        m_backendPurpose.clear();
         setBusy(false);
         setStatus(QStringLiteral("Could not start privileged backend: %1").arg(m_backend.errorString()));
     }
@@ -746,6 +909,8 @@ void InstallerController::handleBackendEvent(const QByteArray &line)
 
 void InstallerController::backendFinished(int exitCode, QProcess::ExitStatus exitStatus)
 {
+    const QString purpose = m_backendPurpose;
+    m_backendPurpose.clear();
     if (!m_activePlanPath.isEmpty()) {
         QFile::remove(m_activePlanPath);
         m_activePlanPath.clear();
@@ -758,6 +923,16 @@ void InstallerController::backendFinished(int exitCode, QProcess::ExitStatus exi
         } else if (!detail.startsWith(QStringLiteral("Setup stopped safely."))) {
             setStatus(QStringLiteral("Setup stopped safely. %1").arg(detail));
         }
+        return;
+    }
+    if (purpose.startsWith(QStringLiteral("storage-"))) {
+        refreshDisks();
+        if (purpose == QStringLiteral("storage-delete"))
+            setStatus(QStringLiteral("The partition was deleted. Disk space has been rescanned."));
+        else if (purpose == QStringLiteral("storage-extend"))
+            setStatus(QStringLiteral("The partition was extended. Disk space has been rescanned."));
+        else
+            setStatus(QStringLiteral("The storage driver was loaded. Disks have been rescanned."));
         return;
     }
     m_progress = 100;

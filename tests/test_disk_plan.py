@@ -25,6 +25,8 @@ from aero7_install_backend import (  # noqa: E402
     ProgressPulse,
     SUPPORTED_LAYOUT,
     SafetyError,
+    adjacent_free_region,
+    apply_storage_action,
     aero7_partition_append_table,
     backup_partition_table,
     brand_plasma_look_and_feel,
@@ -50,6 +52,7 @@ from aero7_install_backend import (  # noqa: E402
     required_install_commands,
     shell_image_mode_arguments,
     storage_targets,
+    validate_storage_action,
     validate_oobe,
     validate_plan,
 )
@@ -180,6 +183,69 @@ class DiskPlanTest(unittest.TestCase):
         changed["serial"] = "CHANGED"
         with self.assertRaisesRegex(SafetyError, "serial"):
             validate_plan(plan_for(original), changed, set())
+
+    def test_storage_targets_expose_guarded_partition_actions(self):
+        value = gpt_disk_with_windows()
+        windows = value["children"][1]
+        adjacent = adjacent_free_region(value, windows)
+        self.assertIsNotNone(adjacent)
+        targets = storage_targets(value, 0)
+        windows_target = next(
+            target for target in targets
+            if target.get("partition_device") == "/dev/vda3"
+        )
+        esp_target = next(
+            target for target in targets
+            if target.get("partition_device") == "/dev/vda1"
+        )
+        self.assertTrue(windows_target["can_delete"])
+        self.assertTrue(windows_target["can_extend"])
+        self.assertGreater(windows_target["adjacent_free_size_bytes"], 1024**3)
+        self.assertFalse(esp_target["can_delete"])
+        self.assertFalse(esp_target["can_extend"])
+
+    def test_delete_and_extend_plans_are_fingerprint_bound(self):
+        value = gpt_disk_with_windows()
+        target = next(
+            item for item in storage_targets(value, 0)
+            if item.get("partition_device") == "/dev/vda3"
+        )
+        delete_plan = {**target, "action": "delete"}
+        partition, actual, adjacent = validate_storage_action(
+            delete_plan, value, set()
+        )
+        self.assertEqual(partition["path"], "/dev/vda3")
+        self.assertEqual(actual["filesystem"], "ntfs")
+        self.assertIsNotNone(adjacent)
+
+        extend_plan = {**target, "action": "extend", "amount_bytes": 2 * 1024**3}
+        validate_storage_action(extend_plan, value, set())
+        stale = deepcopy(value)
+        stale["children"][1]["size"] += 1024**3
+        with self.assertRaisesRegex(SafetyError, "fingerprint changed"):
+            validate_storage_action(extend_plan, stale, set())
+
+    def test_storage_delete_runs_only_after_gate_revalidation_and_backup(self):
+        value = gpt_disk_with_windows()
+        target = next(
+            item for item in storage_targets(value, 0)
+            if item.get("partition_device") == "/dev/vda3"
+        )
+        plan = {**target, "action": "delete"}
+        runner = RecordingRunner()
+        with (
+            patch("aero7_install_backend.enforce_execution_gate"),
+            patch("aero7_install_backend.query_lsblk", return_value=[value]),
+            patch("aero7_install_backend.live_sources", return_value=set()),
+            patch("aero7_install_backend.backup_partition_table") as backup,
+            patch("aero7_install_backend.shutil.which", return_value="/usr/bin/tool"),
+            patch("aero7_install_backend.CommandRunner", return_value=runner),
+        ):
+            apply_storage_action(plan, "/dev/vda")
+        backup.assert_called_once_with("/dev/vda")
+        self.assertEqual(
+            runner.calls[0][0], ["sfdisk", "--delete", "/dev/vda", "3"]
+        )
 
     def test_rejects_non_virtio_path(self):
         value = disk(path="/dev/sda", kname="sda", **{"maj:min": "8:0"})
@@ -548,6 +614,34 @@ class DiskPlanTest(unittest.TestCase):
         )
         with self.assertRaisesRegex(SafetyError, "unallocated region changed"):
             validate_plan(plan, changed, set())
+
+    def test_new_partition_size_may_leave_part_of_the_gap_unallocated(self):
+        value = gpt_disk_with_windows()
+        target = next(
+            item for item in storage_targets(value, 0)
+            if item["target_kind"] == "free"
+        )
+        requested = 20 * 1024**3
+        plan = advanced_plan(
+            value, {**target, "install_region_size_bytes": requested}
+        )
+        validate_plan(plan, value, set())
+        runner = RecordingRunner()
+        with patch(
+            "aero7_install_backend.append_aero7_partitions",
+            return_value=("/dev/vda4", "/dev/vda5"),
+        ) as append:
+            prepare_advanced_target(plan, value, runner)
+        expected_end = target["start_sector"] + requested // 512 - 1
+        append.assert_called_once_with(
+            "/dev/vda", target["start_sector"], expected_end, 512, runner
+        )
+
+        oversized = dict(
+            plan, install_region_size_bytes=target["region_size_bytes"] + 1024**3
+        )
+        with self.assertRaisesRegex(SafetyError, "larger than"):
+            validate_plan(oversized, value, set())
 
     def test_advanced_mode_rejects_non_gpt_disks_and_the_efi_partition(self):
         value = gpt_disk_with_windows()
