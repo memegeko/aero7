@@ -1,33 +1,17 @@
 # Validation Report — Aero7 Beta 1
 
-## Published private Beta 1 artifact
+## Beta 1 artifact
 
-The prerelease published on GitHub was assembled on 2026-08-02:
-
-`aero7-beta1-2026.08.02-x86_64.iso`
-
-- byte size: `1,406,070,784`
-- SHA-256: `64115bd497315a871d06786160016487eb9e3eb514fc48900c770a8d9fc6feec`
-- ISO label: `AERO7B1_20260802`
-- application ID: `AERO7 BETA 1 X86_64 UEFI INSTALLATION MEDIUM`
-
-The matching checksum remains recorded in `docs/checksums/SHA256SUMS`.
-
-## Current local validation candidate
-
-The image used for the first successful real-hardware installation is:
+The replacement prerelease image assembled on 2026-08-09 is:
 
 - file: `out/aero7-beta1-2026.08.09-x86_64.iso`;
 - byte size: `1,401,708,544`;
-- SHA-256: `cea0f8db6957852169031792ce77315bdf0599795126d78c5c5bd9777bd7976c`;
+- SHA-256: `107d044c41f4bba8e8c308e11b7986858ff46a525937e8f0508181d0c9c6c710`;
 - ISO label: `AERO7B1_20260809`;
-- installer source at build: `35654eda848c023e879f6054858c2e822f5e05a0`.
+- application ID: `AERO7 BETA 1 X86_64 UEFI INSTALLATION MEDIUM`.
 
-It has not replaced the published August 2 asset. Because Aero7-shell advanced
-from the embedded commit `a73f454` to `d2dbfad`, the August 9 image now stops
-the current `verify-release.sh` gate at the intentional source-lock comparison.
-A new ISO build and full gate are required after documentation and hardware
-feedback are finalized.
+The matching checksum is recorded in `docs/checksums/SHA256SUMS`. The exact
+image passed `scripts/verify-release.sh` after the final profile assembly.
 
 ## Automated release gate
 
@@ -51,7 +35,7 @@ ShellCheck is skipped when it is not installed on the host.
 
 ## ISO inspection
 
-The published release passed `scripts/verify-release.sh` at release time. The
+The release image passed `scripts/verify-release.sh`. The
 gate checked:
 
 - bootable ISO 9660, GPT, and UEFI structure;
@@ -125,11 +109,12 @@ pseudo-filesystems after an interrupted build.
 
 ## Release assessment
 
-The August 9 candidate completes the tested VM flow and a first Dell hardware
-flow, but it predates the measured package-progress, retained-log, Aero7 OS
-identity, and lock-screen fixes. It is superseded by the fresh release build.
-No Beta artifact is approved for production systems, and public redistribution
-still requires a fresh complete release gate plus the independent artwork
-rights review described in `THIRD_PARTY.md`.
+The replacement August 9 build contains the measured package progress,
+retained-log, Aero7 OS identity, lock-screen, physical-media, and branding
+fixes. It passed the automated image gate. Previous candidates completed the
+full QEMU/KVM flow and the Dell Latitude 3310 hardware installation described
+above. Beta software is not approved for production systems. Public visibility
+still follows the separate mark, history, security, and approval gates tracked
+in `docs/PUBLIC-RELEASE-CHECKLIST.md`.
 The public-release history, mark, security, and fresh-candidate gates are
 tracked in `docs/PUBLIC-RELEASE-CHECKLIST.md`.

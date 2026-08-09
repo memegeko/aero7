@@ -42,25 +42,19 @@ system with a Windows-7-era-inspired installer and KDE Plasma 6 Wayland desktop.
 - [Credits and Licensing](Credits-and-Licensing.md)
 - [FAQ](FAQ.md)
 
-## Published private Beta 1 artifact
+## Beta 1 artifact
 
 | | |
 | --- | --- |
-| File | `aero7-beta1-2026.08.02-x86_64.iso` |
-| Size | 1,406,070,784 bytes |
-| SHA-256 | `64115bd497315a871d06786160016487eb9e3eb514fc48900c770a8d9fc6feec` |
+| File | `aero7-beta1-2026.08.09-x86_64.iso` |
+| Size | 1,401,708,544 bytes |
+| SHA-256 | `107d044c41f4bba8e8c308e11b7986858ff46a525937e8f0508181d0c9c6c710` |
 | Firmware | x86-64 UEFI |
 | Desktop | KDE Plasma 6 Wayland |
 | Intended target | UEFI test PC or disposable QEMU/KVM VM |
 
-Authorized private testers can download it from the
+Testers can download it from the
 [Beta 1 GitHub release](https://github.com/memegeko/aero7/releases/tag/v0.1.0-beta.1).
-
-The newer local validation candidate is
-`aero7-beta1-2026.08.08-x86_64.iso` (SHA-256
-`a7a41fa71de988ace8dc498867763cce341fc5a38e16e7a0a350a69ba4f60e53`).
-It is the source of the current installed-system screenshots and is undergoing
-real-hardware testing. It has not replaced the published prerelease asset.
 
 ## Project links
 

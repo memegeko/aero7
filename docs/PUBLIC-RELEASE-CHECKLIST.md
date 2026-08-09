@@ -12,11 +12,11 @@ files from the latest tree does not remove copies from earlier commits.
 
 ## Blocking reviews
 
-- [ ] Obtain written permission or another documented legal basis to publicly
-  redistribute the retained PlymouthVista light-orb frames 0-55, or replace
-  them with project-owned artwork. Frames 56-104 and the final mark are now
-  reproducible Aero7 project artwork, but the upstream notice still applies to
-  the retained opening frames.
+- [x] Record the project owner's decision to rely on PlymouthVista's distributed
+  MIT license for the retained light-orb frames 0-55 while preserving the
+  separate upstream attribution. Frames 56-104 and the final mark are
+  reproducible Aero7 project artwork. The exact decision and limitation are in
+  `docs/release-evidence/2026-08-09-plymouth-license-decision.md`.
 - [ ] Review the current four-pane Aero7 marks for trademark and confusingly
   similar design risk. The temporary blue “A” mark is not used.
 - [ ] Confirm that the redistribution decision covers the full Git history,
@@ -25,10 +25,11 @@ files from the latest tree does not remove copies from earlier commits.
   vulnerability reporting immediately and verify the Security tab report path
   before announcing or linking the public release. GitHub does not expose this
   external reporting setting while the repository is private.
-- [ ] Rebuild the candidate ISO after all approved release-source changes.
+- [x] Rebuild the candidate ISO after all approved release-source changes and
+  record its passing image gate.
 - [ ] Run `./scripts/check.sh`, `./scripts/verify-release.sh`, and a complete
   `./scripts/run-qemu.sh --fresh` installation plus second boot.
-- [ ] Update the checksum, file size, validation report, release notes, and Wiki
+- [x] Update the checksum, file size, validation report, release notes, and Wiki
   so they all identify the exact candidate.
 - [ ] Run `./scripts/check-public-release.sh` and require a passing result.
 - [ ] Ask the project owner for a final, explicit confirmation before changing

@@ -16,17 +16,17 @@ first-boot setup.
 ## Download identity
 
 - release tag: `v0.1.0-beta.1`
-- ISO: `aero7-beta1-2026.08.02-x86_64.iso`
-- size: `1,406,070,784` bytes
-- SHA-256: `64115bd497315a871d06786160016487eb9e3eb514fc48900c770a8d9fc6feec`
-- ISO label: `AERO7B1_20260802`
+- ISO: `aero7-beta1-2026.08.09-x86_64.iso`
+- size: `1,401,708,544` bytes
+- SHA-256: `107d044c41f4bba8e8c308e11b7986858ff46a525937e8f0508181d0c9c6c710`
+- ISO label: `AERO7B1_20260809`
 - application ID: `AERO7 BETA 1 X86_64 UEFI INSTALLATION MEDIUM`
 
 Download the `.iso` and `.sha256` files from the GitHub release, keep them in
 the same directory, and verify them with:
 
 ```bash
-sha256sum -c aero7-beta1-2026.08.02-x86_64.iso.sha256
+sha256sum -c aero7-beta1-2026.08.09-x86_64.iso.sha256
 ```
 
 ## Highlights
@@ -79,8 +79,7 @@ The current development installer, OOBE, desktop, application, lock-screen,
 system-menu, and authentication captures are collected in the
 [Screenshot Gallery](../wiki/Screenshot-Gallery.md). The installer and OOBE
 sequences are generated from the shipping QML source; desktop and application
-captures come from a clean installation of the newer August 8 validation
-candidate. They do not imply that the published August 2 asset was replaced.
+captures come from a clean installation of the Beta 1 validation candidate.
 
 ## Beta limitations
 
@@ -101,12 +100,11 @@ destructive-operation gates, package manifest, focused Plasma payload, Aero
 layout, application branding, and Beta 1 identity. A clean boot of the release
 artifact reached the graphical language page without rendering corruption.
 
-The published August 2 asset passed its recorded automated release gate. Newer
+The August 9 release image passed the complete automated image gate. Beta
 candidates completed the full installation, OOBE, first-desktop, application,
 lock-screen, authentication, and clean-shutdown flow in QEMU/KVM. The August 9
 candidate also completed a whole-disk installation on a Dell Latitude 3310 and
-reached a working desktop. The final replacement artifact must repeat the
-release gate before publication.
+reached a working desktop.
 
 See the [validation report](validation.md) and the
 [Aero7 handbook](../wiki/Home.md) for details.
@@ -115,7 +113,8 @@ See the [validation report](validation.md) and the
 
 Aero7 is an independent open-source project and is not affiliated with or
 endorsed by Microsoft Corporation. Third-party software and artwork retain
-their own licenses and notices. In particular, the retained PlymouthVista
-animation frames require an independent rights review before public or
-commercial redistribution; see `THIRD_PARTY.md`.
+their own licenses and notices. PlymouthVista ships an MIT license; Aero7
+retains that license and the upstream visual-resource attribution, replaces the
+logo/reveal/branding frames with Aero7 artwork, and does not represent that
+Microsoft sponsors the project. See `THIRD_PARTY.md`.
 The full release decision is tracked in `docs/PUBLIC-RELEASE-CHECKLIST.md`.

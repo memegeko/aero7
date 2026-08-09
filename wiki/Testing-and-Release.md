@@ -67,14 +67,12 @@ Boot the same VM disk again. OOBE must remain disabled and SDDM must require the
 created account password, proving that temporary first-login autologin was
 removed.
 
-## Published private Beta 1 artifact
+## Beta 1 artifact
 
-- file: `aero7-beta1-2026.08.02-x86_64.iso`
-- size: `1,406,070,784` bytes
-- SHA-256: `64115bd497315a871d06786160016487eb9e3eb514fc48900c770a8d9fc6feec`
+- file: `aero7-beta1-2026.08.09-x86_64.iso`
+- size: `1,401,708,544` bytes
+- SHA-256: `107d044c41f4bba8e8c308e11b7986858ff46a525937e8f0508181d0c9c6c710`
 - release tag: `v0.1.0-beta.1`
 
-The repository's `docs/validation.md` is the detailed test record for this
-release and the newer August 8 candidate. The August 8 image has not replaced
-the published asset; real-hardware validation remains pending until its logs
-are reviewed and archived.
+The repository's `docs/validation.md` is the detailed automated, VM, and
+real-hardware test record for this release line.
