@@ -17,6 +17,7 @@ glassy desktop design of the late 2000s.
 [![KDE Plasma](https://img.shields.io/badge/desktop-Plasma%206-1D99F3?style=for-the-badge&logo=kde&logoColor=white)](https://kde.org/plasma-desktop/)
 [![Wayland](https://img.shields.io/badge/session-Wayland-7D4CDB?style=for-the-badge)](https://wayland.freedesktop.org/)
 
+[**Official Website**](https://aero7.miku-dayo.com/) ·
 [**Download Beta 1**](https://github.com/memegeko/aero7/releases/tag/v0.1.0-beta.1) ·
 [**Read the Handbook**](wiki/Home.md) ·
 [**Report a bug**](https://github.com/memegeko/aero7/issues/new) ·
@@ -130,7 +131,9 @@ are in the [Installation handbook page](wiki/Installation.md).
 
 ## Documentation
 
-The [Aero7 handbook](wiki/Home.md) is the main documentation source. Its
+Visit the [official Aero7 website](https://aero7.miku-dayo.com/) for project
+news, downloads, and an overview of the complete system. The
+[Aero7 handbook](wiki/Home.md) is the main technical documentation source. Its
 versioned pages are also ready to synchronize to GitHub Wiki:
 
 - [Installation](wiki/Installation.md)

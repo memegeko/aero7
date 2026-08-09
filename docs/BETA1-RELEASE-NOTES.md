@@ -10,6 +10,9 @@ first-boot setup.
 > Beta software. Disconnect unrelated disks and verify the selected
 > target before any partition change.
 
+Project news, screenshots, downloads, and the system overview are available on
+the [official Aero7 website](https://aero7.miku-dayo.com/).
+
 ## Download identity
 
 - release tag: `v0.1.0-beta.1`

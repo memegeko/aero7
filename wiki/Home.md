@@ -7,6 +7,9 @@
 Welcome to the handbook for **Aero7**, an independent Arch Linux-based operating
 system with a Windows-7-era-inspired installer and KDE Plasma 6 Wayland desktop.
 
+Visit the [official Aero7 website](https://aero7.miku-dayo.com/) for project
+news, downloads, screenshots, and an overview of the complete system.
+
 ![Aero7 desktop](images/desktop-overview.png)
 
 > **Beta 1 supports x86-64 UEFI PCs and virtual machines.** The guarded
@@ -53,6 +56,7 @@ Testers can download it from the
 
 ## Project links
 
+- [Official Aero7 website](https://aero7.miku-dayo.com/)
 - [Aero7 repository](https://github.com/memegeko/aero7)
 - [Aero7-shell](https://github.com/memegeko/aero7-shell)
 - [Signed Aero7 package repository](https://github.com/memegeko/aero7-repo)
