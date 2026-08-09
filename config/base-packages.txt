@@ -4,6 +4,7 @@ linux-firmware
 intel-ucode
 amd-ucode
 networkmanager
+inetutils
 python
 sudo
 git
@@ -27,6 +28,7 @@ qt6-svg
 qt6-wayland
 qt6-virtualkeyboard
 qt6-multimedia
+qt6-multimedia-ffmpeg
 qt6-5compat
 plasma-wayland-protocols
 plasma5support
@@ -46,6 +48,7 @@ imagemagick
 pipewire
 pipewire-audio
 pipewire-pulse
+pipewire-jack
 wireplumber
 xdg-desktop-portal
 xdg-desktop-portal-kde
@@ -60,3 +63,4 @@ desktop-file-utils
 ttf-liberation
 ttf-dejavu
 noto-fonts
+tesseract-data-eng

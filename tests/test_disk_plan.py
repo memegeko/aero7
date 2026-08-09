@@ -30,6 +30,7 @@ from aero7_install_backend import (  # noqa: E402
     apply_storage_action,
     aero7_partition_append_table,
     backup_partition_table,
+    brand_plasma_lock_screen,
     brand_plasma_look_and_feel,
     brand_sddm_themes,
     candidate_disks,
@@ -51,6 +52,7 @@ from aero7_install_backend import (  # noqa: E402
     partition_table,
     pacstrap_arguments,
     pacstrap_download_stage_percent,
+    preserve_live_install_logs,
     prepare_advanced_target,
     required_install_commands,
     running_from_live_installer,
@@ -59,6 +61,7 @@ from aero7_install_backend import (  # noqa: E402
     validate_storage_action,
     validate_oobe,
     validate_plan,
+    write_target_os_release,
 )
 from aero7_shell_adapter import configure_and_install  # noqa: E402
 
@@ -521,6 +524,84 @@ class DiskPlanTest(unittest.TestCase):
             self.assertFalse((previews / "preview.png").exists())
             self.assertFalse((previews / "fullscreenpreview.jpg").exists())
             self.assertNotIn("Windows 7", metadata.read_text(encoding="utf-8"))
+
+    def test_plasma_lock_screen_uses_aero7_branding_and_white_button_text(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            shell = root / "shells/io.gitgud.wackyideas.desktop"
+            auth_qml = shell / "contents/lockscreen/AuthUI.qml"
+            button_qml = shell / "contents/components/GenericButton.qml"
+            branding = shell / "contents/images/branding.png"
+            auth_qml.parent.mkdir(parents=True)
+            button_qml.parent.mkdir(parents=True)
+            branding.parent.mkdir(parents=True)
+            auth_qml.write_text(
+                "Image {\n"
+                '        source: "../images/branding.png"\n'
+                "}\n",
+                encoding="utf-8",
+            )
+            button_qml.write_text(
+                "PlasmaComponents.Label {\n"
+                "        id: btnLabel\n\n"
+                "        anchors.fill: parent\n"
+                "}\n",
+                encoding="utf-8",
+            )
+            branding.write_bytes(b"upstream branding")
+            source = root / "aero7-branding.png"
+            source.write_bytes(b"aero7 branding")
+
+            branded = brand_plasma_lock_screen(root / "shells", source)
+
+            self.assertEqual(branded, [shell])
+            self.assertEqual(branding.read_bytes(), b"aero7 branding")
+            auth_contents = auth_qml.read_text(encoding="utf-8")
+            self.assertIn("fillMode: Image.PreserveAspectFit", auth_contents)
+            self.assertIn("mipmap: true", auth_contents)
+            self.assertIn('color: "white"', button_qml.read_text(encoding="utf-8"))
+
+    def test_target_identity_replaces_arch_os_release_symlink(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "etc").mkdir()
+            (root / "usr/lib").mkdir(parents=True)
+            upstream = root / "usr/lib/os-release"
+            upstream.write_text('NAME="Arch Linux"\n', encoding="utf-8")
+            (root / "etc/os-release").symlink_to("../usr/lib/os-release")
+
+            result = write_target_os_release(root)
+
+            self.assertEqual(result, root / "etc/os-release")
+            self.assertFalse(result.is_symlink())
+            contents = result.read_text(encoding="utf-8")
+            self.assertIn('PRETTY_NAME="Aero7 Beta 1"', contents)
+            self.assertIn("ID_LIKE=arch", contents)
+            self.assertEqual(upstream.read_text(encoding="utf-8"), 'NAME="Arch Linux"\n')
+
+    def test_live_install_logs_are_preserved_with_private_permissions(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            target = root / "target"
+            installer_log = root / "aero7-installer.log"
+            storage_log = root / "aero7-storage-actions.log"
+            missing_log = root / "missing.log"
+            installer_log.write_text("installer evidence\n", encoding="utf-8")
+            storage_log.write_text("storage evidence\n", encoding="utf-8")
+
+            preserved = preserve_live_install_logs(
+                target, (installer_log, storage_log, missing_log)
+            )
+
+            self.assertEqual(
+                preserved,
+                [
+                    target / "var/log/aero7-installer.log",
+                    target / "var/log/aero7-storage-actions.log",
+                ],
+            )
+            for path in preserved:
+                self.assertEqual(path.stat().st_mode & 0o777, 0o600)
 
     def test_light_desktop_defaults_are_enforced_before_login(self):
         runner = RecordingRunner()

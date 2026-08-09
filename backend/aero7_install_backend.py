@@ -51,6 +51,8 @@ PACKAGE_MIRROR_HOSTS = (
 )
 TARGET_ROOT = Path("/mnt/aero7-target")
 PARTITION_TABLE_BACKUP = Path("/var/log/aero7-partition-table-before.sfdisk")
+INSTALLER_LOG = Path("/var/log/aero7-installer.log")
+STORAGE_ACTIONS_LOG = Path("/var/log/aero7-storage-actions.log")
 IMAGE_MODE_GUARD = "YES-I-AM-IN-AERO7-FIRST-BOOT"
 SHELL_INSTALLER = Path("/usr/local/lib/aero7-shell-installer/install.sh")
 SDDM_BRANDING = Path("/usr/share/aero7/branding/aero7-sddm-branding.png")
@@ -912,7 +914,7 @@ def apply_storage_action(plan: dict[str, Any], confirm_device: str) -> None:
         )
 
     backup_partition_table(confirm_device)
-    runner = CommandRunner(Path("/var/log/aero7-storage-actions.log"))
+    runner = CommandRunner(STORAGE_ACTIONS_LOG)
     partition_path_value = str(actual["partition_device"])
     partition_number = str(actual["partition_number"])
     if action == "delete":
@@ -1000,7 +1002,7 @@ def load_storage_driver(path: Path) -> None:
     destination = Path("/usr/lib/modules") / kernel / "updates/aero7" / source.name
     destination.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(source, destination)
-    runner = CommandRunner(Path("/var/log/aero7-storage-actions.log"))
+    runner = CommandRunner(STORAGE_ACTIONS_LOG)
     runner.run(["depmod", "-a"])
     module_name = re.sub(r"\.ko(?:\.xz|\.zst)?$", "", source.name).replace("-", "_")
     runner.run(["modprobe", module_name])
@@ -1408,6 +1410,115 @@ def brand_plasma_look_and_feel(
     return branded
 
 
+def brand_plasma_lock_screen(
+    shells_root: Path = Path("/usr/share/plasma/shells"),
+    branding_source: Path = SDDM_BRANDING,
+) -> list[Path]:
+    """Apply Aero7 branding and readable labels to AeroShell lock screens."""
+    if not branding_source.is_file():
+        raise RuntimeError(f"Aero7 lock-screen branding is missing: {branding_source}")
+    if not shells_root.is_dir():
+        return []
+
+    branded: list[Path] = []
+    for shell_root in sorted(path for path in shells_root.iterdir() if path.is_dir()):
+        contents_root = shell_root / "contents"
+        auth_qml = contents_root / "lockscreen/AuthUI.qml"
+        button_qml = contents_root / "components/GenericButton.qml"
+        branding = contents_root / "images/branding.png"
+        if not auth_qml.is_file() or not button_qml.is_file() or not branding.is_file():
+            continue
+        auth_contents = auth_qml.read_text(encoding="utf-8")
+        branding_marker = '        source: "../images/branding.png"\n'
+        if branding_marker not in auth_contents:
+            continue
+
+        shutil.copy2(branding_source, branding)
+        if "        fillMode: Image.PreserveAspectFit\n" not in auth_contents:
+            auth_contents = auth_contents.replace(
+                branding_marker,
+                branding_marker
+                + "        width: Math.min(350, parent.width - 40)\n"
+                + "        height: width / 7\n"
+                + "        fillMode: Image.PreserveAspectFit\n"
+                + "        smooth: true\n"
+                + "        mipmap: true\n",
+                1,
+            )
+            auth_qml.write_text(auth_contents, encoding="utf-8")
+        button_contents = button_qml.read_text(encoding="utf-8")
+        label_marker = """        id: btnLabel
+
+        anchors.fill: parent
+"""
+        if label_marker not in button_contents:
+            raise RuntimeError(
+                f"AeroShell lock-screen button layout changed unexpectedly: {button_qml}"
+            )
+        if "        color: \"white\"\n" not in button_contents:
+            button_contents = button_contents.replace(
+                label_marker,
+                """        id: btnLabel
+        color: "white"
+
+        anchors.fill: parent
+""",
+                1,
+            )
+            button_qml.write_text(button_contents, encoding="utf-8")
+        branded.append(shell_root)
+    return branded
+
+
+def write_target_os_release(target: Path) -> Path:
+    """Give the installed system an Aero7 identity while retaining Arch lineage."""
+    os_release = target / "etc/os-release"
+    os_release.parent.mkdir(parents=True, exist_ok=True)
+    if os_release.is_symlink():
+        os_release.unlink()
+    os_release.write_text(
+        'NAME="Aero7"\n'
+        'PRETTY_NAME="Aero7 Beta 1"\n'
+        "ID=aero7\n"
+        "ID_LIKE=arch\n"
+        'VERSION="Beta 1"\n'
+        'VERSION_ID="0.1.0-beta.1"\n'
+        "VARIANT_ID=beta\n"
+        "BUILD_ID=rolling\n"
+        'ANSI_COLOR="38;2;23;147;209"\n'
+        'HOME_URL="https://github.com/memegeko/aero7"\n'
+        'DOCUMENTATION_URL="https://github.com/memegeko/aero7/wiki"\n'
+        'SUPPORT_URL="https://github.com/memegeko/aero7/issues"\n'
+        'BUG_REPORT_URL="https://github.com/memegeko/aero7/issues"\n'
+        "LOGO=aero7\n",
+        encoding="utf-8",
+    )
+    os_release.chmod(0o644)
+    return os_release
+
+
+def preserve_live_install_logs(
+    target: Path,
+    sources: Iterable[Path] = (
+        INSTALLER_LOG,
+        STORAGE_ACTIONS_LOG,
+        PARTITION_TABLE_BACKUP,
+    ),
+) -> list[Path]:
+    """Copy live-media diagnostics into the installed system before unmount."""
+    destination_root = target / "var/log"
+    destination_root.mkdir(parents=True, exist_ok=True)
+    preserved: list[Path] = []
+    for source in sources:
+        if not source.is_file():
+            continue
+        destination = destination_root / source.name
+        shutil.copy2(source, destination)
+        destination.chmod(0o600)
+        preserved.append(destination)
+    return preserved
+
+
 def configure_one_time_autologin(
     username: str,
     config_path: Path = FIRST_LOGIN_CONFIG,
@@ -1656,7 +1767,7 @@ def install(plan: dict[str, Any], confirm_device: str) -> None:
     ensure_install_network()
     ensure_install_tools(plan)
 
-    log_path = Path("/var/log/aero7-installer.log")
+    log_path = INSTALLER_LOG
     log_path.parent.mkdir(parents=True, exist_ok=True)
     runner = CommandRunner(log_path)
     device = confirm_device
@@ -1775,6 +1886,7 @@ def install(plan: dict[str, Any], confirm_device: str) -> None:
         )
         updates_settings.emit()
         (TARGET_ROOT / "etc/hostname").write_text("aero7-pc\n", encoding="utf-8")
+        write_target_os_release(TARGET_ROOT)
         locale = TARGET_ROOT / "etc/locale.gen"
         locale.write_text(locale.read_text(encoding="utf-8").replace("#en_US.UTF-8 UTF-8", "en_US.UTF-8 UTF-8"), encoding="utf-8")
         with runner.progress_heartbeat(updates_settings.advance):
@@ -1800,6 +1912,14 @@ def install(plan: dict[str, Any], confirm_device: str) -> None:
         completing.complete()
     finally:
         if mounted:
+            try:
+                preserve_live_install_logs(TARGET_ROOT)
+            except OSError as error:
+                print(
+                    f"warning: could not preserve live installer logs: {error}",
+                    file=sys.stderr,
+                    flush=True,
+                )
             subprocess.run(["umount", "-R", str(TARGET_ROOT)], check=False)
 
 
@@ -1872,6 +1992,7 @@ def finalize_oobe(plan: dict[str, Any]) -> None:
     runner.run(shell_image_mode_arguments(username))
     brand_sddm_themes()
     brand_plasma_look_and_feel()
+    brand_plasma_lock_screen()
     enforce_light_desktop_defaults(username, runner)
     configure_one_time_autologin(username)
     runner.run(["systemctl", "daemon-reload"])

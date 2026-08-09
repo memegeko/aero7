@@ -15,15 +15,16 @@ The matching checksum remains recorded in `docs/checksums/SHA256SUMS`.
 
 ## Current local validation candidate
 
-The image currently undergoing VM and real-hardware testing is:
+The image used for the first successful real-hardware installation is:
 
-- file: `out/aero7-beta1-2026.08.08-x86_64.iso`;
-- byte size: `1,403,297,792`;
-- SHA-256: `a7a41fa71de988ace8dc498867763cce341fc5a38e16e7a0a350a69ba4f60e53`;
-- ISO label: `AERO7B1_20260808`.
+- file: `out/aero7-beta1-2026.08.09-x86_64.iso`;
+- byte size: `1,401,708,544`;
+- SHA-256: `cea0f8db6957852169031792ce77315bdf0599795126d78c5c5bd9777bd7976c`;
+- ISO label: `AERO7B1_20260809`;
+- installer source at build: `35654eda848c023e879f6054858c2e822f5e05a0`.
 
 It has not replaced the published August 2 asset. Because Aero7-shell advanced
-from the embedded commit `a73f454` to `d2dbfad`, the August 8 image now stops
+from the embedded commit `a73f454` to `d2dbfad`, the August 9 image now stops
 the current `verify-release.sh` gate at the intentional source-lock comparison.
 A new ISO build and full gate are required after documentation and hardware
 feedback are finalized.
@@ -94,9 +95,13 @@ Verified full-flow results included:
 - `qemu-img check` found no QCOW2 errors after clean shutdown;
 - PlymouthVista itself was not modified.
 
-The August 8 candidate completed the full installation and screenshot-capture
-flow in a disposable VM. Real-hardware testing is in progress; no physical
-hardware pass is claimed until its logs are reviewed and archived.
+The August 9 candidate also completed a destructive whole-disk installation on
+a Dell Latitude 3310 and reached a working Plasma desktop with zero failed
+systemd units. The post-install audit is recorded under
+`docs/release-evidence/2026-08-09-dell-latitude-3310.md`. Formal hardware
+support remains pending because that candidate did not retain its live
+installer log after reboot and its boot journal exposed non-fatal AeroShell
+widget warnings. A rebuilt candidate and repeat hardware test are required.
 
 ## Recorded VM quirks
 
@@ -120,12 +125,12 @@ pseudo-filesystems after an interrupted build.
 
 ## Release assessment
 
-The August 8 candidate completes the tested VM flow, but no current-source ISO
-passes the embedded source-lock gate yet and the real-hardware evidence is
-pending. The published August 2 asset remains a private VM-only prerelease. No
-artifact is approved for physical disks, production systems, or public
-redistribution without a fresh build, complete release gate, hardware-log
-review, and the independent artwork rights review described in
-`THIRD_PARTY.md`.
+The August 9 candidate completes the tested VM flow and a first Dell hardware
+flow, but it predates the measured package-progress, retained-log, Aero7 OS
+identity, and lock-screen fixes. The published August 2 asset remains a private
+VM-only prerelease. No artifact is approved for physical disks, production
+systems, or public redistribution without a fresh build, complete release
+gate, repeat retained-log hardware review, and the independent artwork rights
+review described in `THIRD_PARTY.md`.
 The public-release history, mark, security, and fresh-candidate gates are
 tracked in `docs/PUBLIC-RELEASE-CHECKLIST.md`.

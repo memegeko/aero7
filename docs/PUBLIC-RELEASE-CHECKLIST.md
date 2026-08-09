@@ -49,8 +49,11 @@ files from the latest tree does not remove copies from earlier commits.
 - [x] Installer, OOBE, desktop, application, system-menu, lock-screen, and
   authentication screenshots were regenerated from the current source and a
   clean installed VM; superseded screenshots were removed.
-- [ ] Review and archive the current real-hardware test logs and explicitly
-  record the result before describing physical hardware as supported.
+- [x] Record the first successful Dell Latitude 3310 installation and
+  post-install audit under `docs/release-evidence/`.
+- [ ] Repeat the Dell installation with the log-persistence and lock-screen
+  fixes, archive the retained installer log, and review the boot journal before
+  describing physical hardware as supported.
 
 ## Approval record
 
