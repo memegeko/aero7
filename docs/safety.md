@@ -4,7 +4,9 @@ The backend aborts unless every condition below is true at execution time:
 
 1. `--execute` was supplied and the environment contains the exact guard token.
 2. The process is root, the kernel command line identifies the Aero7 Archiso,
-   and the live boot medium is mounted at `/run/archiso/bootmnt`.
+   the live hostname and pinned source lock are present, and `/` is the Archiso
+   overlay. This works with direct-written media and Ventoy GRUB2 mode without
+   trusting a copied backend on an installed system.
 3. The selected parent resolves to a whole block disk, not a ROM; an advanced
    target must resolve to an exact child partition or exact unallocated range.
 4. It is writable, non-removable, unmounted, and is not the live ISO source.

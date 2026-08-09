@@ -42,8 +42,9 @@ INSTALL_STAGES = (
     "Applying system settings",
     "Preparing first boot",
 )
-LIVE_BOOT_MOUNT = Path("/run/archiso/bootmnt")
 PROC_CMDLINE = Path("/proc/cmdline")
+LIVE_HOSTNAME = Path("/etc/hostname")
+LIVE_SOURCE_LOCK = Path("/usr/share/aero7/sources.lock")
 PACKAGE_MIRROR_HOSTS = (
     "geo.mirror.pkgbuild.com",
     "fastly.mirror.pkgbuild.com",
@@ -626,16 +627,34 @@ def running_from_live_installer() -> bool:
 
     The destructive token prevents accidental direct invocation, while this
     check prevents a copied backend and token from being used on an installed
-    system.  Both direct-written media and Ventoy expose the Archiso boot
-    mount once the live root has started.
+    system. Direct-written media and Ventoy GRUB2 mode expose the live ISO in
+    different ways, so use immutable live-root evidence rather than requiring
+    `/run/archiso/bootmnt` itself to be a mount point.
     """
     try:
         cmdline = PROC_CMDLINE.read_text(
             encoding="utf-8", errors="replace"
         ).split()
+        hostname = LIVE_HOSTNAME.read_text(
+            encoding="utf-8", errors="replace"
+        ).strip()
     except OSError:
         return False
-    return "archisobasedir=aero7" in cmdline and LIVE_BOOT_MOUNT.is_mount()
+    try:
+        root_filesystem = subprocess.run(
+            ["findmnt", "--noheadings", "--output", "FSTYPE", "/"],
+            check=False,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+    except OSError:
+        return False
+    return (
+        "archisobasedir=aero7" in cmdline
+        and hostname == "aero7-setup"
+        and LIVE_SOURCE_LOCK.is_file()
+        and root_filesystem == "overlay"
+    )
 
 
 def enforce_execution_gate() -> None:

@@ -52,6 +52,7 @@ from aero7_install_backend import (  # noqa: E402
     pacstrap_arguments,
     prepare_advanced_target,
     required_install_commands,
+    running_from_live_installer,
     shell_image_mode_arguments,
     storage_targets,
     validate_storage_action,
@@ -285,6 +286,69 @@ class DiskPlanTest(unittest.TestCase):
         with patch.dict("os.environ", {}, clear=True):
             with self.assertRaisesRegex(SafetyError, "guard token"):
                 enforce_execution_gate()
+
+    def test_live_installer_detection_accepts_ventoy_overlay_without_bootmnt_mount(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            cmdline = root / "cmdline"
+            hostname = root / "hostname"
+            source_lock = root / "sources.lock"
+            cmdline.write_text(
+                "archisobasedir=aero7 archisosearchuuid=test quiet splash\n",
+                encoding="utf-8",
+            )
+            hostname.write_text("aero7-setup\n", encoding="utf-8")
+            source_lock.write_text("aero7_shell_commit=test\n", encoding="utf-8")
+            with (
+                patch("aero7_install_backend.PROC_CMDLINE", cmdline),
+                patch("aero7_install_backend.LIVE_HOSTNAME", hostname),
+                patch("aero7_install_backend.LIVE_SOURCE_LOCK", source_lock),
+                patch(
+                    "aero7_install_backend.subprocess.run",
+                    return_value=SimpleNamespace(stdout="overlay\n", returncode=0),
+                ),
+            ):
+                self.assertTrue(running_from_live_installer())
+
+    def test_live_installer_detection_rejects_installed_root(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            cmdline = root / "cmdline"
+            hostname = root / "hostname"
+            source_lock = root / "sources.lock"
+            cmdline.write_text("root=UUID=test rw\n", encoding="utf-8")
+            hostname.write_text("aero7-pc\n", encoding="utf-8")
+            source_lock.write_text("aero7_shell_commit=test\n", encoding="utf-8")
+            with (
+                patch("aero7_install_backend.PROC_CMDLINE", cmdline),
+                patch("aero7_install_backend.LIVE_HOSTNAME", hostname),
+                patch("aero7_install_backend.LIVE_SOURCE_LOCK", source_lock),
+                patch(
+                    "aero7_install_backend.subprocess.run",
+                    return_value=SimpleNamespace(stdout="ext4\n", returncode=0),
+                ),
+            ):
+                self.assertFalse(running_from_live_installer())
+
+    def test_live_installer_detection_fails_closed_without_findmnt(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            cmdline = root / "cmdline"
+            hostname = root / "hostname"
+            source_lock = root / "sources.lock"
+            cmdline.write_text("archisobasedir=aero7\n", encoding="utf-8")
+            hostname.write_text("aero7-setup\n", encoding="utf-8")
+            source_lock.write_text("test\n", encoding="utf-8")
+            with (
+                patch("aero7_install_backend.PROC_CMDLINE", cmdline),
+                patch("aero7_install_backend.LIVE_HOSTNAME", hostname),
+                patch("aero7_install_backend.LIVE_SOURCE_LOCK", source_lock),
+                patch(
+                    "aero7_install_backend.subprocess.run",
+                    side_effect=FileNotFoundError("findmnt"),
+                ),
+            ):
+                self.assertFalse(running_from_live_installer())
 
     def test_execution_gate_accepts_booted_aero7_media_on_physical_hardware(self):
         with (

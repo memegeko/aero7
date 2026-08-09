@@ -7,8 +7,10 @@ condition is true at execution time.
 
 1. Live installation was enabled when the ISO profile was prepared.
 2. The backend is root and receives the exact destructive-operation guard token.
-3. `/proc/cmdline` and `/run/archiso/bootmnt` prove that the backend is running
-   from booted Aero7 installation media rather than an installed system.
+3. The kernel command line, live hostname, pinned source lock, and overlay root
+   prove that the backend is running from booted Aero7 installation media
+   rather than an installed system. This also supports Ventoy GRUB2 mode, where
+   `/run/archiso/bootmnt` is not always a conventional mount point.
 4. The selected parent is a supported whole SATA, NVMe, MMC, or VirtIO disk,
    not an optical or removable device; an
    advanced choice must match an exact child partition or free-sector range.
