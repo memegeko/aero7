@@ -5,12 +5,9 @@ desktop image. It combines an Arch Linux foundation, KDE Plasma 6 Wayland, the
 signed Aero7 desktop packages, a purpose-built Qt/QML installer, and a guided
 first-boot setup.
 
-> **Distribution status:** private testing only. Public release remains blocked
-> by the reviews in [`PUBLIC-RELEASE-CHECKLIST.md`](PUBLIC-RELEASE-CHECKLIST.md).
-
 > **Back up important data before installing.** Beta 1 supports guarded
 > installation on x86-64 UEFI PCs and virtual machines, but it remains
-> pre-release software. Disconnect unrelated disks and verify the selected
+> Beta software. Disconnect unrelated disks and verify the selected
 > target before any partition change.
 
 ## Download identity
@@ -116,4 +113,3 @@ endorsed by Microsoft Corporation. Third-party software and artwork retain
 their own licenses and notices. PlymouthVista is included under its distributed
 MIT license, and Aero7 replaces its logo/reveal/branding frames with project
 artwork. See `THIRD_PARTY.md`.
-The full release decision is tracked in `docs/PUBLIC-RELEASE-CHECKLIST.md`.

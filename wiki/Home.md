@@ -13,10 +13,6 @@ system with a Windows-7-era-inspired installer and KDE Plasma 6 Wayland desktop.
 > installer accepts non-removable SATA, NVMe, MMC, and VirtIO disks. Back up
 > important data, disconnect unrelated disks, and verify the selected disk:
 > Beta software and partition changes can still cause data loss.
->
-> **Public redistribution is not approved yet.** The private Beta is completing
-> an artwork-rights, mark, and repository-history review. See
-> [Testing and Release](Testing-and-Release.md) for the release gate.
 
 ## Start here
 
@@ -38,7 +34,6 @@ system with a Windows-7-era-inspired installer and KDE Plasma 6 Wayland desktop.
 - [Security and Disk Safety](Security-and-Disk-Safety.md)
 - [Building the ISO](Building-the-ISO.md)
 - [Testing and Release](Testing-and-Release.md)
-- [Public Release Readiness](Public-Release-Readiness.md)
 - [Credits and Licensing](Credits-and-Licensing.md)
 - [FAQ](FAQ.md)
 

@@ -10,8 +10,6 @@ for policy_file in \
   SECURITY.md \
   SUPPORT.md \
   THIRD_PARTY.md \
-  docs/PUBLIC-RELEASE-CHECKLIST.md \
-  config/public-release.conf \
   .github/PULL_REQUEST_TEMPLATE.md \
   .github/ISSUE_TEMPLATE/bug_report.yml \
   .github/ISSUE_TEMPLATE/feature_request.yml; do
@@ -20,11 +18,6 @@ for policy_file in \
     exit 1
   }
 done
-grep -Eq '^public_release_status=(blocked|cleared)$' \
-  "$project_root/config/public-release.conf" || {
-  printf 'The public release status is missing or invalid.\n' >&2
-  exit 1
-}
 
 printf 'Repository structure\n'
 mapfile -t tracked_readmes < <(

@@ -7,7 +7,7 @@
 | Beta 1 | Security fixes are accepted for supported UEFI test systems |
 | Older development snapshots | No |
 
-Beta 1 is pre-release software. Do not use it on production systems or install
+Beta 1 is test software. Do not use it on production systems or install
 it to a disk that contains valuable data without a separate, verified backup.
 
 ## Reporting a vulnerability
@@ -17,10 +17,10 @@ bypass the installer disk guards, erase an unintended device, or compromise an
 installed system.
 
 Use GitHub's **Report a vulnerability** button in the Security tab when it is
-available. GitHub does not expose that external reporting channel while this
-repository is private; it must be enabled and tested immediately after an
-explicitly approved visibility change and before the public release is
-announced. Non-sensitive bugs may use the normal bug-report form.
+available. If that private reporting channel is unavailable, contact the
+repository owner privately through their GitHub profile rather than disclosing
+the vulnerability in a public issue. Non-sensitive bugs may use the normal
+bug-report form.
 
 Please include the affected commit or release, hardware or VM configuration, a minimal
 reproduction, expected and actual behavior, and whether the issue can affect a

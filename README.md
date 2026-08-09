@@ -16,7 +16,6 @@ glassy desktop design of the late 2000s.
 [![Arch Linux](https://img.shields.io/badge/base-Arch%20Linux-1793D1?style=for-the-badge&logo=archlinux&logoColor=white)](https://archlinux.org/)
 [![KDE Plasma](https://img.shields.io/badge/desktop-Plasma%206-1D99F3?style=for-the-badge&logo=kde&logoColor=white)](https://kde.org/plasma-desktop/)
 [![Wayland](https://img.shields.io/badge/session-Wayland-7D4CDB?style=for-the-badge)](https://wayland.freedesktop.org/)
-[![Public release](https://img.shields.io/badge/public%20release-rights%20review%20pending-D97706?style=for-the-badge)](docs/PUBLIC-RELEASE-CHECKLIST.md)
 
 [**Download Beta 1**](https://github.com/memegeko/aero7/releases/tag/v0.1.0-beta.1) ·
 [**Read the Handbook**](wiki/Home.md) ·
@@ -30,15 +29,10 @@ glassy desktop design of the late 2000s.
 > [!IMPORTANT]
 > **Beta 1 supports guarded installation on x86-64 UEFI PCs and virtual
 > machines.** It can target non-removable SATA, NVMe, MMC, and VirtIO disks when
-> booted from genuine Aero7 installation media. This remains pre-release
-> software: back up important data, disconnect unrelated disks, and verify the
+> booted from genuine Aero7 installation media. This remains Beta software:
+> back up important data, disconnect unrelated disks, and verify the
 > selected disk before continuing. Encryption, free-form manual partitioning,
 > legacy BIOS, and Secure Boot remain unsupported.
->
-> **Public redistribution is not approved yet.** The repository and prerelease
-> remain private while the retained Plymouth animation, project marks, and full
-> repository history complete the reviews listed in the
-> [public-release checklist](docs/PUBLIC-RELEASE-CHECKLIST.md).
 
 ## Meet Aero7
 
@@ -170,8 +164,6 @@ disk containing irreplaceable data.
 
 See the [Beta 1 release notes](docs/BETA1-RELEASE-NOTES.md) and
 [validation report](docs/validation.md) for the exact artifact and test record.
-Public-release status is tracked separately in the
-[public-release checklist](docs/PUBLIC-RELEASE-CHECKLIST.md).
 
 ## License and trademark notice
 

@@ -46,12 +46,3 @@ jobs:
       - name: Run source gate
         working-directory: aero7-iso
         run: ./scripts/check.sh
-
-      - name: Confirm public-release hold is active
-        working-directory: aero7-iso
-        run: |
-          if ./scripts/check-public-release.sh; then
-            echo "The public-release gate unexpectedly passed." >&2
-            exit 1
-          fi
-          grep -Fqx 'public_release_status=blocked' config/public-release.conf

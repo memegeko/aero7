@@ -30,11 +30,10 @@ open-source projects. Installed package licenses are available under
 - PlymouthVista is distributed under the MIT license retained in the source
   tree. Aero7 uses project artwork for its logo, reveal, and branding frames.
 
-## Redistribution warning
+## Redistribution notes
 
-The project owner approved continued use of PlymouthVista under its distributed
-MIT license on 2026-08-09. Required license files, source offers, and package
-notices remain included in Aero7.
+PlymouthVista is used and distributed under its MIT license. Required license
+files, source offers, and package notices remain included in Aero7.
 
 Unused legacy login and product-branding bitmaps are absent from the current
 source tree and release image.

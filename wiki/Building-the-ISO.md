@@ -64,7 +64,7 @@ Aero taskbar layout, application branding, and login artwork.
 
 `--fresh` creates a new disposable VM disk; it does not rebuild the ISO. Use
 `--iso /absolute/path/image.iso` to test a non-current artifact. See
-[Testing and Release](Testing-and-Release.md) for the complete release gate.
+[Testing and Release](Testing-and-Release.md) for the complete test flow.
 
 ## Output safety
 

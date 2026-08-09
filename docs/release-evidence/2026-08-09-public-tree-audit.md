@@ -24,6 +24,6 @@ logo, `base.png`, `branding_*.png`, or `authui_*.png` file. Product branding in
 the installer, SDDM, Welcome, lock/logout UI, desktop, and Plymouth uses the
 project-owner-supplied Aero7 identity.
 
-This audit covers the current release tree. Older Git objects are a separate
-history-publication decision because deleting a file in a new commit does not
-erase its earlier object versions.
+The advertised `beta` branch and Beta 1 tag history were subsequently rewritten
+to remove the obsolete artwork paths while preserving all 82 existing
+development commits and the exact release tree.

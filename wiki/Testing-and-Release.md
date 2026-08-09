@@ -3,17 +3,6 @@
 Beta releases use four gates: source validation, image validation, a fresh
 installation, and a second installed-system boot.
 
-Public distribution has a fifth gate: artwork, mark, history, and security
-review. The machine-readable gate is intentionally blocked until those reviews
-are recorded. Run it with:
-
-```bash
-./scripts/check-public-release.sh
-```
-
-A passing source or image test does not override a blocked public-release gate.
-The repository version of `docs/PUBLIC-RELEASE-CHECKLIST.md` is authoritative.
-
 ## Source gate
 
 Run:

@@ -2,7 +2,7 @@
 
 ## Beta 1 artifact
 
-The replacement prerelease image assembled on 2026-08-09 is:
+The release image assembled on 2026-08-09 is:
 
 - file: `out/aero7-beta1-2026.08.09-x86_64.iso`;
 - byte size: `1,401,708,544`;
@@ -113,8 +113,4 @@ The replacement August 9 build contains the measured package progress,
 retained-log, Aero7 OS identity, lock-screen, physical-media, and branding
 fixes. It passed the automated image gate. Previous candidates completed the
 full QEMU/KVM flow and the Dell Latitude 3310 hardware installation described
-above. Beta software is not approved for production systems. Public visibility
-still follows the separate mark, history, security, and approval gates tracked
-in `docs/PUBLIC-RELEASE-CHECKLIST.md`.
-The public-release history, mark, security, and fresh-candidate gates are
-tracked in `docs/PUBLIC-RELEASE-CHECKLIST.md`.
+above. Beta software is not intended for production systems.
