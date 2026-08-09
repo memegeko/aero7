@@ -577,7 +577,23 @@ class DiskPlanTest(unittest.TestCase):
             contents = result.read_text(encoding="utf-8")
             self.assertIn('PRETTY_NAME="Aero7 Beta 1"', contents)
             self.assertIn("ID_LIKE=arch", contents)
-            self.assertEqual(upstream.read_text(encoding="utf-8"), 'NAME="Arch Linux"\n')
+            self.assertEqual(upstream.read_text(encoding="utf-8"), contents)
+            self.assertFalse((root / "etc/arch-release").exists())
+            self.assertIn(
+                'DISTRIB_DESCRIPTION="Aero7 Beta 1"',
+                (root / "etc/lsb-release").read_text(encoding="utf-8"),
+            )
+            self.assertEqual(
+                (root / "etc/aero7-release").read_text(encoding="utf-8"),
+                "Aero7 Beta 1\n",
+            )
+            hook = root / "usr/share/libalpm/hooks/aero7-system-identity.hook"
+            self.assertIn(
+                "Exec = /usr/local/lib/aero7/apply-system-identity",
+                hook.read_text(encoding="utf-8"),
+            )
+            apply_identity = root / "usr/local/lib/aero7/apply-system-identity"
+            self.assertTrue(apply_identity.stat().st_mode & 0o111)
 
     def test_live_install_logs_are_preserved_with_private_permissions(self):
         with tempfile.TemporaryDirectory() as directory:

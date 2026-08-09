@@ -1471,18 +1471,15 @@ def brand_plasma_lock_screen(
 
 
 def write_target_os_release(target: Path) -> Path:
-    """Give the installed system an Aero7 identity while retaining Arch lineage."""
-    os_release = target / "etc/os-release"
-    os_release.parent.mkdir(parents=True, exist_ok=True)
-    if os_release.is_symlink():
-        os_release.unlink()
-    os_release.write_text(
+    """Install a durable Aero7 system identity while retaining Arch lineage."""
+    os_release_contents = (
         'NAME="Aero7"\n'
         'PRETTY_NAME="Aero7 Beta 1"\n'
         "ID=aero7\n"
         "ID_LIKE=arch\n"
         'VERSION="Beta 1"\n'
         'VERSION_ID="0.1.0-beta.1"\n'
+        "VERSION_CODENAME=beta\n"
         "VARIANT_ID=beta\n"
         "BUILD_ID=rolling\n"
         'ANSI_COLOR="38;2;23;147;209"\n'
@@ -1490,11 +1487,84 @@ def write_target_os_release(target: Path) -> Path:
         'DOCUMENTATION_URL="https://github.com/memegeko/aero7/wiki"\n'
         'SUPPORT_URL="https://github.com/memegeko/aero7/issues"\n'
         'BUG_REPORT_URL="https://github.com/memegeko/aero7/issues"\n'
-        "LOGO=aero7\n",
+        "LOGO=aero7\n"
+    )
+    lsb_release_contents = (
+        "DISTRIB_ID=Aero7\n"
+        "DISTRIB_RELEASE=0.1.0-beta.1\n"
+        "DISTRIB_CODENAME=beta\n"
+        'DISTRIB_DESCRIPTION="Aero7 Beta 1"\n'
+    )
+
+    identity_root = target / "usr/share/aero7/identity"
+    identity_root.mkdir(parents=True, exist_ok=True)
+    identity_files = {
+        "os-release": os_release_contents,
+        "lsb-release": lsb_release_contents,
+        "aero7-release": "Aero7 Beta 1\n",
+        "issue": "Aero7 Beta 1 \\r (\\l)\n",
+        "issue.net": "Aero7 Beta 1\n",
+    }
+    for name, contents in identity_files.items():
+        path = identity_root / name
+        path.write_text(contents, encoding="utf-8")
+        path.chmod(0o644)
+
+    apply_identity = target / "usr/local/lib/aero7/apply-system-identity"
+    apply_identity.parent.mkdir(parents=True, exist_ok=True)
+    apply_identity.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        'identity_root="/usr/share/aero7/identity"\n'
+        "rm -f /etc/os-release /usr/lib/os-release /etc/arch-release\n"
+        'install -Dm0644 "$identity_root/os-release" /etc/os-release\n'
+        'install -Dm0644 "$identity_root/os-release" /usr/lib/os-release\n'
+        'install -Dm0644 "$identity_root/lsb-release" /etc/lsb-release\n'
+        'install -Dm0644 "$identity_root/aero7-release" /etc/aero7-release\n'
+        'install -Dm0644 "$identity_root/issue" /etc/issue\n'
+        'install -Dm0644 "$identity_root/issue.net" /etc/issue.net\n',
         encoding="utf-8",
     )
-    os_release.chmod(0o644)
-    return os_release
+    apply_identity.chmod(0o755)
+
+    hook = target / "usr/share/libalpm/hooks/aero7-system-identity.hook"
+    hook.parent.mkdir(parents=True, exist_ok=True)
+    hook.write_text(
+        "[Trigger]\n"
+        "Operation = Install\n"
+        "Operation = Upgrade\n"
+        "Type = Path\n"
+        "Target = usr/lib/os-release\n"
+        "Target = etc/arch-release\n\n"
+        "[Action]\n"
+        "Description = Restoring Aero7 system identity...\n"
+        "When = PostTransaction\n"
+        "Exec = /usr/local/lib/aero7/apply-system-identity\n",
+        encoding="utf-8",
+    )
+    hook.chmod(0o644)
+
+    for destination in (
+        target / "etc/os-release",
+        target / "usr/lib/os-release",
+    ):
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        if destination.is_symlink() or destination.exists():
+            destination.unlink()
+        destination.write_text(os_release_contents, encoding="utf-8")
+        destination.chmod(0o644)
+    compatibility_destinations = {
+        target / "etc/lsb-release": lsb_release_contents,
+        target / "etc/aero7-release": "Aero7 Beta 1\n",
+        target / "etc/issue": "Aero7 Beta 1 \\r (\\l)\n",
+        target / "etc/issue.net": "Aero7 Beta 1\n",
+    }
+    for destination, contents in compatibility_destinations.items():
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text(contents, encoding="utf-8")
+        destination.chmod(0o644)
+    (target / "etc/arch-release").unlink(missing_ok=True)
+    return target / "etc/os-release"
 
 
 def preserve_live_install_logs(
