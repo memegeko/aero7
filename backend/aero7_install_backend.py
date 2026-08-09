@@ -1186,6 +1186,42 @@ def pacstrap_arguments(target: Path, packages: Iterable[str]) -> list[str]:
     return ["pacstrap", str(target), *packages]
 
 
+def pacstrap_download_stage_percent(log_path: Path, cache_path: Path) -> int | None:
+    """Measure pacstrap download progress from pacman's total and cache files.
+
+    Pacman does not expose structured progress to pacstrap. Its log does expose
+    the transaction's total download size, while completed and partial package
+    files accumulate in the target cache. Reserve the final ten percent for
+    signature verification, extraction, and package hooks.
+    """
+    try:
+        log_text = log_path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None
+    matches = re.findall(
+        r"Total Download Size:\s+([0-9]+(?:\.[0-9]+)?)\s+(KiB|MiB|GiB)",
+        log_text,
+    )
+    if not matches:
+        return None
+    amount, unit = matches[-1]
+    multiplier = {
+        "KiB": 1024,
+        "MiB": 1024**2,
+        "GiB": 1024**3,
+    }[unit]
+    total_bytes = float(amount) * multiplier
+    if total_bytes <= 0:
+        return None
+    try:
+        downloaded_bytes = sum(
+            entry.stat().st_size for entry in cache_path.iterdir() if entry.is_file()
+        )
+    except OSError:
+        return None
+    return min(90, max(0, int(downloaded_bytes * 90 / total_bytes)))
+
+
 def ensure_install_network(timeout: int = 45) -> None:
     """Fail before disk changes when the network cannot reach package mirrors."""
     if timeout <= 0:
@@ -1682,7 +1718,23 @@ def install(plan: dict[str, Any], confirm_device: str) -> None:
             for line in package_file.read_text(encoding="utf-8").splitlines()
             if line.strip() and not line.lstrip().startswith("#")
         ]
-        with runner.progress_heartbeat(expanding.advance):
+        package_cache = TARGET_ROOT / "var/cache/pacman/pkg"
+
+        def update_expanding_progress() -> None:
+            measured = pacstrap_download_stage_percent(log_path, package_cache)
+            if measured is None:
+                expanding.advance()
+            elif measured > expanding.stage_percent:
+                expanding.emit(measured)
+            elif measured >= 90:
+                # Downloading is complete. Continue pulsing during signature
+                # checks, extraction, initramfs generation, and package hooks.
+                expanding.advance()
+            else:
+                # Re-emit unchanged measured progress as a liveness heartbeat.
+                expanding.emit()
+
+        with runner.progress_heartbeat(update_expanding_progress):
             runner.run(pacstrap_arguments(TARGET_ROOT, packages))
         fstab = subprocess.run(
             ["genfstab", "-U", str(TARGET_ROOT)], check=True, capture_output=True, text=True

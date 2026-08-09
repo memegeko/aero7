@@ -50,6 +50,7 @@ from aero7_install_backend import (  # noqa: E402
     partition_path,
     partition_table,
     pacstrap_arguments,
+    pacstrap_download_stage_percent,
     prepare_advanced_target,
     required_install_commands,
     running_from_live_installer,
@@ -935,6 +936,34 @@ class DiskPlanTest(unittest.TestCase):
         arguments = pacstrap_arguments(Path("/mnt/aero7-target"), ["base", "linux"])
         self.assertEqual(arguments, ["pacstrap", "/mnt/aero7-target", "base", "linux"])
         self.assertNotIn("-K", arguments)
+
+    def test_pacstrap_progress_uses_downloaded_cache_bytes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            log = root / "installer.log"
+            cache = root / "cache"
+            cache.mkdir()
+            log.write_text(
+                "Total Download Size: 100.00 MiB\n:: Retrieving packages...\n",
+                encoding="utf-8",
+            )
+            with (cache / "package.pkg.tar.zst.part").open("wb") as package:
+                package.truncate(25 * 1024**2)
+
+            self.assertEqual(pacstrap_download_stage_percent(log, cache), 22)
+
+            with (cache / "package.pkg.tar.zst.part").open("r+b") as package:
+                package.truncate(120 * 1024**2)
+            self.assertEqual(pacstrap_download_stage_percent(log, cache), 90)
+
+    def test_pacstrap_progress_waits_for_pacman_total(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            log = root / "installer.log"
+            cache = root / "cache"
+            cache.mkdir()
+            log.write_text("resolving dependencies...\n", encoding="utf-8")
+            self.assertIsNone(pacstrap_download_stage_percent(log, cache))
 
     def test_network_preflight_rejects_a_disconnected_vm(self):
         with patch(
