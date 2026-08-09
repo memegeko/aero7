@@ -7,9 +7,11 @@
 - SMOD: `https://gitgud.io/aeroshell/smod.git` at
   `f3722949cb2fd0d5cb5cb20a7f439b1b4b936ca0`.
 
-`PlymouthVista.script` is generated from the included `.sp` source files. Its
-configuration selects the Windows 7-style animation while changing the visible
-startup, resume, and copyright strings to Aero7 branding.
+The Aero7 tree retains only the pinned Plymouth runtime, its MIT license, the
+animation frames used by the ISO, and the reproducible Aero7 frame generator.
+Unused upstream install/configuration documentation and an incomplete compiler
+wrapper were deliberately omitted. `THIRD_PARTY.md` records the retained asset
+provenance and redistribution caveat.
 
 The installer copies the SMOD Aero frame and caption-button textures and the
 AeroThemePlasma back-button sprite. The three `controls/button-*.png` files are

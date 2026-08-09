@@ -26,6 +26,22 @@ grep -Eq '^public_release_status=(blocked|cleared)$' \
   exit 1
 }
 
+printf 'Repository structure\n'
+mapfile -t tracked_readmes < <(
+  git -C "$project_root" ls-files | grep -Ei '(^|/)readme([^/]*)$' || true
+)
+if ((${#tracked_readmes[@]} != 1)) || [[ "${tracked_readmes[0]:-}" != "README.md" ]]; then
+  printf 'Keep one public README at the repository root; found:\n' >&2
+  printf '  %s\n' "${tracked_readmes[@]}" >&2
+  exit 1
+fi
+if git -C "$project_root" ls-files \
+    | grep -v '^out/\.gitkeep$' \
+    | grep -Eq '(^|/)(__pycache__|build|work|out|\.cache)(/|$)|\.(iso|qcow2|raw|img|fd|log|pyc)$'; then
+  printf 'Generated build output is tracked in the source repository.\n' >&2
+  exit 1
+fi
+
 printf 'Python backend tests\n'
 python -m unittest discover -s "$project_root/tests" -p 'test_*.py' -v
 
