@@ -4,11 +4,11 @@
 
 | Release | Supported |
 | --- | --- |
-| Beta 1 | Security fixes are accepted for the VM-only test scope |
+| Beta 1 | Security fixes are accepted for supported UEFI test systems |
 | Older development snapshots | No |
 
-Beta 1 must not be used on physical hardware, production systems, or disks that
-contain valuable data.
+Beta 1 is pre-release software. Do not use it on production systems or install
+it to a disk that contains valuable data without a separate, verified backup.
 
 ## Reporting a vulnerability
 
@@ -22,7 +22,7 @@ repository is private; it must be enabled and tested immediately after an
 explicitly approved visibility change and before the public release is
 announced. Non-sensitive bugs may use the normal bug-report form.
 
-Please include the affected commit or release, VM configuration, a minimal
+Please include the affected commit or release, hardware or VM configuration, a minimal
 reproduction, expected and actual behavior, and whether the issue can affect a
 host or physical disk. Remove passwords, tokens, machine identifiers, and other
 personal information from logs.

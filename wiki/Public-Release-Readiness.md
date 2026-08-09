@@ -2,8 +2,8 @@
 
 ## Current status
 
-**Blocked for public redistribution.** Beta 1 remains a private VM-only test
-release. The current Plymouth theme and repository history are intentionally
+**Blocked for public redistribution.** Beta 1 remains a private test release.
+The current Plymouth theme and repository history are intentionally
 retained; no public release is approved merely because source or ISO tests pass.
 
 ## Required before publishing

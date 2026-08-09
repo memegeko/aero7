@@ -3,7 +3,8 @@
 These images document the current Aero7 Beta 1 candidate. Installer and OOBE
 screens are deterministic captures rendered from the same Qt/QML sources used
 by the ISO. Desktop and application screens were captured after a clean
-installation, OOBE, and first-login repair in the supported QEMU/KVM profile.
+installation, OOBE, and first-login repair in the documented QEMU/KVM test
+profile.
 
 ## Desktop
 

@@ -9,10 +9,10 @@ system with a Windows-7-era-inspired installer and KDE Plasma 6 Wayland desktop.
 
 ![Aero7 desktop](images/desktop-overview.png)
 
-> **The published Beta 1 ISO is VM-only.** Current development builds enable
-> guarded physical installation to non-removable SATA, NVMe, MMC, and VirtIO
-> disks. Physical installation remains experimental: use only a disposable,
-> backed-up disk until the hardware test record is complete.
+> **Beta 1 supports x86-64 UEFI PCs and virtual machines.** The guarded
+> installer accepts non-removable SATA, NVMe, MMC, and VirtIO disks. Back up
+> important data, disconnect unrelated disks, and verify the selected disk:
+> Beta software and partition changes can still cause data loss.
 >
 > **Public redistribution is not approved yet.** The private Beta is completing
 > an artwork-rights, mark, and repository-history review. See
@@ -51,7 +51,7 @@ system with a Windows-7-era-inspired installer and KDE Plasma 6 Wayland desktop.
 | SHA-256 | `64115bd497315a871d06786160016487eb9e3eb514fc48900c770a8d9fc6feec` |
 | Firmware | x86-64 UEFI |
 | Desktop | KDE Plasma 6 Wayland |
-| Intended target | Disposable QEMU/KVM VM |
+| Intended target | UEFI test PC or disposable QEMU/KVM VM |
 
 Authorized private testers can download it from the
 [Beta 1 GitHub release](https://github.com/memegeko/aero7/releases/tag/v0.1.0-beta.1).

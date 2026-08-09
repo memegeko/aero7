@@ -28,12 +28,12 @@ glassy desktop design of the late 2000s.
 ---
 
 > [!IMPORTANT]
-> **The published Beta 1 ISO remains VM-only.** Current development builds now
-> permit guarded installation to non-removable SATA, NVMe, MMC, and VirtIO
-> disks when booted from genuine Aero7 installation media. Physical installation
-> is experimental and must use a disposable, backed-up disk until its hardware
-> evidence is complete. Encryption, free-form manual partitioning, and legacy
-> BIOS remain unsupported.
+> **Beta 1 supports guarded installation on x86-64 UEFI PCs and virtual
+> machines.** It can target non-removable SATA, NVMe, MMC, and VirtIO disks when
+> booted from genuine Aero7 installation media. This remains pre-release
+> software: back up important data, disconnect unrelated disks, and verify the
+> selected disk before continuing. Encryption, free-form manual partitioning,
+> legacy BIOS, and Secure Boot remain unsupported.
 >
 > **Public redistribution is not approved yet.** The repository and prerelease
 > remain private while the retained Plymouth animation, project marks, and full
@@ -113,12 +113,12 @@ included because its source and redistribution terms have not been verified.
 1. Open the [Beta 1 release](https://github.com/memegeko/aero7/releases/tag/v0.1.0-beta.1).
 2. Download the `.iso` and matching `.sha256` file.
 3. Verify the checksum before booting the image.
-4. Create an x86-64 UEFI virtual machine with at least 4 GB RAM and a disposable
-   40 GB VirtIO disk.
-5. Boot the ISO and follow the on-screen installer.
+4. Write the ISO to a USB drive with Ventoy or Rufus, or attach it to an x86-64
+   UEFI virtual machine.
+5. Boot the installer and follow the on-screen setup.
 
-Detailed VM settings, checksum commands, screenshots, recovery shortcuts, and
-troubleshooting are in the [Installation handbook page](wiki/Installation.md).
+Detailed Ventoy, Rufus, VM, checksum, recovery, and troubleshooting instructions
+are in the [Installation handbook page](wiki/Installation.md).
 
 ## Beta 1 support matrix
 
@@ -126,12 +126,12 @@ troubleshooting are in the [Installation handbook page](wiki/Installation.md).
 | --- | --- |
 | Architecture | x86-64 |
 | Firmware | UEFI |
-| Tested hypervisor | QEMU/KVM |
-| Target storage | Published ISO: VirtIO; development candidate: non-removable SATA, NVMe, MMC, or VirtIO, 16 GB minimum |
+| Tested environments | UEFI physical PC and QEMU/KVM |
+| Target storage | Non-removable SATA, NVMe, MMC, or VirtIO, 16 GiB minimum |
 | Partitioning | Whole-disk GPT, or guarded GPT New/Format/Shrink targets; 1 GiB FAT32 ESP and ext4 root |
 | Desktop | KDE Plasma 6 Wayland |
 | Networking | Required during package installation |
-| Physical hardware | Experimental in current development builds; hardware validation pending |
+| Physical hardware | Supported for Beta testing; Secure Boot off and AHCI storage required |
 | Dual boot / encryption / manual layout | Guided preservation is experimental; encryption and free-form layouts are unavailable |
 
 ## Documentation
@@ -164,10 +164,9 @@ versioned pages are also ready to synchronize to GitHub Wiki:
 
 Aero7 is experimental Beta software. Automated checks cover the installer state
 machine, destructive-operation gates, package manifest, OOBE, boot configuration,
-QML, and embedded release contents. The published Beta 1 is intended for
-disposable VM testing. Current physical-hardware candidates are only for
-explicitly disposable, backed-up disks—not a personal workstation or
-irreplaceable data.
+QML, and embedded release contents. Beta 1 is intended for careful testing on
+UEFI PCs and disposable VMs. Do not use it on a production workstation or a
+disk containing irreplaceable data.
 
 See the [Beta 1 release notes](docs/BETA1-RELEASE-NOTES.md) and
 [validation report](docs/validation.md) for the exact artifact and test record.

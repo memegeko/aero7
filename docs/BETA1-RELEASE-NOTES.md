@@ -1,6 +1,6 @@
 # Aero7 Beta 1
 
-Aero7 Beta 1 is the first test release of the VM-only graphical installer and
+Aero7 Beta 1 is the first test release of the graphical installer and
 desktop image. It combines an Arch Linux foundation, KDE Plasma 6 Wayland, the
 signed Aero7 desktop packages, a purpose-built Qt/QML installer, and a guided
 first-boot setup.
@@ -8,9 +8,10 @@ first-boot setup.
 > **Distribution status:** private testing only. Public release remains blocked
 > by the reviews in [`PUBLIC-RELEASE-CHECKLIST.md`](PUBLIC-RELEASE-CHECKLIST.md).
 
-> **Use only in a disposable QEMU/KVM virtual machine.** Beta 1 intentionally
-> blocks physical disks and supports only whole-disk installation to a VirtIO
-> target.
+> **Back up important data before installing.** Beta 1 supports guarded
+> installation on x86-64 UEFI PCs and virtual machines, but it remains
+> pre-release software. Disconnect unrelated disks and verify the selected
+> target before any partition change.
 
 ## Download identity
 
@@ -32,7 +33,10 @@ sha256sum -c aero7-beta1-2026.08.02-x86_64.iso.sha256
 
 - direct-to-installer boot with no exposed live desktop;
 - full-screen Qt 6/QML setup and OOBE in a Cage Wayland kiosk;
-- guarded UEFI/GPT whole-disk installation to a disposable VirtIO disk;
+- guarded UEFI/GPT installation to non-removable SATA, NVMe, MMC, or VirtIO
+  disks;
+- whole-disk installation plus guided New, Format, Shrink, Delete, Extend, and
+  storage-driver actions;
 - disk identity revalidation immediately before destructive operations;
 - signed Aero7 binary packages on a focused `plasma-desktop` base;
 - a single Aero taskbar, populated Start menu, light desktop defaults, and
@@ -44,8 +48,11 @@ sha256sum -c aero7-beta1-2026.08.02-x86_64.iso.sha256
 - recovery console on TTY2 and a verbose no-splash boot entry;
 - Repair your computer handoff to the recovery shell;
 - disabled Upgrade option and detailed Linux/open-source license notice;
-- SPICE/QXL launcher defaults that avoid the cursor trails, stale fragments,
-  black repaint screen, and dropped clicks seen with earlier VM combinations.
+- Ventoy, Rufus, direct-write, and QEMU/KVM installation paths documented in
+  the handbook;
+- SPICE/QXL developer launcher defaults that avoid the cursor trails, stale
+  fragments, black repaint screen, and dropped clicks seen with earlier VM
+  combinations.
 
 ## Included Aero7 applications
 
@@ -77,11 +84,12 @@ candidate. They do not imply that the published August 2 asset was replaced.
 
 ## Beta limitations
 
-- x86-64 UEFI and QEMU/KVM only;
-- destructive backend limited to a guarded `/dev/vd*` VM disk;
-- fixed whole-disk GPT, 1 GiB FAT32 ESP, and ext4 root layout;
-- no dual boot, encryption, manual partitioning, legacy BIOS, physical-disk
-  installation, or offline package payload;
+- x86-64 UEFI only, with Secure Boot disabled;
+- RAID On/Intel RST storage is unsupported; disks must be exposed through AHCI;
+- whole-disk GPT or guarded guided-partition targets, with a 1 GiB FAT32 ESP
+  and ext4 root;
+- no encryption, unrestricted manual partition editor, legacy BIOS, or offline
+  package payload;
 - working network access is required during installation;
 - language and regional choices are limited to the currently validated flow.
 
@@ -93,12 +101,12 @@ destructive-operation gates, package manifest, focused Plasma payload, Aero
 layout, application branding, and Beta 1 identity. A clean boot of the release
 artifact reached the graphical language page without rendering corruption.
 
-The published August 2 asset passed its recorded automated release gate. A
-newer August 8 candidate completed the full installation, OOBE, first-desktop,
-application, lock-screen, authentication, and clean-shutdown flow in the
-supported QEMU/KVM profile. Real-hardware testing of that newer candidate is
-still in progress; do not infer a physical-hardware pass until its logs have
-been reviewed and archived.
+The published August 2 asset passed its recorded automated release gate. Newer
+candidates completed the full installation, OOBE, first-desktop, application,
+lock-screen, authentication, and clean-shutdown flow in QEMU/KVM. The August 9
+candidate also completed a whole-disk installation on a Dell Latitude 3310 and
+reached a working desktop. The final replacement artifact must repeat the
+release gate before publication.
 
 See the [validation report](validation.md) and the
 [Aero7 handbook](../wiki/Home.md) for details.

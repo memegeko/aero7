@@ -1,12 +1,12 @@
 # System Requirements
 
-## Current development candidate
+## Beta 1
 
 | Requirement | Supported configuration |
 | --- | --- |
 | CPU architecture | x86-64 |
 | Firmware | UEFI; Secure Boot disabled for the unsigned test image |
-| Environment | QEMU/KVM or explicitly disposable physical test hardware |
+| Environment | x86-64 UEFI PC or QEMU/KVM virtual machine |
 | RAM | 4 GiB minimum; 8 GiB recommended |
 | CPU allocation | Two cores minimum; four recommended |
 | Target disk | Writable, non-removable SATA, NVMe, MMC, or VirtIO disk |
@@ -15,8 +15,9 @@
 | Network | Required during installation |
 | Desktop session | KDE Plasma 6 Wayland |
 
-The published August 2 Beta 1 artifact remains VM-only. Physical support applies
-only to a freshly built candidate containing the current guarded backend.
+Physical installation requires Secure Boot to be disabled and the storage
+controller to expose the disk to Linux. On systems offering RAID On/Intel RST
+or AHCI, use AHCI after safely preparing any existing operating system.
 
 ## Not supported
 
@@ -26,7 +27,7 @@ only to a freshly built candidate containing the current guarded backend.
 - removable USB storage as an installation target;
 - treating guided preservation as a substitute for a verified backup;
 - full-disk encryption;
-- free-form manual partitioning, Delete, or Extend;
+- full free-form manual partitioning;
 - offline package installation;
 - Plasma X11 sessions.
 

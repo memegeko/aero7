@@ -10,9 +10,11 @@ body:
   - type: checkboxes
     id: scope
     attributes:
-      label: Supported test scope
+      label: Safety checks
       options:
-        - label: I reproduced this in a disposable QEMU/KVM VM using the current Aero7 launcher.
+        - label: I used the current Aero7 ISO and verified its SHA-256 checksum.
+          required: true
+        - label: I backed up important data before testing installation or partition changes.
           required: true
         - label: I checked the troubleshooting guide and known issues.
           required: true
@@ -48,7 +50,7 @@ body:
     id: reproduce
     attributes:
       label: Steps to reproduce
-      description: Start from a fresh VM and list every action needed.
+      description: Start from a fresh boot and list every action needed.
     validations:
       required: true
   - type: textarea
@@ -64,10 +66,10 @@ body:
     validations:
       required: true
   - type: textarea
-    id: vm
+    id: environment
     attributes:
-      label: VM configuration
-      description: QEMU version, firmware, RAM, CPU, display backend, and disk configuration.
+      label: Hardware or VM configuration
+      description: Device or VM model, firmware, RAM, CPU, graphics, storage mode, target disk, and USB-writing method.
     validations:
       required: true
   - type: textarea

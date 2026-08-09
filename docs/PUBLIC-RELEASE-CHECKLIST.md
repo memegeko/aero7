@@ -51,9 +51,8 @@ files from the latest tree does not remove copies from earlier commits.
   clean installed VM; superseded screenshots were removed.
 - [x] Record the first successful Dell Latitude 3310 installation and
   post-install audit under `docs/release-evidence/`.
-- [ ] Repeat the Dell installation with the log-persistence and lock-screen
-  fixes, archive the retained installer log, and review the boot journal before
-  describing physical hardware as supported.
+- [ ] Repeat the Dell installation with the final release artifact, archive the
+  retained installer log, and review the boot journal for the hardware record.
 
 ## Approval record
 

@@ -2,8 +2,9 @@
 
 ## Beta 1 limitations
 
-- The published Beta 1 remains VM-only. Current development builds permit
-  physical execution, but the hardware compatibility matrix is not yet complete.
+- The physical-hardware compatibility matrix is still limited. Beta 1 has a
+  guarded installer, but unusual storage controllers, firmware, or graphics
+  hardware may require the debug boot option or may not work yet.
 - Only x86-64 UEFI is supported.
 - Internet access is required for Arch and Aero7 package downloads.
 - Encryption, free-form manual partitioning, offline installation, and legacy

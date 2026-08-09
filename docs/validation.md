@@ -127,10 +127,9 @@ pseudo-filesystems after an interrupted build.
 
 The August 9 candidate completes the tested VM flow and a first Dell hardware
 flow, but it predates the measured package-progress, retained-log, Aero7 OS
-identity, and lock-screen fixes. The published August 2 asset remains a private
-VM-only prerelease. No artifact is approved for physical disks, production
-systems, or public redistribution without a fresh build, complete release
-gate, repeat retained-log hardware review, and the independent artwork rights
-review described in `THIRD_PARTY.md`.
+identity, and lock-screen fixes. It is superseded by the fresh release build.
+No Beta artifact is approved for production systems, and public redistribution
+still requires a fresh complete release gate plus the independent artwork
+rights review described in `THIRD_PARTY.md`.
 The public-release history, mark, security, and fresh-candidate gates are
 tracked in `docs/PUBLIC-RELEASE-CHECKLIST.md`.

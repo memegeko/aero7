@@ -8,17 +8,16 @@ Microsoft Windows.
 
 ## Can I install Beta 1 on a real PC?
 
-The published Beta 1 ISO is VM-only. Current development builds permit guarded
-physical installation on x86-64 UEFI systems using non-removable SATA, NVMe, or
-MMC storage. This path is experimental and should be used only with a disposable,
-backed-up disk until hardware testing is signed off.
+Yes. Beta 1 supports guarded physical installation on x86-64 UEFI systems using
+non-removable SATA, NVMe, or MMC storage. Disable Secure Boot, use AHCI instead
+of RAID On/Intel RST, and keep a verified backup. Beta software and partition
+changes can still cause data loss.
 
 ## Can it dual boot or keep my files?
 
-Current development builds can preserve existing GPT partitions by installing
+Beta 1 can preserve existing GPT partitions by installing
 into unallocated space, replace one selected partition, or shrink NTFS and use
-the released space. The destructive backend is still VM-gated while those
-paths complete dual-boot and real-hardware validation. This is not a backup:
+the released space. This is not a backup:
 partitioning can still cause data loss, and encryption and free-form manual
 partitioning remain unavailable.
 

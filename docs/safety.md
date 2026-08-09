@@ -27,9 +27,8 @@ an exact unallocated range, replace one explicitly selected partition, or
 shrink NTFS after `ntfsresize --check` and a no-action trial. The filesystem is
 shrunk before its GPT boundary moves. Tests exercise rejection of mounted,
 removable, read-only, changed, undersized, live-media, unsupported-path,
-non-GPT, ESP, stale-gap, and stale-partition targets. Physical execution is
-enabled for guarded development candidates while disposable-hardware evidence
-is collected.
+non-GPT, ESP, stale-gap, and stale-partition targets. The same checks apply on
+physical hardware and in virtual machines.
 
 The installed-system desktop adapter has a separate first-boot gate. It runs
 only as root, requires the exact `AERO7_IMAGE_MODE_GUARD` token and a ready
