@@ -12,3 +12,29 @@ __pycache__/
 *.py[cod]
 .cache/
 
+# Local credentials and signing-key transfers
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+*.secret
+*.passphrase
+*.private.gpg
+/.aero7-key-transfer/
+/secrets/
+
+# Local release, test, and artwork working files
+/artifacts/
+/local/
+/tmp/
+/installer/assets/legacy-logo-backups/
+*.part
+*.tmp
+*.bak
+*.orig
+*.rej
+*~
+.DS_Store

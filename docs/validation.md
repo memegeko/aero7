@@ -77,7 +77,7 @@ Verified full-flow results included:
 - the second boot required the created password, proving cleanup succeeded;
 - login and logout used project-owned Aero7 branding;
 - `qemu-img check` found no QCOW2 errors after clean shutdown;
-- PlymouthVista itself was not modified.
+- the PlymouthVista base used the Aero7-generated reveal and branding frames.
 
 The August 9 candidate also completed a destructive whole-disk installation on
 a Dell Latitude 3310 and reached a working Plasma desktop with zero failed

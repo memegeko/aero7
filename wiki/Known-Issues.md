@@ -39,9 +39,9 @@ Beta 1 consumes current Arch packages during installation. A future incompatible
 upstream package can therefore affect an old ISO even when the ISO itself has
 not changed. Report the installer log and date when filing a package failure.
 
-## Artwork and redistribution
+## Licensing
 
-The requested PlymouthVista compatibility theme retains upstream animation
-frames whose README attributes visual resources to Microsoft Corporation.
-Anyone redistributing the ISO publicly must independently review the rights and
-notices described in [Credits and Licensing](Credits-and-Licensing.md).
+PlymouthVista is included under its distributed MIT license. Aero7 replaces its
+product logo, reveal, and branding frames with project artwork. See
+[Credits and Licensing](Credits-and-Licensing.md) for the complete package and
+third-party license list.

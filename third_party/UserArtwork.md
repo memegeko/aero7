@@ -11,8 +11,6 @@ Current non-Plymouth outputs:
 - `installer/assets/aero7-logo-plain.png`
 - `installer/assets/aero7-logo-circle.png`
 - `installer/assets/aero7-sddm-branding.png`
-- `installer/assets/legacy-logo-backups/` (repository-only rollback copies;
-  not installed)
 
 The older project-owner-supplied files below are retained only because the
 project owner explicitly requested that Plymouth remain unchanged:

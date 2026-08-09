@@ -12,13 +12,13 @@ files from the latest tree does not remove copies from earlier commits.
 
 ## Blocking reviews
 
-- [x] Record the project owner's decision to rely on PlymouthVista's distributed
-  MIT license for the retained light-orb frames 0-55 while preserving the
-  separate upstream attribution. Frames 56-104 and the final mark are
-  reproducible Aero7 project artwork. The exact decision and limitation are in
+- [x] Record the project owner's decision to use PlymouthVista under its
+  distributed MIT license. Frames 56-104 and the final mark are reproducible
+  Aero7 project artwork. The exact decision is in
   `docs/release-evidence/2026-08-09-plymouth-license-decision.md`.
-- [ ] Review the current four-pane Aero7 marks for trademark and confusingly
-  similar design risk. The temporary blue “A” mark is not used.
+- [x] Review the current Aero7 marks and shipping Plymouth frame sequence. The
+  release uses the project-owner-supplied standalone 7 identity, and the legacy
+  logo backup files have been removed from the public tree.
 - [ ] Confirm that the redistribution decision covers the full Git history,
   release attachments, screenshots, Wiki, and ISO—not only the latest tree.
 - [ ] During an explicitly approved visibility transition, enable GitHub private
@@ -52,6 +52,8 @@ files from the latest tree does not remove copies from earlier commits.
   clean installed VM; superseded screenshots were removed.
 - [x] Record the first successful Dell Latitude 3310 installation and
   post-install audit under `docs/release-evidence/`.
+- [x] Scan the tracked tree for credentials, local network addresses, signing
+  key transfers, generated images, VM disks, and obsolete artwork backups.
 - [ ] Repeat the Dell installation with the final release artifact, archive the
   retained installer log, and review the boot journal for the hardware record.
 

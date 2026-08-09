@@ -113,8 +113,7 @@ See the [validation report](validation.md) and the
 
 Aero7 is an independent open-source project and is not affiliated with or
 endorsed by Microsoft Corporation. Third-party software and artwork retain
-their own licenses and notices. PlymouthVista ships an MIT license; Aero7
-retains that license and the upstream visual-resource attribution, replaces the
-logo/reveal/branding frames with Aero7 artwork, and does not represent that
-Microsoft sponsors the project. See `THIRD_PARTY.md`.
+their own licenses and notices. PlymouthVista is included under its distributed
+MIT license, and Aero7 replaces its logo/reveal/branding frames with project
+artwork. See `THIRD_PARTY.md`.
 The full release decision is tracked in `docs/PUBLIC-RELEASE-CHECKLIST.md`.

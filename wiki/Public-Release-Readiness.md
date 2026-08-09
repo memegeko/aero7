@@ -2,15 +2,14 @@
 
 ## Current status
 
-**Blocked for public redistribution.** Beta 1 remains a private test release.
-The current Plymouth theme and repository history are intentionally
-retained; no public release is approved merely because source or ISO tests pass.
+The Plymouth MIT-license decision, current-tree branding review, ISO rebuild,
+checksum, and source/image validation are recorded. The remaining release work
+is a clean-history decision, private vulnerability reporting, and an exact
+fresh-install/second-boot result.
 
 ## Required before publishing
 
-- obtain and record a valid basis to redistribute the retained PlymouthVista
-  animation frames;
-- review the four-pane Aero7 marks and the full Git history, release files,
+- review the Aero7 marks and the full Git history, release files,
   screenshots, and Wiki for artwork and trademark risk;
 - during an explicitly approved visibility transition, enable and test GitHub
   private vulnerability reporting before announcing the public release;

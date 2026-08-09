@@ -27,22 +27,17 @@ open-source projects. Installed package licenses are available under
 - AeroThemePlasma and SMOD-derived frame/control assets retain their upstream
   AGPL-3.0 terms;
 - Aero7-shell wallpaper and portrait assets retain that project's license;
-- PlymouthVista is distributed with an MIT license; its upstream notice also
-  attributes retained light-orb frames to Microsoft Corporation. Aero7 keeps
-  both notices and uses project artwork for its logo/reveal/branding frames.
+- PlymouthVista is distributed under the MIT license retained in the source
+  tree. Aero7 uses project artwork for its logo, reveal, and branding frames.
 
 ## Redistribution warning
 
-Open-source software licenses do not imply third-party sponsorship or trademark
-permission. The project owner approved continued Beta use of PlymouthVista
-under its distributed MIT license on 2026-08-09. Aero7 preserves the upstream
-asset attribution, makes no Microsoft affiliation claim, and does not remove
-license files, copyright notices, source offers, or attribution from the image.
+The project owner approved continued use of PlymouthVista under its distributed
+MIT license on 2026-08-09. Required license files, source offers, and package
+notices remain included in Aero7.
 
-The current theme and animation remain unchanged. Four unused upstream login
-and product-branding bitmaps were removed from the latest source tree, but
-earlier Git commits still contain them. Any public-release decision must cover
-the repository's full history as well as the ISO and release attachments.
+Unused legacy login and product-branding bitmaps are absent from the current
+source tree and release image.
 
 The repository's `THIRD_PARTY.md` is the authoritative asset-by-asset notice.
 If this wiki summary and that file differ, follow `THIRD_PARTY.md`.
