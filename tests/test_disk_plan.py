@@ -20,6 +20,7 @@ from aero7_install_backend import (  # noqa: E402
     ADVANCED_LAYOUT,
     CommandRunner,
     EFI_SYSTEM_TYPE,
+    GUARD_TOKEN,
     MIN_DISK_BYTES,
     MIN_ADVANCED_REGION_BYTES,
     ProgressPulse,
@@ -43,6 +44,7 @@ from aero7_install_backend import (  # noqa: E402
     fingerprint,
     free_regions,
     install,
+    live_sources,
     nest_block_devices,
     partition_fingerprint,
     partition_path,
@@ -145,6 +147,21 @@ class DiskPlanTest(unittest.TestCase):
         value = disk()
         validate_plan(plan_for(value), value, set())
 
+    def test_accepts_guarded_physical_whole_disk_paths(self):
+        for path, kname, maj_min in (
+            ("/dev/sda", "sda", "8:0"),
+            ("/dev/nvme0n1", "nvme0n1", "259:0"),
+            ("/dev/mmcblk0", "mmcblk0", "179:0"),
+        ):
+            with self.subTest(path=path):
+                value = disk(path=path, kname=kname, **{"maj:min": maj_min})
+                validate_plan(plan_for(value), value, set())
+
+    def test_rejects_unsupported_whole_disk_path(self):
+        value = disk(path="/dev/loop0", kname="loop0", **{"maj:min": "7:0"})
+        with self.assertRaisesRegex(SafetyError, "unsupported disk path"):
+            validate_plan(plan_for(value), value, set())
+
     def test_candidate_filter_rejects_unsafe_devices(self):
         safe = disk()
         mounted = disk(path="/dev/vdb", kname="vdb", **{"maj:min": "252:16"}, mountpoints=["/mnt"])
@@ -171,6 +188,23 @@ class DiskPlanTest(unittest.TestCase):
         )
         with self.assertRaisesRegex(SafetyError, "live installation media"):
             validate_plan(plan_for(value), value, {"/dev/vda2"})
+
+    def test_live_sources_include_ventoy_mapper_partition_and_usb_parent(self):
+        def completed(stdout="", returncode=0):
+            return SimpleNamespace(stdout=stdout, stderr="", returncode=returncode)
+
+        def fake_run(argv, **_kwargs):
+            if argv[0] == "findmnt" and argv[-1] == "/run/archiso/bootmnt":
+                return completed("/dev/mapper/ventoy\n")
+            if argv[0] == "findmnt":
+                return completed()
+            if argv[0] == "lsblk":
+                return completed("/dev/dm-0\n/dev/sdb1\n/dev/sdb\n")
+            raise AssertionError(argv)
+
+        with patch("aero7_install_backend.subprocess.run", side_effect=fake_run):
+            sources = live_sources()
+        self.assertTrue({"/dev/dm-0", "/dev/sdb1", "/dev/sdb"} <= sources)
 
     def test_rejects_child_mount(self):
         value = disk(children=[{"path": "/dev/vda1", "type": "part", "mountpoints": ["/boot"]}])
@@ -247,14 +281,30 @@ class DiskPlanTest(unittest.TestCase):
             runner.calls[0][0], ["sfdisk", "--delete", "/dev/vda", "3"]
         )
 
-    def test_rejects_non_virtio_path(self):
-        value = disk(path="/dev/sda", kname="sda", **{"maj:min": "8:0"})
-        with self.assertRaisesRegex(SafetyError, "VirtIO"):
-            validate_plan(plan_for(value), value, set())
-
     def test_execution_gate_is_closed_by_default(self):
         with patch.dict("os.environ", {}, clear=True):
             with self.assertRaisesRegex(SafetyError, "guard token"):
+                enforce_execution_gate()
+
+    def test_execution_gate_accepts_booted_aero7_media_on_physical_hardware(self):
+        with (
+            patch.dict(
+                "os.environ", {"AERO7_ALLOW_DESTRUCTIVE": GUARD_TOKEN}, clear=True
+            ),
+            patch("aero7_install_backend.os.geteuid", return_value=0),
+            patch("aero7_install_backend.running_from_live_installer", return_value=True),
+        ):
+            enforce_execution_gate()
+
+    def test_execution_gate_rejects_copied_backend_on_installed_system(self):
+        with (
+            patch.dict(
+                "os.environ", {"AERO7_ALLOW_DESTRUCTIVE": GUARD_TOKEN}, clear=True
+            ),
+            patch("aero7_install_backend.os.geteuid", return_value=0),
+            patch("aero7_install_backend.running_from_live_installer", return_value=False),
+        ):
+            with self.assertRaisesRegex(SafetyError, "booted Aero7 installation media"):
                 enforce_execution_gate()
 
     def test_oobe_requires_safe_account_values(self):
@@ -560,6 +610,7 @@ class DiskPlanTest(unittest.TestCase):
         self.assertEqual(partition_path("/dev/vda", 3), "/dev/vda3")
         self.assertEqual(partition_path("/dev/sda", 3), "/dev/sda3")
         self.assertEqual(partition_path("/dev/nvme0n1", 3), "/dev/nvme0n1p3")
+        self.assertEqual(partition_path("/dev/mmcblk0", 3), "/dev/mmcblk0p3")
 
     def test_storage_inventory_lists_system_windows_and_unallocated_space(self):
         value = gpt_disk_with_windows()

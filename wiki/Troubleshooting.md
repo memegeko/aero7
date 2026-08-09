@@ -27,14 +27,18 @@ tablet devices if the pointer coordinates or button events are duplicated.
 
 ## No disk appears
 
-Beta 1 lists only safe targets. Check that the disk:
+The current installer lists only safe targets. Check that the disk:
 
-- is a whole VirtIO block disk such as `/dev/vda`;
+- is a supported whole disk such as `/dev/vda`, `/dev/sda`, or `/dev/nvme0n1`;
 - is at least 16 GiB;
 - is writable and non-removable;
 - has no mounted partition;
 - is not the live ISO source;
-- is inside a supported DMI-identified virtual machine.
+- is visible to Linux; on Dell hardware, RAID On/Intel RST may need to be
+  safely converted to AHCI before the disk appears.
+
+The backend must also be running from booted Aero7 installation media. A copied
+backend on an installed system is intentionally rejected.
 
 Advanced mode additionally requires GPT. New needs at least 17 GiB of exact
 unallocated space. Format needs a non-ESP partition of at least 17 GiB. Shrink

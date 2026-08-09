@@ -28,12 +28,11 @@ glassy desktop design of the late 2000s.
 ---
 
 > [!IMPORTANT]
-> **Beta 1 is a VM-only testing release.** Its destructive installer accepts
-> only a disposable VirtIO disk inside a supported virtual machine. Current
-> development builds add guided advanced options for unallocated space,
-> replacing one selected partition, and shrinking an NTFS partition, but these
-> must pass the dual-boot VM and real-hardware test gates before physical-disk
-> execution is enabled. Encryption, free-form manual partitioning, and legacy
+> **The published Beta 1 ISO remains VM-only.** Current development builds now
+> permit guarded installation to non-removable SATA, NVMe, MMC, and VirtIO
+> disks when booted from genuine Aero7 installation media. Physical installation
+> is experimental and must use a disposable, backed-up disk until its hardware
+> evidence is complete. Encryption, free-form manual partitioning, and legacy
 > BIOS remain unsupported.
 >
 > **Public redistribution is not approved yet.** The repository and prerelease
@@ -128,12 +127,12 @@ troubleshooting are in the [Installation handbook page](wiki/Installation.md).
 | Architecture | x86-64 |
 | Firmware | UEFI |
 | Tested hypervisor | QEMU/KVM |
-| Target storage | Disposable VirtIO disk, 16 GB minimum; 40 GB recommended |
-| Partitioning | Whole-disk GPT, 1 GiB FAT32 ESP, ext4 root |
+| Target storage | Published ISO: VirtIO; development candidate: non-removable SATA, NVMe, MMC, or VirtIO, 16 GB minimum |
+| Partitioning | Whole-disk GPT, or guarded GPT New/Format/Shrink targets; 1 GiB FAT32 ESP and ext4 root |
 | Desktop | KDE Plasma 6 Wayland |
 | Networking | Required during package installation |
-| Physical hardware | Blocked in Beta 1 |
-| Dual boot / encryption / manual layout | Not available in Beta 1 |
+| Physical hardware | Experimental in current development builds; hardware validation pending |
+| Dual boot / encryption / manual layout | Guided preservation is experimental; encryption and free-form layouts are unavailable |
 
 ## Documentation
 
@@ -165,8 +164,10 @@ versioned pages are also ready to synchronize to GitHub Wiki:
 
 Aero7 is experimental Beta software. Automated checks cover the installer state
 machine, destructive-operation gates, package manifest, OOBE, boot configuration,
-QML, and embedded release contents. Beta 1 is intended for disposable VM testing
-and feedback—not a personal workstation or irreplaceable data.
+QML, and embedded release contents. The published Beta 1 is intended for
+disposable VM testing. Current physical-hardware candidates are only for
+explicitly disposable, backed-up disks—not a personal workstation or
+irreplaceable data.
 
 See the [Beta 1 release notes](docs/BETA1-RELEASE-NOTES.md) and
 [validation report](docs/validation.md) for the exact artifact and test record.

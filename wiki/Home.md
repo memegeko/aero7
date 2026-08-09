@@ -9,9 +9,10 @@ system with a Windows-7-era-inspired installer and KDE Plasma 6 Wayland desktop.
 
 ![Aero7 desktop](images/desktop-overview.png)
 
-> **Beta 1 is a VM-only testing release.** The installer intentionally accepts
-> only a disposable VirtIO disk inside a supported virtual machine. Do not use
-> it for a personal workstation or irreplaceable data.
+> **The published Beta 1 ISO is VM-only.** Current development builds enable
+> guarded physical installation to non-removable SATA, NVMe, MMC, and VirtIO
+> disks. Physical installation remains experimental: use only a disposable,
+> backed-up disk until the hardware test record is complete.
 >
 > **Public redistribution is not approved yet.** The private Beta is completing
 > an artwork-rights, mark, and repository-history review. See
@@ -22,7 +23,7 @@ system with a Windows-7-era-inspired installer and KDE Plasma 6 Wayland desktop.
 | I want to… | Read… |
 | --- | --- |
 | Download and install Beta 1 | [Installation](Installation.md) |
-| Check whether my VM is supported | [System Requirements](System-Requirements.md) |
+| Check whether my VM or test PC is supported | [System Requirements](System-Requirements.md) |
 | Understand every setup page | [Installer Guide](Installer-Guide.md) |
 | Learn what happens after restart | [First Boot and OOBE](First-Boot-and-OOBE.md) |
 | See which programs are included | [Included Software](Included-Software.md) |

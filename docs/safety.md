@@ -3,7 +3,8 @@
 The backend aborts unless every condition below is true at execution time:
 
 1. `--execute` was supplied and the environment contains the exact guard token.
-2. The process is root and DMI identifies a supported virtual machine.
+2. The process is root, the kernel command line identifies the Aero7 Archiso,
+   and the live boot medium is mounted at `/run/archiso/bootmnt`.
 3. The selected parent resolves to a whole block disk, not a ROM; an advanced
    target must resolve to an exact child partition or exact unallocated range.
 4. It is writable, non-removable, unmounted, and is not the live ISO source.
@@ -23,9 +24,10 @@ partition plans are generated centrally. The guided advanced path can consume
 an exact unallocated range, replace one explicitly selected partition, or
 shrink NTFS after `ntfsresize --check` and a no-action trial. The filesystem is
 shrunk before its GPT boundary moves. Tests exercise rejection of mounted,
-removable, read-only, changed, undersized, live-media, non-GPT, ESP, stale-gap,
-and stale-partition targets. Physical execution remains VM-gated while this
-path is being validated.
+removable, read-only, changed, undersized, live-media, unsupported-path,
+non-GPT, ESP, stale-gap, and stale-partition targets. Physical execution is
+enabled for guarded development candidates while disposable-hardware evidence
+is collected.
 
 The installed-system desktop adapter has a separate first-boot gate. It runs
 only as root, requires the exact `AERO7_IMAGE_MODE_GUARD` token and a ready

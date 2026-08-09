@@ -38,9 +38,9 @@ provided on the following disk page through Drive options (advanced).
 
 ## Disk selection
 
-The backend lists only devices passing all safety rules. A valid Beta 1 parent
-is an unmounted, writable, non-removable VirtIO disk that is not the live ISO
-source. Basic mode selects the whole disk. Advanced mode lists its exact GPT
+The backend lists only devices passing all safety rules. A valid development
+target is an unmounted, writable, non-removable SATA, NVMe, MMC, or VirtIO disk
+that is not the live ISO source. Basic mode selects the whole disk. Advanced mode lists its exact GPT
 partitions and unallocated ranges and enables New, Format, or Shrink only where
 the fixed layout fits.
 
@@ -72,8 +72,9 @@ Detailed output is written to `/var/log/aero7-installer.log`.
 
 ## Restart
 
-OVMF is configured to prefer the installed virtual disk over the still-attached
-DVD after the new system becomes bootable. The installed Plymouth animation
+The QEMU launcher prefers the installed virtual disk over the still-attached
+DVD. On hardware, remove the USB or choose the installed disk if firmware boots
+the installer again. The installed Plymouth animation
 plays before OOBE begins.
 
 ![Restart to continue](images/installer-10-restart.png)

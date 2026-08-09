@@ -219,8 +219,8 @@ done
 
 service_file="$profile_root/airootfs/etc/systemd/system/aero7-installer.service"
 if [[ "${AERO7_ENABLE_LIVE_INSTALL:-1}" == "1" ]]; then
-  sed -i 's/@INSTALL_MODE@/--live-install/; s|@DESTRUCTIVE_ENV@|Environment=AERO7_ALLOW_DESTRUCTIVE=YES-I-AM-IN-A-DISPOSABLE-AERO7-VM|' "$service_file"
-  printf 'Prepared LIVE-INSTALL profile. Use only with scripts/run-qemu.sh --fresh.\n'
+  sed -i 's/@INSTALL_MODE@/--live-install/; s|@DESTRUCTIVE_ENV@|Environment=AERO7_ALLOW_DESTRUCTIVE=YES-I-AM-IN-AERO7-INSTALLER|' "$service_file"
+  printf 'Prepared LIVE-INSTALL profile for guarded VM and physical-disk testing.\n'
 else
   sed -i 's/@INSTALL_MODE@/--demo/; s/@DESTRUCTIVE_ENV@//' "$service_file"
   printf 'Prepared simulation-only profile.\n'

@@ -129,6 +129,15 @@ for advanced_storage_package in ntfsprogs parted; do
 done
 grep -Fq 'def backup_partition_table(' \
   "$project_root/backend/aero7_install_backend.py"
+grep -Fq 'r"/dev/(?:vd[a-z]|sd[a-z]|nvme\d+n\d+|mmcblk\d+)"' \
+  "$project_root/backend/aero7_install_backend.py"
+grep -Fq 'real installation must run from booted Aero7 installation media' \
+  "$project_root/backend/aero7_install_backend.py"
+if rg -n 'VM_MARKERS|restricted to a recognized virtual machine|only a QEMU VirtIO' \
+    "$project_root/backend/aero7_install_backend.py" >/dev/null 2>&1; then
+  printf 'The backend still contains the retired VM-only execution gate.\n' >&2
+  exit 1
+fi
 grep -Fq '"--no-act",' \
   "$project_root/backend/aero7_install_backend.py"
 grep -Fq 'runner.run(["ntfsresize", "--check", partition])' \

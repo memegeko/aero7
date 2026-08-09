@@ -8,8 +8,10 @@ Microsoft Windows.
 
 ## Can I install Beta 1 on a real PC?
 
-No. Beta 1 deliberately blocks physical disks and supports only a disposable
-VirtIO disk in QEMU/KVM. Physical-hardware support is a later milestone.
+The published Beta 1 ISO is VM-only. Current development builds permit guarded
+physical installation on x86-64 UEFI systems using non-removable SATA, NVMe, or
+MMC storage. This path is experimental and should be used only with a disposable,
+backed-up disk until hardware testing is signed off.
 
 ## Can it dual boot or keep my files?
 

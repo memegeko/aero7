@@ -28,7 +28,7 @@ MIN_DISK_BYTES = 16 * 1024**3
 MIN_ROOT_BYTES = 16 * 1024**3
 ADVANCED_ESP_BYTES = 1024**3
 MIN_ADVANCED_REGION_BYTES = MIN_ROOT_BYTES + ADVANCED_ESP_BYTES
-GUARD_TOKEN = "YES-I-AM-IN-A-DISPOSABLE-AERO7-VM"
+GUARD_TOKEN = "YES-I-AM-IN-AERO7-INSTALLER"
 SUPPORTED_LAYOUT = "uefi-gpt-esp-ext4"
 ADVANCED_LAYOUT = "uefi-gpt-preserve-esp-ext4"
 EFI_SYSTEM_TYPE = "c12a7328-f81f-11d2-ba4b-00a0c93ec93b"
@@ -42,7 +42,8 @@ INSTALL_STAGES = (
     "Applying system settings",
     "Preparing first boot",
 )
-VM_MARKERS = ("qemu", "kvm", "virtualbox", "vmware")
+LIVE_BOOT_MOUNT = Path("/run/archiso/bootmnt")
+PROC_CMDLINE = Path("/proc/cmdline")
 PACKAGE_MIRROR_HOSTS = (
     "geo.mirror.pkgbuild.com",
     "fastly.mirror.pkgbuild.com",
@@ -178,6 +179,13 @@ def disk_contains_source(node: dict[str, Any], sources: set[str]) -> bool:
 
 
 def live_sources() -> set[str]:
+    """Return live-media devices and every physical ancestor.
+
+    Ventoy commonly mounts a device-mapper node backed by a partition on the
+    USB stick. Recording only the mapper node would allow its parent disk to
+    appear as an installation candidate on hardware that reports USB media as
+    non-removable. Reverse lsblk traversal closes that gap.
+    """
     result: set[str] = set()
     for mountpoint in ("/run/archiso/bootmnt", "/boot", "/"):
         completed = subprocess.run(
@@ -187,8 +195,28 @@ def live_sources() -> set[str]:
             text=True,
         )
         source = completed.stdout.strip()
-        if source.startswith("/dev/"):
-            result.add(str(Path(source).resolve()))
+        if not source.startswith("/dev/"):
+            continue
+        resolved = str(Path(source).resolve())
+        result.add(resolved)
+        ancestry = subprocess.run(
+            [
+                "lsblk",
+                "--inverse",
+                "--noheadings",
+                "--paths",
+                "--output",
+                "PATH",
+                resolved,
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        for device in ancestry.stdout.splitlines():
+            device = device.strip()
+            if device.startswith("/dev/"):
+                result.add(str(Path(device).resolve()))
     return result
 
 
@@ -476,10 +504,8 @@ def validate_plan(plan: dict[str, Any], current: dict[str, Any], excluded_source
     if current.get("type") != "disk":
         raise SafetyError("selected target is not a whole disk")
     device = str(plan.get("device") or "")
-    if layout == SUPPORTED_LAYOUT and not re.fullmatch(r"/dev/vd[a-z]", device):
-        raise SafetyError("MVP live installs accept only a QEMU VirtIO /dev/vdX disk")
-    if layout == ADVANCED_LAYOUT and not supported_disk_path(device):
-        raise SafetyError("advanced target uses an unsupported disk path")
+    if not supported_disk_path(device):
+        raise SafetyError("installation target uses an unsupported disk path")
     if disk_contains_source(current, excluded_sources):
         raise SafetyError("selected disk contains the live installation media")
     if bool(current.get("ro")):
@@ -595,14 +621,21 @@ def validate_plan(plan: dict[str, Any], current: dict[str, Any], excluded_source
     )
 
 
-def read_dmi() -> str:
-    values: list[str] = []
-    for path in (Path("/sys/class/dmi/id/product_name"), Path("/sys/class/dmi/id/sys_vendor")):
-        try:
-            values.append(path.read_text(encoding="utf-8", errors="replace").strip())
-        except OSError:
-            pass
-    return " ".join(values).lower()
+def running_from_live_installer() -> bool:
+    """Return true only for the booted Aero7 Archiso environment.
+
+    The destructive token prevents accidental direct invocation, while this
+    check prevents a copied backend and token from being used on an installed
+    system.  Both direct-written media and Ventoy expose the Archiso boot
+    mount once the live root has started.
+    """
+    try:
+        cmdline = PROC_CMDLINE.read_text(
+            encoding="utf-8", errors="replace"
+        ).split()
+    except OSError:
+        return False
+    return "archisobasedir=aero7" in cmdline and LIVE_BOOT_MOUNT.is_mount()
 
 
 def enforce_execution_gate() -> None:
@@ -610,9 +643,8 @@ def enforce_execution_gate() -> None:
         raise SafetyError("destructive guard token is absent")
     if os.geteuid() != 0:
         raise SafetyError("real installation backend must run as root inside the ISO")
-    dmi = read_dmi()
-    if not any(marker in dmi for marker in VM_MARKERS):
-        raise SafetyError("real installation is restricted to a recognized virtual machine")
+    if not running_from_live_installer():
+        raise SafetyError("real installation must run from booted Aero7 installation media")
 
 
 def required_install_commands(plan: dict[str, Any]) -> tuple[str, ...]:
@@ -835,7 +867,7 @@ def validate_storage_action(
 
 
 def apply_storage_action(plan: dict[str, Any], confirm_device: str) -> None:
-    """Execute one guarded partition maintenance action in the live VM."""
+    """Execute one guarded partition maintenance action from live media."""
     enforce_execution_gate()
     if confirm_device != plan.get("device"):
         raise SafetyError("final confirmation does not match the selected device")
@@ -1801,7 +1833,7 @@ def make_parser() -> argparse.ArgumentParser:
     validate_parser = sub.add_parser("validate-plan", help="revalidate a plan without modifying disks")
     validate_parser.add_argument("--plan", type=Path, required=True)
 
-    install_parser = sub.add_parser("install", help="perform the guarded VM-only install")
+    install_parser = sub.add_parser("install", help="perform the guarded live-media install")
     install_parser.add_argument("--plan", type=Path, required=True)
     install_parser.add_argument("--confirm-device", required=True)
     install_parser.add_argument("--execute", action="store_true")

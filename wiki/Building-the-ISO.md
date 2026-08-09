@@ -69,7 +69,7 @@ Aero taskbar layout, application branding, and login artwork.
 ## Output safety
 
 - Never point a development launcher at a host block device.
-- Never weaken the VirtIO, VM, fingerprint, or live-media checks for
+- Never weaken the supported-device-path, fingerprint, or live-media checks for
   convenience.
 - Never publish an ISO unless its checksum was generated from the exact file
   that passed verification and the fresh-VM gate.

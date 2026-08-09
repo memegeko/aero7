@@ -1,7 +1,7 @@
 # Beta 1 Implementation Status
 
-The original vertical slice has grown into a guarded VM-only installation
-path. This document records the completed Beta 1 scope and the work deliberately
+The original vertical slice has grown into a guarded VM and physical-hardware
+installation path. This document records the completed development scope and the work deliberately
 left for later releases.
 
 ## Complete in Beta 1
@@ -11,7 +11,8 @@ left for later releases.
 2. Build one scalable Qt 6/QML application with separate installer and OOBE
    state machines on a 1024×768 logical canvas.
 3. Provide a narrow privileged backend that accepts only a revalidated,
-   disposable VirtIO VM disk and creates the fixed GPT/ESP/ext4 layout.
+   non-removable SATA, NVMe, MMC, or VirtIO disk while running from booted Aero7
+   media, then creates the fixed GPT/ESP/ext4 layout or a guarded advanced layout.
 4. Assemble an Archiso image that starts Cage and the installer on TTY1, keeps
    recovery on TTY2, and exposes no live Plasma desktop.
 5. Install a one-time Cage/OOBE service that creates the real user, applies the
@@ -26,8 +27,8 @@ left for later releases.
 
 ## Deliberately deferred
 
-- physical-hardware installation;
-- dual boot and install-alongside;
+- broad physical-hardware certification beyond the current disposable test set;
+- automatic dual-boot menu integration beyond guarded New/Format/Shrink targets;
 - encryption and manual partitioning;
 - legacy BIOS;
 - offline package installation;
@@ -35,5 +36,6 @@ left for later releases.
 - automatic NVIDIA-specific selection;
 - recovery environment beyond the TTY2 console.
 
-These features must not be enabled by removing guards. Each requires its own
-design, safety review, automated tests, and disposable-hardware validation.
+These features must not be enabled by removing their remaining guards. Each
+requires its own design, safety review, automated tests, and disposable-hardware
+validation.

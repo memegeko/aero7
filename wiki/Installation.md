@@ -1,8 +1,9 @@
 # Installation
 
-Beta 1 is designed for a **disposable QEMU/KVM virtual machine**. Its installer
-still rejects physical execution. Current development builds can exercise the
-guided advanced layout against a synthetic VirtIO dual-boot disk.
+The published Beta 1 ISO is designed for a **disposable QEMU/KVM virtual
+machine**. A freshly built development candidate also permits guarded
+installation on explicitly disposable x86-64 UEFI hardware. Back up every disk
+connected to the machine and disconnect unrelated drives before testing.
 
 ## 1. Download
 
@@ -48,8 +49,23 @@ Recommended configuration:
 | Disk | New 40 GiB VirtIO block disk |
 | Installation media | Aero7 Beta 1 ISO |
 
-The target must appear to Linux as `/dev/vd*`. SATA, NVMe, USB, physical host
-devices, and already-mounted disks are rejected by the Beta 1 safety gate.
+The development candidate accepts writable, non-removable `/dev/vd*`,
+`/dev/sd*`, `/dev/nvme*n*`, and `/dev/mmcblk*` whole disks. Mounted, read-only,
+removable, undersized, live-media, and unsupported device paths are rejected.
+
+### Physical test machine
+
+- use x86-64 UEFI with Secure Boot disabled;
+- configure the storage controller as AHCI, not Disabled or RAID On/Intel RST;
+- write the ISO directly to USB; Ventoy GRUB2 mode may work but is not the
+  release-validation path;
+- use wired networking when possible because packages are downloaded during
+  setup;
+- attach only the disposable target disk for the first hardware test.
+
+Changing RAID On to AHCI can make an existing operating system unbootable.
+Prepare that operating system first or use a disk that contains nothing you
+need. Whole-disk installation erases the selected disk completely.
 
 ## 4. Boot the ISO
 
@@ -104,8 +120,8 @@ for testing preservation and installation, not for testing Windows itself.
 
 ## 6. Restart and personalize
 
-After the disk phase, the machine restarts from its virtual disk while the ISO
-may remain attached. The OOBE pages create your user, password, computer name,
+After the disk phase, the machine restarts from its installed disk. Remove the
+USB if the firmware selects it again. The OOBE pages create your user, password, computer name,
 time zone, update choice, and network profile. See
 [First Boot and OOBE](First-Boot-and-OOBE.md).
 
@@ -116,4 +132,4 @@ time zone, update choice, and network profile. See
 - Read [Troubleshooting](Troubleshooting.md) and
   [Recovery and Logs](Recovery-and-Logs.md).
 
-Do not attach a host drive or important VM disk to a Beta 1 test machine.
+Do not attach an important host, physical, or VM disk to a development test.
