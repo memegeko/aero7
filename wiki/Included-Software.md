@@ -43,6 +43,9 @@ then the signed Aero7 repository adds the themed desktop components.
 | Calculator | KCalc |
 | Notepad | FeatherPad using the Aero7 Qt desktop theme |
 | Archive support | Ark |
+| Network connection settings | Plasma Network Management (`plasma-nm`) |
+| Firewall | UFW with Aero7 Control Panel management |
+| Spelling | Sonnet/Hunspell with English and Dutch dictionaries |
 | Version information | LinVer |
 | Windows executable helper | execbin |
 

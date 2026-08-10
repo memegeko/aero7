@@ -53,6 +53,7 @@ wireplumber
 xdg-desktop-portal
 xdg-desktop-portal-kde
 polkit
+ufw
 accountsservice
 wine
 wine-mono
@@ -63,4 +64,7 @@ desktop-file-utils
 ttf-liberation
 ttf-dejavu
 noto-fonts
+hunspell
+hunspell-en_us
+hunspell-nl
 tesseract-data-eng

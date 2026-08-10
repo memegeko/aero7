@@ -99,6 +99,8 @@ application meta-packages. Aero7 then adds its own signed desktop set:
 - VLC presented as **Media Player**, Spectacle as **Snipping Tool**,
   KCalc as **Calculator**, and FeatherPad as **Notepad**;
 - Ark archive integration, Wine compatibility components, and branded Fastfetch.
+- Plasma Network Management, UFW firewall management, and English and Dutch
+  spell-check dictionaries for the matching Control Panel settings.
 
 WinXplorer remains optional and is not installed by the ISO. Sevulet is not
 included because its source and redistribution terms have not been verified.

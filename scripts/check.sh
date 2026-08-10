@@ -378,6 +378,18 @@ for required_desktop_application in qterminal vlc spectacle kcalc featherpad; do
     exit 1
   fi
 done
+for required_control_panel_backend in plasma-nm ufw hunspell hunspell-en_us hunspell-nl; do
+  if ! grep -Fqx "$required_control_panel_backend" "$project_root/config/base-packages.txt"; then
+    printf 'Required Control Panel backend package is missing: %s\n' \
+      "$required_control_panel_backend" >&2
+    exit 1
+  fi
+done
+grep -Fq '"systemctl", "enable", "ufw.service"' \
+  "$project_root/backend/aero7_install_backend.py" || {
+    printf 'The installed system does not enable UFW rule restoration.\n' >&2
+    exit 1
+  }
 for available_application in linux-devmgmt tuxmanager; do
   grep -Fqx "$available_application" "$project_root/config/aero7-packages.txt" || {
     printf 'Available shell application package is missing: %s\n' "$available_application" >&2

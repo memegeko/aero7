@@ -1966,6 +1966,7 @@ def install(plan: dict[str, Any], confirm_device: str) -> None:
             updates_settings.advance()
             configure_target_plymouth(TARGET_ROOT, runner)
             runner.run(["arch-chroot", str(TARGET_ROOT), "systemctl", "enable", "NetworkManager.service"])
+            runner.run(["arch-chroot", str(TARGET_ROOT), "systemctl", "enable", "ufw.service"])
             runner.run(["arch-chroot", str(TARGET_ROOT), "systemctl", "disable", "sddm.service"])
             runner.run(["arch-chroot", str(TARGET_ROOT), "systemctl", "enable", "aero7-oobe.service"])
         updates_settings.complete()
