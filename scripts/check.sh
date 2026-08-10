@@ -378,7 +378,8 @@ for required_desktop_application in qterminal vlc spectacle kcalc featherpad; do
     exit 1
   fi
 done
-for required_control_panel_backend in plasma-nm ufw hunspell hunspell-en_us hunspell-nl; do
+for required_control_panel_backend in plasma-nm ufw hunspell hunspell-en_us hunspell-nl \
+    accountsservice upower power-profiles-daemon pipewire-pulse wireplumber; do
   if ! grep -Fqx "$required_control_panel_backend" "$project_root/config/base-packages.txt"; then
     printf 'Required Control Panel backend package is missing: %s\n' \
       "$required_control_panel_backend" >&2

@@ -101,6 +101,8 @@ application meta-packages. Aero7 then adds its own signed desktop set:
 - Ark archive integration, Wine compatibility components, and branded Fastfetch.
 - Plasma Network Management, UFW firewall management, and English and Dutch
   spell-check dictionaries for the matching Control Panel settings.
+- AccountsService, UPower, power-profiles-daemon, and PipeWire services for
+  the Control Panel's native account, battery, power, and sound pages.
 
 WinXplorer remains optional and is not installed by the ISO. Sevulet is not
 included because its source and redistribution terms have not been verified.

@@ -4,6 +4,8 @@ linux-firmware
 intel-ucode
 amd-ucode
 networkmanager
+upower
+power-profiles-daemon
 inetutils
 python
 sudo

@@ -46,6 +46,8 @@ then the signed Aero7 repository adds the themed desktop components.
 | Network connection settings | Plasma Network Management (`plasma-nm`) |
 | Firewall | UFW with Aero7 Control Panel management |
 | Spelling | Sonnet/Hunspell with English and Dutch dictionaries |
+| Account management | AccountsService and authenticated Linux account tools |
+| Power status and profiles | UPower and power-profiles-daemon |
 | Version information | LinVer |
 | Windows executable helper | execbin |
 

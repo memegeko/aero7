@@ -86,7 +86,8 @@ grep -Fqx plasma-desktop "$embedded_base_packages"
 for required_desktop_application in qterminal vlc spectacle kcalc featherpad; do
   grep -Fqx "$required_desktop_application" "$embedded_base_packages"
 done
-for required_control_panel_backend in plasma-nm ufw hunspell hunspell-en_us hunspell-nl; do
+for required_control_panel_backend in plasma-nm ufw hunspell hunspell-en_us hunspell-nl \
+    accountsservice upower power-profiles-daemon pipewire-pulse wireplumber; do
   grep -Fqx "$required_control_panel_backend" "$embedded_base_packages"
 done
 for excluded_target_package in plasma-meta kde-applications-meta konsole; do
