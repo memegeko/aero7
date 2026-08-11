@@ -1324,14 +1324,16 @@ def brand_sddm_themes(
     for main_qml in sorted(themes_root.glob("*/Main.qml")):
         contents = main_qml.read_text(encoding="utf-8")
         upstream_reference = "Assets/branding-white.png"
-        if upstream_reference not in contents:
+        branded_reference = "Assets/aero7-branding.png"
+        if (upstream_reference not in contents
+                and branded_reference not in contents):
             continue
         assets = main_qml.parent / "Assets"
         assets.mkdir(parents=True, exist_ok=True)
         destination = assets / "aero7-branding.png"
         shutil.copy2(branding_source, destination)
         main_qml.write_text(
-            contents.replace(upstream_reference, "Assets/aero7-branding.png"),
+            contents.replace(upstream_reference, branded_reference),
             encoding="utf-8",
         )
         (assets / "branding-white.png").unlink(missing_ok=True)

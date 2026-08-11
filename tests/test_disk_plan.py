@@ -484,6 +484,31 @@ class DiskPlanTest(unittest.TestCase):
             self.assertEqual((theme / "preview.png").read_bytes(), b"aero7 background")
             self.assertNotIn("Windows 7", metadata.read_text(encoding="utf-8"))
 
+    def test_sddm_branding_refreshes_prebranded_package_theme(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            theme = root / "themes/sddm-theme-mod"
+            assets = theme / "Assets"
+            assets.mkdir(parents=True)
+            main_qml = theme / "Main.qml"
+            main_qml.write_text(
+                'Image { source: Qt.resolvedUrl("Assets/aero7-branding.png") }\n',
+                encoding="utf-8",
+            )
+            (assets / "aero7-branding.png").write_bytes(b"old branding")
+            branding = root / "aero7-sddm-branding.png"
+            branding.write_bytes(b"new branding")
+            background = root / "aero7-login-background.jpg"
+            background.write_bytes(b"new background")
+
+            branded = brand_sddm_themes(root / "themes", branding, background)
+
+            self.assertEqual(branded, [theme])
+            self.assertEqual(
+                (assets / "aero7-branding.png").read_bytes(), b"new branding"
+            )
+            self.assertEqual((theme / "background").read_bytes(), b"new background")
+
     def test_plasma_logout_branding_replaces_upstream_watermark(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
