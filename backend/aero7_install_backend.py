@@ -1811,6 +1811,12 @@ def enforce_light_desktop_defaults(username: str, runner: CommandRunner) -> None
              "--key", key, value]
         )
 
+    for key in ("Enabled", "First Use"):
+        runner.run(
+            [*command_prefix, "--file", "kwalletrc", "--group", "Wallet",
+             "--key", key, "--type", "bool", "false"]
+        )
+
     for file_name in (
         "plasmashellrc",
         f"{config_home}/kdedefaults/plasmashellrc",
