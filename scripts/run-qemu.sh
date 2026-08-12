@@ -7,9 +7,10 @@ installed_only=0
 iso_path=""
 display_backend="spice"
 dualboot_fixture=0
+disk_management_fixture=0
 
 usage() {
-  printf 'Usage: %s [--fresh] [--installed] [--dualboot-fixture] [--iso PATH] [--display spice|sdl|gtk]\n' "${0##*/}"
+  printf 'Usage: %s [--fresh] [--installed] [--dualboot-fixture] [--disk-management-fixture] [--iso PATH] [--display spice|sdl|gtk]\n' "${0##*/}"
 }
 
 while (($#)); do
@@ -17,6 +18,7 @@ while (($#)); do
     --fresh) fresh=1 ;;
     --installed) installed_only=1 ;;
     --dualboot-fixture) dualboot_fixture=1 ;;
+    --disk-management-fixture) disk_management_fixture=1 ;;
     --iso) shift; (($#)) || { usage >&2; exit 2; }; iso_path="$1" ;;
     --display) shift; (($#)) || { usage >&2; exit 2; }; display_backend="$1" ;;
     --help) usage; exit 0 ;;
@@ -48,11 +50,13 @@ fi
 for command_name in qemu-system-x86_64 qemu-img; do
   command -v "$command_name" >/dev/null 2>&1 || { printf 'Missing tool: %s\n' "$command_name" >&2; exit 1; }
 done
-if ((dualboot_fixture)); then
-  command -v sfdisk >/dev/null 2>&1 || {
-    printf 'Missing tool for --dualboot-fixture: sfdisk.\n' >&2
-    exit 1
-  }
+if ((dualboot_fixture || disk_management_fixture)); then
+  for command_name in sfdisk mkfs.ext4; do
+    command -v "$command_name" >/dev/null 2>&1 || {
+      printf 'Missing fixture tool: %s.\n' "$command_name" >&2
+      exit 1
+    }
+  done
 fi
 if [[ "$display_backend" == "spice" ]]; then
   command -v remote-viewer >/dev/null 2>&1 || {
@@ -164,6 +168,56 @@ storage_args=(
   -drive "if=none,id=aero7disk,format=$disk_format,file=$disk_path"
   -device "virtio-blk-pci,drive=aero7disk,bootindex=1"
 )
+if ((disk_management_fixture)); then
+  fixture_root="$qemu_root/disk-management-fixture"
+  blank_disk="$fixture_root/blank-8g.qcow2"
+  mixed_disk="$fixture_root/projects-24g.raw"
+  archive_disk="$fixture_root/archive-64g.raw"
+  mkdir -p "$fixture_root"
+
+  if [[ ! -f "$blank_disk" ]]; then
+    qemu-img create -f qcow2 "$blank_disk" 8G
+  fi
+  if [[ ! -f "$mixed_disk" ]]; then
+    truncate -s 24G "$mixed_disk"
+    printf '%s\n' \
+      'label: gpt' \
+      'unit: sectors' \
+      '' \
+      'start=2048, size=12582912, type=0FC63DAF-8483-4772-8E79-3D69D8477DE4, name="Projects"' \
+      'start=12584960, size=8388608, type=0FC63DAF-8483-4772-8E79-3D69D8477DE4, name="Backups"' \
+      | sfdisk "$mixed_disk" >/dev/null
+    mkfs.ext4 -F -q -b 4096 -m 0 -L PROJECTS \
+      -E offset=$((2048 * 512)) "$mixed_disk" $((12582912 / 8))
+    mkfs.ext4 -F -q -b 4096 -m 0 -L BACKUPS \
+      -E offset=$((12584960 * 512)) "$mixed_disk" $((8388608 / 8))
+  fi
+  if [[ ! -f "$archive_disk" ]]; then
+    truncate -s 64G "$archive_disk"
+    printf '%s\n' \
+      'label: gpt' \
+      'unit: sectors' \
+      '' \
+      'start=2048, size=100663296, type=0FC63DAF-8483-4772-8E79-3D69D8477DE4, name="Archive"' \
+      | sfdisk "$archive_disk" >/dev/null
+    mkfs.ext4 -F -q -b 4096 -m 0 -L ARCHIVE \
+      -E offset=$((2048 * 512)) "$archive_disk" $((100663296 / 8))
+  fi
+
+  storage_args+=(
+    -drive "if=none,id=aero7blank,format=qcow2,file=$blank_disk"
+    -device "virtio-blk-pci,drive=aero7blank"
+    -drive "if=none,id=aero7mixed,format=raw,file=$mixed_disk"
+    -device "virtio-blk-pci,drive=aero7mixed"
+    -drive "if=none,id=aero7archive,format=raw,file=$archive_disk"
+    -device "virtio-blk-pci,drive=aero7archive"
+  )
+  printf '%s\n' \
+    'Disk Management fixtures:' \
+    "  8 GiB blank disk: $blank_disk" \
+    "  24 GiB PROJECTS/BACKUPS disk with unallocated space: $mixed_disk" \
+    "  64 GiB ARCHIVE disk with unallocated space: $archive_disk"
+fi
 if ((!installed_only)); then
   storage_args+=(
     -drive "if=none,id=aero7cd,media=cdrom,readonly=on,file=$iso_path"

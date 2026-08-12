@@ -83,6 +83,10 @@ if rg -n -- '-device (usb-tablet|qemu-xhci)' \
 fi
 grep -Fq 'it does not rebuild the ISO' "$project_root/scripts/run-qemu.sh"
 grep -Fq -- '--dualboot-fixture' "$project_root/scripts/run-qemu.sh"
+grep -Fq -- '--disk-management-fixture' "$project_root/scripts/run-qemu.sh"
+grep -Fq 'name="Projects"' "$project_root/scripts/run-qemu.sh"
+grep -Fq 'name="Backups"' "$project_root/scripts/run-qemu.sh"
+grep -Fq 'name="Archive"' "$project_root/scripts/run-qemu.sh"
 grep -Fq 'name="Existing EFI"' "$project_root/scripts/run-qemu.sh"
 grep -Fq 'name="Windows"' "$project_root/scripts/run-qemu.sh"
 if grep -Fq -- 'once=d' "$project_root/scripts/run-qemu.sh"; then

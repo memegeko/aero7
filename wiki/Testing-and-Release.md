@@ -50,6 +50,28 @@ Confirm all of the following:
 - the first desktop login is automatic;
 - a clean shutdown leaves the QCOW2 image healthy.
 
+## Disk Management fixture
+
+To test the installed Computer Management disk view without attaching host
+storage, boot the existing Aero7 VM with three disposable secondary drives:
+
+```bash
+./scripts/run-qemu.sh --installed --disk-management-fixture
+```
+
+The launcher preserves the installed Aero7 system disk and adds:
+
+- an entirely blank 8 GiB disk;
+- a 24 GiB GPT disk containing 6 GiB `PROJECTS` and 4 GiB `BACKUPS`
+  partitions followed by unallocated space;
+- a 64 GiB GPT disk containing a 48 GiB `ARCHIVE` partition followed by
+  unallocated space.
+
+Use these disks to check rescan, volume enumeration, proportional partition
+blocks, filesystem labels, properties, mount/unmount, and unallocated-space
+rendering. The fixture files live under `work/qemu/disk-management-fixture/`
+and are intentionally excluded from Git.
+
 ## Second-boot gate
 
 Boot the same VM disk again. OOBE must remain disabled and SDDM must require the
