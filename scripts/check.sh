@@ -84,6 +84,7 @@ fi
 grep -Fq 'it does not rebuild the ISO' "$project_root/scripts/run-qemu.sh"
 grep -Fq -- '--dualboot-fixture' "$project_root/scripts/run-qemu.sh"
 grep -Fq -- '--disk-management-fixture' "$project_root/scripts/run-qemu.sh"
+grep -Fq -- '--ssh-forward' "$project_root/scripts/run-qemu.sh"
 grep -Fq 'name="Projects"' "$project_root/scripts/run-qemu.sh"
 grep -Fq 'name="Backups"' "$project_root/scripts/run-qemu.sh"
 grep -Fq 'name="Archive"' "$project_root/scripts/run-qemu.sh"

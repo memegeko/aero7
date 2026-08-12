@@ -8,9 +8,10 @@ iso_path=""
 display_backend="spice"
 dualboot_fixture=0
 disk_management_fixture=0
+ssh_forward=0
 
 usage() {
-  printf 'Usage: %s [--fresh] [--installed] [--dualboot-fixture] [--disk-management-fixture] [--iso PATH] [--display spice|sdl|gtk]\n' "${0##*/}"
+  printf 'Usage: %s [--fresh] [--installed] [--dualboot-fixture] [--disk-management-fixture] [--ssh-forward] [--iso PATH] [--display spice|sdl|gtk]\n' "${0##*/}"
 }
 
 while (($#)); do
@@ -19,6 +20,7 @@ while (($#)); do
     --installed) installed_only=1 ;;
     --dualboot-fixture) dualboot_fixture=1 ;;
     --disk-management-fixture) disk_management_fixture=1 ;;
+    --ssh-forward) ssh_forward=1 ;;
     --iso) shift; (($#)) || { usage >&2; exit 2; }; iso_path="$1" ;;
     --display) shift; (($#)) || { usage >&2; exit 2; }; display_backend="$1" ;;
     --help) usage; exit 0 ;;
@@ -239,11 +241,20 @@ qemu_args=(
   -drive "if=pflash,format=raw,file=$vars_path"
   "${storage_args[@]}"
   -boot menu=on
-  -nic "user,model=virtio-net-pci"
   -monitor "unix:$monitor_path,server=on,wait=off"
   -qmp "unix:$qmp_path,server=on,wait=off"
   -serial "file:$serial_path"
 )
+
+if ((ssh_forward)); then
+  qemu_args+=(
+    -netdev "user,id=aero7net,hostfwd=tcp:127.0.0.1:22222-:22"
+    -device "virtio-net-pci,netdev=aero7net"
+  )
+  printf '%s\n' 'SSH forwarding: 127.0.0.1:22222 -> guest:22'
+else
+  qemu_args+=(-nic "user,model=virtio-net-pci")
+fi
 
 if [[ "$display_backend" != "spice" ]]; then
   exec "${qemu_args[@]}"
