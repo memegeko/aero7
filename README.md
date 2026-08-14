@@ -148,6 +148,7 @@ versioned pages are also ready to synchronize to GitHub Wiki:
 - [Troubleshooting](wiki/Troubleshooting.md)
 - [Known issues](wiki/Known-Issues.md)
 - [Architecture](wiki/Architecture.md)
+- [Project boundaries](docs/project-boundaries.md)
 - [Building the ISO](wiki/Building-the-ISO.md)
 - [Security and disk safety](wiki/Security-and-Disk-Safety.md)
 - [Credits and licensing](wiki/Credits-and-Licensing.md)
@@ -163,7 +164,9 @@ versioned pages are also ready to synchronize to GitHub Wiki:
 
 ## Project status
 
-Aero7 is experimental Beta software. Automated checks cover the installer state
+Aero7 is experimental Beta software. The existing Beta 1 download remains
+available, but new public artifacts are frozen while final-release bug testing
+continues. Automated checks cover the installer state
 machine, destructive-operation gates, package manifest, OOBE, boot configuration,
 QML, and embedded release contents. Beta 1 is intended for careful testing on
 UEFI PCs and disposable VMs. Do not use it on a production workstation or a

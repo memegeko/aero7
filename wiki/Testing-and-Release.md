@@ -1,5 +1,12 @@
 # Testing and Release
 
+## Current publication status
+
+The existing Beta 1 image remains available. New ISO and package artifacts are
+not published during the final bug-testing period. Source commits and automated
+checks continue normally; publication resumes only after the final release is
+explicitly approved.
+
 Beta releases use four gates: source validation, image validation, a fresh
 installation, and a second installed-system boot.
 

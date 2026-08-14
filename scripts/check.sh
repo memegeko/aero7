@@ -34,6 +34,20 @@ if git -C "$project_root" ls-files \
   printf 'Generated build output is tracked in the source repository.\n' >&2
   exit 1
 fi
+if git -C "$project_root" ls-files | grep -Eq '^aero_desktop/'; then
+  printf 'Aero7-shell source is tracked inside the ISO repository.\n' >&2
+  exit 1
+fi
+grep -Fqx 'aero7_shell_path=../aero_desktop' "$project_root/sources.lock" || {
+  printf 'The ISO must consume Aero7-shell from its separate sibling clone.\n' >&2
+  exit 1
+}
+grep -Fq 'for source_item in assets commands config keys lib modules recipes stages ui; do' \
+  "$project_root/scripts/build-iso.sh"
+if grep -Eq 'cp[[:space:]].*"\$source_path"[[:space:]]' "$project_root/scripts/build-iso.sh"; then
+  printf 'The ISO builder copies the entire Aero7-shell repository.\n' >&2
+  exit 1
+fi
 
 printf 'Python backend tests\n'
 python -m unittest discover -s "$project_root/tests" -p 'test_*.py' -v

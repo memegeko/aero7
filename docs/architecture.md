@@ -67,6 +67,12 @@ public Aero7 repository key into the temporary Archiso profile. Git metadata,
 tests, caches, and development output are excluded. The build does not execute
 the source installer or write into the clone.
 
+Aero7-shell remains an independent repository with its own history, tests,
+release decisions, and update path. The ISO repository owns only the installer,
+OOBE, boot media, and the exact shell revision pin. Updating the desktop requires
+a tested Aero7-shell commit first, followed by a deliberate `sources.lock`
+change here; shell source is never vendored or maintained in the ISO tree.
+
 ## Display model
 
 The QML root fills the output with original background artwork. Installer panels
