@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls
 
@@ -47,6 +49,7 @@ ComboBox {
     }
 
     delegate: ItemDelegate {
+        id: delegateItem
         required property int index
         required property var modelData
         width: control.width - 2
@@ -54,15 +57,17 @@ ComboBox {
         highlighted: control.highlightedIndex === index
 
         contentItem: Text {
-            text: control.textRole ? modelData[control.textRole] : modelData
-            color: parent.highlighted ? "white" : "#111111"
+            text: control.textRole
+                  ? delegateItem.modelData[control.textRole]
+                  : delegateItem.modelData
+            color: delegateItem.highlighted ? "white" : "#111111"
             font: control.font
             verticalAlignment: Text.AlignVCenter
             elide: Text.ElideRight
         }
 
         background: Rectangle {
-            color: parent.highlighted ? "#3399ff" : "#ffffff"
+            color: delegateItem.highlighted ? "#3399ff" : "#ffffff"
         }
     }
 
