@@ -87,8 +87,16 @@ and their backends are documented in the
 ## Release gates
 
 Source checks, package-manifest checks, optional-feature helper tests, and
-installer unit tests are required before the source push. The following remain
-release blockers for the ISO files:
+installer unit tests are required before the source push. The main Aero7 source
+gate, Aero7 Desktop CI, and the 23-package recipe-manifest validation are green
+for this source publication.
+
+The rebuilt File Explorer fork passes 13 of its 16 CTest executables, including
+the Aero7 identity and icon-independence checks. Its remaining upstream-derived
+search-popup, extended-attribute fallback, and accessibility test failures must
+be resolved or formally dispositioned before the ISO release gate is closed.
+
+The following remain release blockers for the ISO files:
 
 - fresh installation from the final online image;
 - fresh installation from the final offline image with networking unavailable;

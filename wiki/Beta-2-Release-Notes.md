@@ -39,5 +39,8 @@ the repository's
 
 Both final images need a fresh install, reboot/OOBE/login verification, desktop
 interaction checks, failure/recovery checks, final embedded-content validation,
-and published SHA-256 sidecars. Until that evidence exists, no Beta 2 ISO link
-or checksum is official.
+and published SHA-256 sidecars. The File Explorer fork also still has three
+non-green upstream-derived CTest executables covering search-popup assumptions,
+extended-attribute fallback, and accessibility; its Aero7 identity and icon
+checks pass. Until those items are resolved or formally dispositioned, no Beta
+2 ISO link or checksum is official.
