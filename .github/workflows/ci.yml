@@ -41,7 +41,7 @@ jobs:
         with:
           repository: memegeko/aero7-shell
           ref: ${{ steps.sources.outputs.shell_commit }}
-          path: aero_desktop
+          path: aero7-beta2-test-inputs/aero7-shell-pinned
 
       - name: Run source gate
         working-directory: aero7-iso

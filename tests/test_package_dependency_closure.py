@@ -59,6 +59,22 @@ def capabilities(metadata: dict[str, list[str]]) -> set[str]:
 class PackageDependencyClosureTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
+        bundle_manifests = (
+            ROOT / "config/offline-base-packages.sha256",
+            ROOT / "config/offline-aero7-packages.sha256",
+        )
+        missing_bundle_files = [
+            path
+            for manifest in bundle_manifests
+            for path in manifest_packages(manifest)
+            if not path.is_file()
+        ]
+        if missing_bundle_files:
+            raise unittest.SkipTest(
+                "generated offline package bundle is not present; "
+                "run scripts/prepare-offline-packages.sh before validating its closure"
+            )
+
         cls.base = [
             (path, package_metadata(path))
             for path in manifest_packages(ROOT / "config/offline-base-packages.sha256")
