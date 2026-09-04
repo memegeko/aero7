@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import shutil
 import subprocess
@@ -34,6 +35,7 @@ from aero7_install_backend import (  # noqa: E402
     brand_plasma_look_and_feel,
     brand_sddm_themes,
     candidate_disks,
+    configure_diagnostic_logging,
     configure_one_time_autologin,
     configure_plymouth_hold,
     ensure_shell_payload_modes,
@@ -45,6 +47,7 @@ from aero7_install_backend import (  # noqa: E402
     fingerprint,
     free_regions,
     install,
+    install_variant,
     live_sources,
     nest_block_devices,
     partition_fingerprint,
@@ -61,6 +64,7 @@ from aero7_install_backend import (  # noqa: E402
     validate_storage_action,
     validate_oobe,
     validate_plan,
+    verified_offline_package_files,
     write_target_os_release,
 )
 from aero7_shell_adapter import configure_and_install  # noqa: E402
@@ -389,6 +393,16 @@ class DiskPlanTest(unittest.TestCase):
         with self.assertRaisesRegex(SafetyError, "username"):
             validate_oobe(invalid)
 
+    def test_diagnostic_logging_binds_to_valid_oobe_user(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state = Path(directory) / "var/lib/aero7/diagnostics-user"
+            result = configure_diagnostic_logging("geko", state)
+            self.assertEqual(result, state)
+            self.assertEqual(state.read_text(encoding="utf-8"), "geko\n")
+            self.assertEqual(state.stat().st_mode & 0o777, 0o600)
+            with self.assertRaisesRegex(SafetyError, "diagnostic username"):
+                configure_diagnostic_logging("Geko Admin", state)
+
     def test_plymouth_hook_is_added_once_after_udev(self):
         original = "HOOKS=(base udev autodetect modconf kms block filesystems fsck)\n"
         updated = enable_plymouth_hook(original)
@@ -600,17 +614,17 @@ class DiskPlanTest(unittest.TestCase):
             self.assertEqual(result, root / "etc/os-release")
             self.assertFalse(result.is_symlink())
             contents = result.read_text(encoding="utf-8")
-            self.assertIn('PRETTY_NAME="Aero7 Beta 1"', contents)
+            self.assertIn('PRETTY_NAME="Aero7 Beta 2 Test"', contents)
             self.assertIn("ID_LIKE=arch", contents)
             self.assertEqual(upstream.read_text(encoding="utf-8"), contents)
             self.assertFalse((root / "etc/arch-release").exists())
             self.assertIn(
-                'DISTRIB_DESCRIPTION="Aero7 Beta 1"',
+                'DISTRIB_DESCRIPTION="Aero7 Beta 2 Test"',
                 (root / "etc/lsb-release").read_text(encoding="utf-8"),
             )
             self.assertEqual(
                 (root / "etc/aero7-release").read_text(encoding="utf-8"),
-                "Aero7 Beta 1\n",
+                "Aero7 Beta 2 Test\n",
             )
             hook = root / "usr/share/libalpm/hooks/aero7-system-identity.hook"
             self.assertIn(
@@ -641,6 +655,32 @@ class DiskPlanTest(unittest.TestCase):
                     target / "var/log/aero7-storage-actions.log",
                 ],
             )
+            for path in preserved:
+                self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+
+    def test_successful_install_preserves_live_media_journal_and_kernel_logs(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            target = root / "target"
+            installer_log = root / "aero7-installer.log"
+            storage_log = root / "aero7-storage-actions.log"
+            partition_backup = root / "partition.sfdisk"
+            for path in (installer_log, storage_log, partition_backup):
+                path.write_text("evidence\n", encoding="utf-8")
+
+            with (
+                patch("aero7_install_backend.INSTALLER_LOG", installer_log),
+                patch("aero7_install_backend.STORAGE_ACTIONS_LOG", storage_log),
+                patch("aero7_install_backend.PARTITION_TABLE_BACKUP", partition_backup),
+                patch("aero7_install_backend.subprocess.run") as run,
+            ):
+                preserved = preserve_live_install_logs(target)
+
+            names = {path.name for path in preserved}
+            self.assertIn("aero7-live-media-journal.log", names)
+            self.assertIn("aero7-live-media-dmesg.log", names)
+            self.assertIn("aero7-live-media-installer-service.log", names)
+            self.assertEqual(run.call_count, 3)
             for path in preserved:
                 self.assertEqual(path.stat().st_mode & 0o777, 0o600)
 
@@ -696,6 +736,217 @@ class DiskPlanTest(unittest.TestCase):
                     encoding="utf-8"
                 ),
                 "one\ntwo\n",
+            )
+
+    def test_local_package_set_is_checksum_verified_and_stale_signature_removed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            target = root / "target"
+            share = root / "share"
+            packages = share / "local-packages"
+            cache = target / "var/cache/pacman/pkg"
+            (target / "etc").mkdir(parents=True)
+            packages.mkdir(parents=True)
+            cache.mkdir(parents=True)
+            (target / "etc/pacman.conf").write_text("[core]\n", encoding="utf-8")
+            (share / "aero7-repository.asc").write_text("test key\n", encoding="utf-8")
+            (share / "aero7-packages.txt").write_text("one\n", encoding="utf-8")
+            (share / "beta2-local-package-names.txt").write_text(
+                "aero7-test\n", encoding="utf-8"
+            )
+            package = packages / "aero7-test-1-1-x86_64.pkg.tar.zst"
+            package.write_bytes(b"reviewed beta 2 package")
+            digest = hashlib.sha256(package.read_bytes()).hexdigest()
+            (share / "beta2-local-packages.sha256").write_text(
+                f"{digest}  local-packages/{package.name}\n", encoding="utf-8"
+            )
+            cached_package = cache / package.name
+            cached_package.write_bytes(b"old signed repository package")
+            Path(f"{cached_package}.sig").write_bytes(b"stale signature")
+            runner = RecordingRunner()
+
+            configure_and_install(target, runner, share)
+
+            self.assertEqual(cached_package.read_bytes(), package.read_bytes())
+            self.assertFalse(Path(f"{cached_package}.sig").exists())
+            local_install = next(
+                call[0]
+                for call in runner.calls
+                if call[0][2:4] == ["pacman", "-U"]
+            )
+            self.assertIn(f"/var/cache/pacman/pkg/{package.name}", local_install)
+
+    def test_embedded_beta2_package_is_not_downloaded_from_repository(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            target = root / "target"
+            share = root / "share"
+            packages = share / "local-packages"
+            (target / "etc").mkdir(parents=True)
+            packages.mkdir(parents=True)
+            (target / "etc/pacman.conf").write_text("[core]\n", encoding="utf-8")
+            (share / "aero7-repository.asc").write_text("test key\n", encoding="utf-8")
+            (share / "aero7-packages.txt").write_text(
+                "aeroshell-workspace-git\naerothemeplasma-desktop-git\n",
+                encoding="utf-8",
+            )
+            (share / "beta2-local-package-names.txt").write_text(
+                "aerothemeplasma-desktop-git\n", encoding="utf-8"
+            )
+            package = packages / "aerothemeplasma-desktop-git-2-1-x86_64.pkg.tar.zst"
+            package.write_bytes(b"embedded beta 2 desktop package")
+            digest = hashlib.sha256(package.read_bytes()).hexdigest()
+            (share / "beta2-local-packages.sha256").write_text(
+                f"{digest}  local-packages/{package.name}\n", encoding="utf-8"
+            )
+            runner = RecordingRunner()
+
+            configure_and_install(target, runner, share)
+
+            repository_install = next(
+                call[0]
+                for call in runner.calls
+                if call[0][2:5] == ["pacman", "-Syy", "--needed"]
+            )
+            self.assertIn("aeroshell-workspace-git", repository_install)
+            self.assertNotIn("aerothemeplasma-desktop-git", repository_install)
+            local_install = next(
+                call[0]
+                for call in runner.calls
+                if call[0][2:4] == ["pacman", "-U"]
+            )
+            self.assertIn(f"/var/cache/pacman/pkg/{package.name}", local_install)
+            final_verification = [
+                call[0]
+                for call in runner.calls
+                if call[0][2:4] == ["pacman", "-Q"]
+            ][-1]
+            self.assertIn("aerothemeplasma-desktop-git", final_verification)
+
+    def test_optional_local_package_is_cached_but_not_installed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            target = root / "target"
+            share = root / "share"
+            packages = share / "local-packages"
+            (target / "etc").mkdir(parents=True)
+            packages.mkdir(parents=True)
+            (target / "etc/pacman.conf").write_text("[core]\n", encoding="utf-8")
+            (share / "aero7-repository.asc").write_text("test key\n", encoding="utf-8")
+            (share / "aero7-packages.txt").write_text("required\n", encoding="utf-8")
+            (share / "beta2-local-package-names.txt").write_text(
+                "required\n", encoding="utf-8"
+            )
+            (share / "beta2-optional-package-names.txt").write_text(
+                "programs-center-beta\n", encoding="utf-8"
+            )
+            required = packages / "required-1-1-x86_64.pkg.tar.zst"
+            optional = packages / "programs-center-beta-1-1-x86_64.pkg.tar.zst"
+            required.write_bytes(b"required package")
+            optional.write_bytes(b"optional package")
+            required_hash = hashlib.sha256(required.read_bytes()).hexdigest()
+            optional_hash = hashlib.sha256(optional.read_bytes()).hexdigest()
+            (share / "beta2-local-packages.sha256").write_text(
+                f"{required_hash}  local-packages/{required.name}\n"
+                f"{optional_hash}  local-packages/{optional.name}\n",
+                encoding="utf-8",
+            )
+            runner = RecordingRunner()
+
+            configure_and_install(target, runner, share)
+
+            local_install = next(
+                call[0] for call in runner.calls if call[0][2:4] == ["pacman", "-U"]
+            )
+            self.assertIn(f"/var/cache/pacman/pkg/{required.name}", local_install)
+            self.assertFalse(any("programs-center-beta" in arg for arg in local_install))
+            cache = target / "var/cache/aero7/optional-packages"
+            cached = cache / "programs-center-beta.pkg.tar.zst"
+            self.assertEqual(cached.read_bytes(), optional.read_bytes())
+            self.assertEqual(
+                Path(f"{cached}.sha256").read_text(encoding="ascii").strip(),
+                optional_hash,
+            )
+            requested = (target / "var/lib/aero7/requested-aero7-packages.txt").read_text(
+                encoding="utf-8"
+            )
+            self.assertNotIn("programs-center-beta", requested)
+
+    def test_local_package_checksum_mismatch_stops_before_install(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            target = root / "target"
+            share = root / "share"
+            packages = share / "local-packages"
+            (target / "etc").mkdir(parents=True)
+            packages.mkdir(parents=True)
+            (target / "etc/pacman.conf").write_text("[core]\n", encoding="utf-8")
+            (share / "aero7-repository.asc").write_text("test key\n", encoding="utf-8")
+            (share / "aero7-packages.txt").write_text("one\n", encoding="utf-8")
+            (share / "beta2-local-package-names.txt").write_text(
+                "aero7-test\n", encoding="utf-8"
+            )
+            package = packages / "aero7-test-1-1-x86_64.pkg.tar.zst"
+            package.write_bytes(b"tampered package")
+            (share / "beta2-local-packages.sha256").write_text(
+                f"{'0' * 64}  local-packages/{package.name}\n", encoding="utf-8"
+            )
+            runner = RecordingRunner()
+
+            with self.assertRaisesRegex(RuntimeError, "checksum failed"):
+                configure_and_install(target, runner, share)
+
+            self.assertFalse(
+                any(call[0][2:4] == ["pacman", "-U"] for call in runner.calls)
+            )
+
+    def test_offline_aero7_bundle_is_checksum_verified_and_installed_without_sync(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            target = root / "target"
+            share = root / "share"
+            packages = share / "offline-packages/aero7"
+            (target / "etc").mkdir(parents=True)
+            packages.mkdir(parents=True)
+            (target / "etc/pacman.conf").write_text("[core]\n", encoding="utf-8")
+            (share / "aero7-repository.asc").write_text("test key\n", encoding="utf-8")
+            (share / "aero7-packages.txt").write_text("one\n", encoding="utf-8")
+            (share / "install-variant").write_text("offline\n", encoding="utf-8")
+            package = packages / "one-1-1-x86_64.pkg.tar.zst"
+            package.write_bytes(b"verified offline package")
+            digest = hashlib.sha256(package.read_bytes()).hexdigest()
+            (share / "offline-aero7-packages.sha256").write_text(
+                f"{digest}  offline-packages/aero7/{package.name}\n",
+                encoding="utf-8",
+            )
+            repo_db = share / "offline-packages/aero7-offline.db.tar.gz"
+            repo_db.write_bytes(b"verified repository database")
+            repo_digest = hashlib.sha256(repo_db.read_bytes()).hexdigest()
+            (share / "offline-aero7-repo.sha256").write_text(
+                f"{repo_digest}  offline-packages/aero7-offline.db.tar.gz\n",
+                encoding="utf-8",
+            )
+            runner = RecordingRunner()
+
+            configure_and_install(target, runner, share)
+
+            commands = [call[0] for call in runner.calls]
+            self.assertFalse(any(command[2:4] == ["pacman", "-Syy"] for command in commands))
+            offline_install = next(command for command in commands
+                                   if "/etc/pacman-aero7-offline.conf" in command)
+            self.assertIn("--needed", offline_install)
+            self.assertIn("one", offline_install)
+            self.assertEqual(
+                (target / "var/cache/pacman/aero7-offline" / package.name).read_bytes(),
+                package.read_bytes(),
+            )
+            self.assertEqual(
+                (target / "var/lib/pacman/sync/aero7-offline.db").read_bytes(),
+                repo_db.read_bytes(),
+            )
+            self.assertIn(
+                ["arch-chroot", str(target), "pacman", "-Q", "--", "one"],
+                commands,
             )
 
     def test_first_desktop_login_is_temporary_and_uses_aero_session(self):
@@ -1061,6 +1312,37 @@ class DiskPlanTest(unittest.TestCase):
         self.assertEqual(arguments, ["pacstrap", "/mnt/aero7-target", "base", "linux"])
         self.assertNotIn("-K", arguments)
 
+    def test_offline_pacstrap_uses_only_verified_package_files(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            package_dir = root / "offline-packages/base"
+            package_dir.mkdir(parents=True)
+            package = package_dir / "base-1-1-x86_64.pkg.tar.zst"
+            package.write_bytes(b"offline base package")
+            digest = hashlib.sha256(package.read_bytes()).hexdigest()
+            manifest = root / "offline-base-packages.sha256"
+            manifest.write_text(
+                f"{digest}  offline-packages/base/{package.name}\n",
+                encoding="utf-8",
+            )
+
+            verified = verified_offline_package_files(package_dir, manifest)
+            arguments = pacstrap_arguments(
+                Path("/mnt/aero7-target"), ["base"], verified
+            )
+
+            self.assertEqual(
+                arguments,
+                ["pacstrap", "-U", "/mnt/aero7-target", str(package)],
+            )
+
+    def test_install_variant_rejects_unknown_media_mode(self):
+        with tempfile.TemporaryDirectory() as directory:
+            marker = Path(directory) / "install-variant"
+            marker.write_text("mystery\n", encoding="utf-8")
+            with self.assertRaisesRegex(SafetyError, "unsupported installer variant"):
+                install_variant(marker)
+
     def test_pacstrap_progress_uses_downloaded_cache_bytes(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -1135,6 +1417,26 @@ class DiskPlanTest(unittest.TestCase):
             with self.assertRaisesRegex(SafetyError, "offline before wipe"):
                 install(plan_for(value), "/dev/vda")
 
+        runner.assert_not_called()
+
+    def test_offline_install_verifies_bundle_without_network_before_disk_changes(self):
+        value = disk()
+        with (
+            patch("aero7_install_backend.enforce_execution_gate"),
+            patch("aero7_install_backend.query_lsblk", return_value=[value]),
+            patch("aero7_install_backend.live_sources", return_value=set()),
+            patch("aero7_install_backend.install_variant", return_value="offline"),
+            patch(
+                "aero7_install_backend.verified_offline_package_files",
+                side_effect=SafetyError("offline bundle invalid before wipe"),
+            ),
+            patch("aero7_install_backend.ensure_install_network") as network,
+            patch("aero7_install_backend.CommandRunner") as runner,
+        ):
+            with self.assertRaisesRegex(SafetyError, "offline bundle invalid before wipe"):
+                install(plan_for(value), "/dev/vda")
+
+        network.assert_not_called()
         runner.assert_not_called()
 
 

@@ -8,6 +8,7 @@ read-only disk discovery or an explicitly live-enabled disposable VM install.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -49,6 +50,10 @@ PACKAGE_MIRROR_HOSTS = (
     "geo.mirror.pkgbuild.com",
     "fastly.mirror.pkgbuild.com",
 )
+AERO7_SHARE_DIR = Path("/usr/share/aero7")
+INSTALL_VARIANT_FILE = AERO7_SHARE_DIR / "install-variant"
+OFFLINE_BASE_PACKAGE_DIR = AERO7_SHARE_DIR / "offline-packages/base"
+OFFLINE_BASE_MANIFEST = AERO7_SHARE_DIR / "offline-base-packages.sha256"
 TARGET_ROOT = Path("/mnt/aero7-target")
 PARTITION_TABLE_BACKUP = Path("/var/log/aero7-partition-table-before.sfdisk")
 INSTALLER_LOG = Path("/var/log/aero7-installer.log")
@@ -59,6 +64,13 @@ SDDM_BRANDING = Path("/usr/share/aero7/branding/aero7-sddm-branding.png")
 SDDM_BACKGROUND = Path("/usr/share/aero7/branding/aero7-login-background.jpg")
 FIRST_LOGIN_CONFIG = Path("/etc/sddm.conf.d/10-aero7-first-login.conf")
 FIRST_LOGIN_CLEANUP_TIMER = "aero7-first-login-cleanup.timer"
+DIAGNOSTIC_COLLECTOR = Path("/usr/lib/aero7/aero7-collect-logs")
+DIAGNOSTIC_USER_FILE = Path("/var/lib/aero7/diagnostics-user")
+DIAGNOSTIC_SYSTEM_TIMER = "aero7-diagnostic-collect.timer"
+DIAGNOSTIC_USER_UNITS = (
+    "aero7-diagnostic-session.service",
+    "aero7-diagnostic-session.timer",
+)
 PLYMOUTH_HOLD_SECONDS = 6
 SHELL_EXECUTABLES = (
     "install.sh",
@@ -1182,9 +1194,67 @@ def prepare_advanced_target(
     return esp, root
 
 
-def pacstrap_arguments(target: Path, packages: Iterable[str]) -> list[str]:
+def install_variant(path: Path = INSTALL_VARIANT_FILE) -> str:
+    try:
+        variant = path.read_text(encoding="utf-8").strip()
+    except FileNotFoundError:
+        variant = "online"
+    if variant not in {"online", "offline"}:
+        raise SafetyError(f"unsupported installer variant: {variant or 'empty'}")
+    return variant
+
+
+def verified_offline_package_files(
+    package_dir: Path = OFFLINE_BASE_PACKAGE_DIR,
+    manifest_path: Path = OFFLINE_BASE_MANIFEST,
+    manifest_prefix: str = "offline-packages/base/",
+) -> list[Path]:
+    if not package_dir.is_dir() or not manifest_path.is_file():
+        raise SafetyError("the offline package bundle is missing")
+    expected: dict[str, str] = {}
+    for raw in manifest_path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        fields = line.split(maxsplit=1)
+        if len(fields) != 2 or not re.fullmatch(r"[0-9a-f]{64}", fields[0]):
+            raise SafetyError("the offline package manifest is invalid")
+        relative_path = fields[1]
+        if not relative_path.startswith(manifest_prefix):
+            raise SafetyError("the offline package manifest contains an unsafe path")
+        package_name = relative_path.removeprefix(manifest_prefix)
+        if not re.fullmatch(r"[A-Za-z0-9@+_.:-]+\.pkg\.tar\.(?:zst|xz)", package_name):
+            raise SafetyError("the offline package manifest contains an invalid package")
+        if package_name in expected:
+            raise SafetyError("the offline package manifest contains a duplicate")
+        expected[package_name] = fields[0]
+    if not expected:
+        raise SafetyError("the offline package manifest is empty")
+    actual = {path.name for path in package_dir.glob("*.pkg.tar.*")}
+    if actual != set(expected):
+        raise SafetyError("the offline package files do not match their manifest")
+    package_files: list[Path] = []
+    for package_name, expected_hash in expected.items():
+        package_path = package_dir / package_name
+        digest = hashlib.sha256()
+        with package_path.open("rb") as package_file:
+            for chunk in iter(lambda: package_file.read(1024 * 1024), b""):
+                digest.update(chunk)
+        if digest.hexdigest() != expected_hash:
+            raise SafetyError(f"offline package checksum failed: {package_name}")
+        package_files.append(package_path)
+    return package_files
+
+
+def pacstrap_arguments(
+    target: Path,
+    packages: Iterable[str],
+    offline_packages: Iterable[Path] | None = None,
+) -> list[str]:
     # Keep pacstrap's documented default: copy the live environment's fully
     # initialized signing keyring into the target before package installation.
+    if offline_packages is not None:
+        return ["pacstrap", "-U", str(target), *(str(path) for path in offline_packages)]
     return ["pacstrap", str(target), *packages]
 
 
@@ -1279,6 +1349,12 @@ def copy_payload(target: Path) -> None:
         Path("/usr/lib/aero7/aero7-install-backend"): target / "usr/lib/aero7/aero7-install-backend",
         Path("/usr/lib/aero7/aero7_shell_adapter.py"): target / "usr/lib/aero7/aero7_shell_adapter.py",
         Path("/usr/lib/aero7/aero7-kiosk-launch"): target / "usr/lib/aero7/aero7-kiosk-launch",
+        DIAGNOSTIC_COLLECTOR: target / DIAGNOSTIC_COLLECTOR.relative_to("/"),
+        Path("/usr/lib/systemd/system/aero7-diagnostic-collect.service"): target / "usr/lib/systemd/system/aero7-diagnostic-collect.service",
+        Path("/usr/lib/systemd/system/aero7-diagnostic-collect.timer"): target / "usr/lib/systemd/system/aero7-diagnostic-collect.timer",
+        Path("/usr/lib/systemd/user/aero7-diagnostic-session.service"): target / "usr/lib/systemd/user/aero7-diagnostic-session.service",
+        Path("/usr/lib/systemd/user/aero7-diagnostic-session.timer"): target / "usr/lib/systemd/user/aero7-diagnostic-session.timer",
+        Path("/etc/systemd/journald.conf.d/50-aero7-test-logging.conf"): target / "etc/systemd/journald.conf.d/50-aero7-test-logging.conf",
         Path("/usr/share/aero7/sources.lock"): target / "usr/share/aero7/sources.lock",
         Path("/usr/share/aero7/oobe/aero7-oobe.service"): target / "etc/systemd/system/aero7-oobe.service",
         SDDM_BRANDING: target / SDDM_BRANDING.relative_to("/"),
@@ -1476,26 +1552,26 @@ def write_target_os_release(target: Path) -> Path:
     """Install a durable Aero7 system identity while retaining Arch lineage."""
     os_release_contents = (
         'NAME="Aero7"\n'
-        'PRETTY_NAME="Aero7 Beta 1"\n'
+        'PRETTY_NAME="Aero7 Beta 2 Test"\n'
         "ID=aero7\n"
         "ID_LIKE=arch\n"
-        'VERSION="Beta 1"\n'
-        'VERSION_ID="0.1.0-beta.1"\n'
+        'VERSION="Beta 2 Test"\n'
+        'VERSION_ID="0.2.0-beta.2-test"\n'
         "VERSION_CODENAME=beta\n"
         "VARIANT_ID=beta\n"
         "BUILD_ID=rolling\n"
         'ANSI_COLOR="38;2;23;147;209"\n'
-        'HOME_URL="https://github.com/memegeko/aero7"\n'
-        'DOCUMENTATION_URL="https://github.com/memegeko/aero7/wiki"\n'
-        'SUPPORT_URL="https://github.com/memegeko/aero7/issues"\n'
-        'BUG_REPORT_URL="https://github.com/memegeko/aero7/issues"\n'
+        'HOME_URL="https://github.com/aero7-open-project/aero7"\n'
+        'DOCUMENTATION_URL="https://github.com/aero7-open-project/aero7/wiki"\n'
+        'SUPPORT_URL="https://github.com/aero7-open-project/aero7/issues"\n'
+        'BUG_REPORT_URL="https://github.com/aero7-open-project/aero7/issues"\n'
         "LOGO=aero7\n"
     )
     lsb_release_contents = (
         "DISTRIB_ID=Aero7\n"
-        "DISTRIB_RELEASE=0.1.0-beta.1\n"
+        "DISTRIB_RELEASE=0.2.0-beta.2-test\n"
         "DISTRIB_CODENAME=beta\n"
-        'DISTRIB_DESCRIPTION="Aero7 Beta 1"\n'
+        'DISTRIB_DESCRIPTION="Aero7 Beta 2 Test"\n'
     )
 
     identity_root = target / "usr/share/aero7/identity"
@@ -1503,9 +1579,9 @@ def write_target_os_release(target: Path) -> Path:
     identity_files = {
         "os-release": os_release_contents,
         "lsb-release": lsb_release_contents,
-        "aero7-release": "Aero7 Beta 1\n",
-        "issue": "Aero7 Beta 1 \\r (\\l)\n",
-        "issue.net": "Aero7 Beta 1\n",
+        "aero7-release": "Aero7 Beta 2 Test\n",
+        "issue": "Aero7 Beta 2 Test \\r (\\l)\n",
+        "issue.net": "Aero7 Beta 2 Test\n",
     }
     for name, contents in identity_files.items():
         path = identity_root / name
@@ -1557,9 +1633,9 @@ def write_target_os_release(target: Path) -> Path:
         destination.chmod(0o644)
     compatibility_destinations = {
         target / "etc/lsb-release": lsb_release_contents,
-        target / "etc/aero7-release": "Aero7 Beta 1\n",
-        target / "etc/issue": "Aero7 Beta 1 \\r (\\l)\n",
-        target / "etc/issue.net": "Aero7 Beta 1\n",
+        target / "etc/aero7-release": "Aero7 Beta 2 Test\n",
+        target / "etc/issue": "Aero7 Beta 2 Test \\r (\\l)\n",
+        target / "etc/issue.net": "Aero7 Beta 2 Test\n",
     }
     for destination, contents in compatibility_destinations.items():
         destination.parent.mkdir(parents=True, exist_ok=True)
@@ -1571,13 +1647,16 @@ def write_target_os_release(target: Path) -> Path:
 
 def preserve_live_install_logs(
     target: Path,
-    sources: Iterable[Path] = (
-        INSTALLER_LOG,
-        STORAGE_ACTIONS_LOG,
-        PARTITION_TABLE_BACKUP,
-    ),
+    sources: Iterable[Path] | None = None,
 ) -> list[Path]:
     """Copy live-media diagnostics into the installed system before unmount."""
+    capture_live_system = sources is None
+    if sources is None:
+        sources = (
+            INSTALLER_LOG,
+            STORAGE_ACTIONS_LOG,
+            PARTITION_TABLE_BACKUP,
+        )
     destination_root = target / "var/log"
     destination_root.mkdir(parents=True, exist_ok=True)
     preserved: list[Path] = []
@@ -1588,6 +1667,33 @@ def preserve_live_install_logs(
         shutil.copy2(source, destination)
         destination.chmod(0o600)
         preserved.append(destination)
+    if capture_live_system:
+        captures = (
+            (
+                "aero7-live-media-journal.log",
+                ["journalctl", "--boot=0", "--no-pager", "-o", "short-precise"],
+            ),
+            ("aero7-live-media-dmesg.log", ["dmesg", "--ctime"]),
+            (
+                "aero7-live-media-installer-service.log",
+                ["systemctl", "status", "aero7-installer.service", "--no-pager"],
+            ),
+        )
+        for name, argv in captures:
+            destination = destination_root / name
+            with destination.open("w", encoding="utf-8") as output:
+                try:
+                    subprocess.run(
+                        argv,
+                        check=False,
+                        stdout=output,
+                        stderr=subprocess.STDOUT,
+                        text=True,
+                    )
+                except OSError as error:
+                    output.write(f"Could not capture {' '.join(argv)}: {error}\n")
+            destination.chmod(0o600)
+            preserved.append(destination)
     return preserved
 
 
@@ -1607,6 +1713,8 @@ def configure_one_time_autologin(
         raise SafetyError("invalid username for first-login autologin")
 
     candidates = (
+        "aero7.desktop",
+        "aero7-safe.desktop",
         "aerothemeplasma.desktop",
         "aerothemeplasmawayland.desktop",
         "plasma.desktop",
@@ -1653,6 +1761,19 @@ def configure_one_time_autologin(
     )
     cleanup_timer.chmod(0o644)
     return session
+
+
+def configure_diagnostic_logging(
+    username: str,
+    state_path: Path = DIAGNOSTIC_USER_FILE,
+) -> Path:
+    """Bind automatic physical-install diagnostics to the OOBE account."""
+    if not re.fullmatch(r"[a-z_][a-z0-9_-]{1,30}", username):
+        raise SafetyError("invalid diagnostic username")
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    state_path.write_text(username + "\n", encoding="utf-8")
+    state_path.chmod(0o600)
+    return state_path
 
 
 def enable_plymouth_hook(contents: str) -> str:
@@ -1839,10 +1960,16 @@ def install(plan: dict[str, Any], confirm_device: str) -> None:
         raise SafetyError("selected disk disappeared before installation")
     validate_plan(plan, current, live_sources())
 
-    # This ISO retrieves the base system from signed Arch mirrors. Verify
-    # connectivity before wipefs/sfdisk so missing DHCP or DNS cannot destroy
-    # the selected disk and only then reveal that installation cannot proceed.
-    ensure_install_network()
+    variant = install_variant()
+    offline_base_packages: list[Path] | None = None
+    if variant == "offline":
+        # Validate every embedded package before wipefs/sfdisk. A damaged or
+        # incomplete offline image must fail while the selected disk is intact.
+        offline_base_packages = verified_offline_package_files()
+    else:
+        # The normal ISO retrieves the base system from signed Arch mirrors.
+        # Verify connectivity before changing the selected disk.
+        ensure_install_network()
     ensure_install_tools(plan)
 
     log_path = INSTALLER_LOG
@@ -1924,7 +2051,13 @@ def install(plan: dict[str, Any], confirm_device: str) -> None:
                 expanding.emit()
 
         with runner.progress_heartbeat(update_expanding_progress):
-            runner.run(pacstrap_arguments(TARGET_ROOT, packages))
+            runner.run(
+                pacstrap_arguments(TARGET_ROOT, packages, offline_base_packages)
+            )
+        if offline_base_packages is not None:
+            runner.run(
+                ["arch-chroot", str(TARGET_ROOT), "pacman", "-Q", "--", *packages]
+            )
         fstab = subprocess.run(
             ["genfstab", "-U", str(TARGET_ROOT)], check=True, capture_output=True, text=True
         ).stdout
@@ -1934,7 +2067,7 @@ def install(plan: dict[str, Any], confirm_device: str) -> None:
         features = ProgressPulse(INSTALL_STAGES[3], 54, 71)
         features.emit()
         with runner.progress_heartbeat(features.advance):
-            configure_and_install(TARGET_ROOT, runner, Path("/usr/share/aero7"))
+            configure_and_install(TARGET_ROOT, runner, AERO7_SHARE_DIR)
         features.complete()
 
         updates_boot = ProgressPulse(
@@ -2074,8 +2207,12 @@ def finalize_oobe(plan: dict[str, Any]) -> None:
     brand_plasma_lock_screen()
     enforce_light_desktop_defaults(username, runner)
     configure_one_time_autologin(username)
+    configure_diagnostic_logging(username)
     runner.run(["systemctl", "daemon-reload"])
     runner.run(["systemctl", "enable", "--now", FIRST_LOGIN_CLEANUP_TIMER])
+    runner.run(["systemctl", "enable", "--now", DIAGNOSTIC_SYSTEM_TIMER])
+    runner.run(["systemctl", "--global", "enable", *DIAGNOSTIC_USER_UNITS])
+    runner.run([str(DIAGNOSTIC_COLLECTOR), "--system"])
 
     event("progress", stage="Preparing the Aero7 desktop", percent=92)
     avatar_source = Path("/usr/share/aero7-shell/avatars/aero7-user.png")

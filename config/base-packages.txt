@@ -1,8 +1,10 @@
 base
 linux
 linux-firmware
+wireless-regdb
 intel-ucode
 amd-ucode
+efibootmgr
 networkmanager
 upower
 power-profiles-daemon
@@ -52,9 +54,11 @@ pipewire-audio
 pipewire-pulse
 pipewire-jack
 wireplumber
+rtkit
 xdg-desktop-portal
 xdg-desktop-portal-kde
 polkit
+appstream
 iptables
 ufw
 accountsservice
@@ -71,3 +75,7 @@ hunspell
 hunspell-en_us
 hunspell-nl
 tesseract-data-eng
+pciutils
+usbutils
+dmidecode
+smartmontools

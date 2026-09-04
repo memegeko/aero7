@@ -1,6 +1,6 @@
 # Read-only source consumed by the ISO build adapter.
 # The build refuses to continue if the local clone has moved or is dirty.
-aero7_shell_path=../aero_desktop
+aero7_shell_path=../aero7-beta2-test-inputs/aero7-shell-pinned
 aero7_shell_origin=https://github.com/memegeko/aero7-shell.git
 aero7_shell_commit=cf4d1d8969dfa5ae84308c937cc60146ea59f216
 aero7_shell_status_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

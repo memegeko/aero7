@@ -7,6 +7,8 @@
 - [Installer Guide](Installer-Guide.md)
 - [First Boot and OOBE](First-Boot-and-OOBE.md)
 - [Included Software](Included-Software.md)
+- [Aero7 Optional Features](Optional-Features.md)
+- [Beta 2 Release Notes](Beta-2-Release-Notes.md)
 - [Screenshot Gallery](Screenshot-Gallery.md)
 
 ## Help

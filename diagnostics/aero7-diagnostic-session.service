@@ -1,0 +1,11 @@
+[Unit]
+Description=Collect Aero7 desktop-session diagnostics
+After=graphical-session.target
+ConditionPathExists=/usr/lib/aero7/aero7-collect-logs
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/aero7/aero7-collect-logs --user
+
+[Install]
+WantedBy=default.target

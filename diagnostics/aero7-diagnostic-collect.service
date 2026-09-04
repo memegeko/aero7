@@ -1,0 +1,10 @@
+[Unit]
+Description=Collect Aero7 physical-install system diagnostics
+After=local-fs.target systemd-journald.service
+ConditionPathExists=/var/lib/aero7/diagnostics-user
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/aero7/aero7-collect-logs --system
+Nice=10
+IOSchedulingClass=idle

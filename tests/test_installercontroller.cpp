@@ -160,6 +160,23 @@ private slots:
         QVERIFY(controller.statusText().contains(QStringLiteral("unallocated")));
         QVERIFY(!controller.diskSelectionReady());
     }
+
+    void exposesBackendFailureOnProgressScreen()
+    {
+        InstallerController controller(false, true, QStringLiteral("/unused/backend"));
+        QVERIFY(controller.jumpToForTest(QStringLiteral("ProgressScreen")));
+
+        QVERIFY(QMetaObject::invokeMethod(
+            &controller, "backendFinished", Qt::DirectConnection,
+            Q_ARG(int, 2), Q_ARG(QProcess::ExitStatus, QProcess::NormalExit)));
+
+        QVERIFY(controller.setupFailed());
+        QVERIFY(controller.failureDetails().contains(QStringLiteral("code 2")));
+        QCOMPARE(controller.progressStage(), QStringLiteral("Installation stopped"));
+        QVERIFY(controller.statusText().startsWith(QStringLiteral("Setup stopped safely.")));
+        QVERIFY(!controller.busy());
+        QCOMPARE(controller.screenId(), QStringLiteral("ProgressScreen"));
+    }
 };
 
 QTEST_GUILESS_MAIN(InstallerControllerTest)

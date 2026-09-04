@@ -2,7 +2,21 @@
 set -Eeuo pipefail
 
 project_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
-out_root="$project_root/out"
+
+if (($# != 1)); then
+  printf 'Usage: %s IMAGE.iso\n' "${0##*/}" >&2
+  exit 2
+fi
+image="$(realpath -e "$1")"
+case "${image##*/}" in
+  aero7-beta2-online-*.iso) expected_variant="online" ;;
+  aero7-beta2-offline-*.iso) expected_variant="offline" ;;
+  *)
+    printf 'The image name does not identify an Aero7 Beta 2 variant: %s\n' \
+      "${image##*/}" >&2
+    exit 2
+    ;;
+esac
 
 for command_name in file rg sha256sum strings unsquashfs xorriso; do
   command -v "$command_name" >/dev/null 2>&1 || {
@@ -11,23 +25,23 @@ for command_name in file rg sha256sum strings unsquashfs xorriso; do
   }
 done
 
-mapfile -d '' images < <(
-  find "$out_root" -maxdepth 1 -type f -name 'aero7-beta1-*.iso' -print0
-)
-if ((${#images[@]} != 1)); then
-  printf 'Expected exactly one Aero7 Beta 1 ISO, found %d.\n' "${#images[@]}" >&2
-  exit 1
-fi
-image="${images[0]}"
-
 verify_root="$(mktemp -d /tmp/aero7-release-verify.XXXXXX)"
-trap 'rm -rf -- "$verify_root"' EXIT
+cleanup_verify_root() {
+  chmod -R u+w "$verify_root" 2>/dev/null || true
+  rm -rf -- "$verify_root"
+}
+trap cleanup_verify_root EXIT
 squashfs="$verify_root/airootfs.sfs"
 loader="$verify_root/01-aero7.conf"
 embedded_lock="$verify_root/sources.lock"
 embedded_plasma="$verify_root/plasma.sh"
 embedded_applications="$verify_root/applications.sh"
 embedded_base_packages="$verify_root/base-packages.txt"
+embedded_aero7_packages="$verify_root/aero7-packages.txt"
+embedded_local_manifest="$verify_root/beta2-local-packages.sha256"
+embedded_optional_names="$verify_root/beta2-optional-package-names.txt"
+embedded_collector="$verify_root/aero7-collect-logs"
+embedded_variant="$verify_root/install-variant"
 
 file "$image"
 sha256sum "$image"
@@ -39,6 +53,14 @@ xorriso -osirrox on -indev "$image" \
 grep -Fq 'quiet splash' "$loader"
 grep -Fq 'plymouth.ignore-serial-consoles' "$loader"
 unsquashfs -stat "$squashfs"
+unsquashfs -cat "$squashfs" usr/share/aero7/install-variant >"$embedded_variant"
+[[ "$(cat "$embedded_variant")" == "$expected_variant" ]] || {
+  printf 'The embedded installer variant does not match the ISO name.\n' >&2
+  exit 1
+}
+unsquashfs -cat "$squashfs" usr/share/aero7/beta2-optional-package-names.txt \
+  >"$embedded_optional_names"
+cmp -s "$project_root/config/beta2-optional-package-names.txt" "$embedded_optional_names"
 
 unsquashfs -cat "$squashfs" usr/lib/aero7/aero7-install-backend \
   | rg -F 'def brand_plasma_look_and_feel(' >/dev/null
@@ -50,6 +72,30 @@ unsquashfs -cat "$squashfs" usr/lib/aero7/aero7-install-backend \
   | rg -F 'def backup_partition_table(' >/dev/null
 unsquashfs -cat "$squashfs" usr/lib/aero7/aero7-install-backend \
   | rg -F '"ntfsresize", "--check", partition' >/dev/null
+unsquashfs -cat "$squashfs" usr/lib/aero7/aero7-install-backend \
+  | rg -F 'configure_diagnostic_logging(username)' >/dev/null
+unsquashfs -cat "$squashfs" usr/lib/aero7/aero7-install-backend \
+  | rg -F 'if variant == "offline"' >/dev/null
+unsquashfs -cat "$squashfs" usr/lib/aero7/aero7_shell_adapter.py \
+  | rg -F 'package for package in requested_packages if package not in embedded_names' \
+  >/dev/null
+unsquashfs -cat "$squashfs" usr/lib/aero7/aero7-collect-logs \
+  >"$embedded_collector"
+rg -F 'Aero7 Physical Install Logs' "$embedded_collector" >/dev/null
+rg -F 'session_display_available' "$embedded_collector" >/dev/null
+rg -F 'pacman -Q plasma-workspace' "$embedded_collector" >/dev/null
+rg -F 'pacman -Q kwin' "$embedded_collector" >/dev/null
+if rg -n 'capture .* (plasmashell|kwin_wayland) --version' \
+    "$embedded_collector" >/dev/null 2>&1; then
+  printf 'The embedded diagnostic collector launches a GUI version probe.\n' >&2
+  exit 1
+fi
+unsquashfs -cat "$squashfs" usr/lib/systemd/system/aero7-diagnostic-collect.timer \
+  | rg -F 'OnUnitActiveSec=10min' >/dev/null
+unsquashfs -cat "$squashfs" usr/lib/systemd/user/aero7-diagnostic-session.timer \
+  | rg -F 'OnUnitActiveSec=5min' >/dev/null
+unsquashfs -cat "$squashfs" etc/systemd/journald.conf.d/50-aero7-test-logging.conf \
+  | rg -F 'Storage=persistent' >/dev/null
 for advanced_storage_binary in usr/bin/ntfsresize usr/bin/parted; do
   unsquashfs -cat "$squashfs" "$advanced_storage_binary" >/dev/null
 done
@@ -87,7 +133,8 @@ for required_desktop_application in qterminal vlc spectacle kcalc featherpad; do
   grep -Fqx "$required_desktop_application" "$embedded_base_packages"
 done
 for required_control_panel_backend in plasma-nm iptables ufw hunspell hunspell-en_us hunspell-nl \
-    accountsservice upower power-profiles-daemon pipewire-pulse wireplumber; do
+    accountsservice upower power-profiles-daemon pipewire-pulse wireplumber \
+    efibootmgr wireless-regdb rtkit; do
   grep -Fqx "$required_control_panel_backend" "$embedded_base_packages"
 done
 for excluded_target_package in plasma-meta kde-applications-meta konsole; do
@@ -98,8 +145,51 @@ for excluded_target_package in plasma-meta kde-applications-meta konsole; do
   fi
 done
 
+unsquashfs -cat "$squashfs" usr/share/aero7/aero7-packages.txt \
+  >"$embedded_aero7_packages"
+cmp -s "$project_root/config/aero7-packages.txt" "$embedded_aero7_packages"
+for required_embedded_dependency in aero7-internet-explorer baloo-widgets cups; do
+  grep -Fqx "$required_embedded_dependency" "$embedded_aero7_packages"
+done
+
 unsquashfs -cat "$squashfs" usr/share/aero7/sources.lock >"$embedded_lock"
 cmp -s "$project_root/sources.lock" "$embedded_lock"
+unsquashfs -cat "$squashfs" usr/share/aero7/beta2-local-packages.sha256 \
+  >"$embedded_local_manifest"
+cmp -s "$project_root/config/beta2-local-packages.sha256" "$embedded_local_manifest"
+while read -r package_hash package_path; do
+  embedded_package="$verify_root/${package_path##*/}"
+  unsquashfs -cat "$squashfs" \
+    "usr/share/aero7/local-packages/${package_path##*/}" >"$embedded_package"
+  printf '%s  %s\n' "$package_hash" "$embedded_package" | sha256sum --check -
+done < "$project_root/config/beta2-local-packages.sha256"
+
+if [[ "$expected_variant" == "offline" ]]; then
+  offline_root="$verify_root/offline-root"
+  unsquashfs -d "$offline_root" "$squashfs" \
+    usr/share/aero7/offline-packages \
+    usr/share/aero7/offline-base-packages.sha256 \
+    usr/share/aero7/offline-aero7-packages.sha256 \
+    usr/share/aero7/offline-aero7-repo.sha256 >/dev/null
+  share_root="$offline_root/usr/share/aero7"
+  cmp -s "$project_root/config/offline-base-packages.sha256" \
+    "$share_root/offline-base-packages.sha256"
+  cmp -s "$project_root/config/offline-aero7-packages.sha256" \
+    "$share_root/offline-aero7-packages.sha256"
+  cmp -s "$project_root/config/offline-aero7-repo.sha256" \
+    "$share_root/offline-aero7-repo.sha256"
+  (
+    cd "$share_root"
+    sha256sum --check offline-base-packages.sha256
+    sha256sum --check offline-aero7-packages.sha256
+    sha256sum --check offline-aero7-repo.sha256
+  )
+else
+  if unsquashfs -ll "$squashfs" | rg -F 'usr/share/aero7/offline-packages/' >/dev/null; then
+    printf 'The online ISO unexpectedly embeds the offline package bundle.\n' >&2
+    exit 1
+  fi
+fi
 
 if unsquashfs -cat "$squashfs" usr/bin/aero7-installer \
     | strings | rg -Fi 'alpha software' >/dev/null; then
@@ -107,4 +197,4 @@ if unsquashfs -cat "$squashfs" usr/bin/aero7-installer \
   exit 1
 fi
 
-printf 'Aero7 Beta 1 release image verification passed.\n'
+printf 'Aero7 Beta 2 %s image verification passed.\n' "$expected_variant"

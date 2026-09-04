@@ -48,11 +48,8 @@ InstallerController::InstallerController(bool oobeMode, bool demoMode,
     connect(&m_desktopHandoffTimer, &QTimer::timeout,
             this, &InstallerController::handoffToDesktop);
     connect(&m_backend, &QProcess::readyReadStandardOutput, this, &InstallerController::readBackendOutput);
-    connect(&m_backend, &QProcess::readyReadStandardError, this, [this] {
-        const QString text = QString::fromUtf8(m_backend.readAllStandardError()).trimmed();
-        if (!text.isEmpty())
-            setStatus(text);
-    });
+    connect(&m_backend, &QProcess::readyReadStandardError,
+            this, &InstallerController::readBackendError);
     connect(&m_backend, qOverload<int, QProcess::ExitStatus>(&QProcess::finished),
             this, &InstallerController::backendFinished);
 
@@ -98,6 +95,8 @@ int InstallerController::progressStagePercent() const { return m_progressStagePe
 QString InstallerController::progressStage() const { return m_progressStage; }
 QString InstallerController::statusText() const { return m_statusText; }
 bool InstallerController::busy() const { return m_busy; }
+bool InstallerController::setupFailed() const { return m_setupFailed; }
+QString InstallerController::failureDetails() const { return m_failureDetails; }
 int InstallerController::restartSeconds() const { return m_restartSeconds; }
 bool InstallerController::desktopHandoff() const { return m_desktopHandoff; }
 
@@ -714,6 +713,8 @@ void InstallerController::startInstallation()
     m_progressStageIndex = 0;
     m_progressStagePercent = 0;
     m_progressStage = kInstallStages.first();
+    clearSetupFailure();
+    setStatus({});
     setBusy(true);
     emit screenChanged();
     emit progressChanged();
@@ -741,6 +742,8 @@ void InstallerController::startOobeFinalization()
     m_progressStageIndex = 0;
     m_progressStagePercent = 0;
     m_progressStage = QStringLiteral("Applying your settings");
+    clearSetupFailure();
+    setStatus({});
     setBusy(true);
     emit screenChanged();
     emit progressChanged();
@@ -854,6 +857,7 @@ void InstallerController::startBackend(const QStringList &arguments,
     m_activePlanPath = planPath;
     m_backendPurpose = purpose;
     m_backendBuffer.clear();
+    m_backendErrorBuffer.clear();
     m_backend.setProcessChannelMode(QProcess::SeparateChannels);
     m_backend.start(m_backendPath, arguments);
     if (!m_backend.waitForStarted(3000)) {
@@ -879,6 +883,11 @@ void InstallerController::readBackendOutput()
         if (!line.isEmpty())
             handleBackendEvent(line);
     }
+}
+
+void InstallerController::readBackendError()
+{
+    m_backendErrorBuffer.append(m_backend.readAllStandardError());
 }
 
 void InstallerController::handleBackendEvent(const QByteArray &line)
@@ -909,6 +918,13 @@ void InstallerController::handleBackendEvent(const QByteArray &line)
 
 void InstallerController::backendFinished(int exitCode, QProcess::ExitStatus exitStatus)
 {
+    readBackendOutput();
+    readBackendError();
+    const QByteArray trailingOutput = m_backendBuffer.trimmed();
+    if (!trailingOutput.isEmpty())
+        handleBackendEvent(trailingOutput);
+    m_backendBuffer.clear();
+
     const QString purpose = m_backendPurpose;
     m_backendPurpose.clear();
     if (!m_activePlanPath.isEmpty()) {
@@ -917,14 +933,28 @@ void InstallerController::backendFinished(int exitCode, QProcess::ExitStatus exi
     }
     setBusy(false);
     if (exitStatus != QProcess::NormalExit || exitCode != 0) {
-        const QString detail = m_statusText.trimmed();
-        if (detail.isEmpty()) {
-            setStatus(QStringLiteral("Setup stopped safely. Backend exit code: %1").arg(exitCode));
-        } else if (!detail.startsWith(QStringLiteral("Setup stopped safely."))) {
-            setStatus(QStringLiteral("Setup stopped safely. %1").arg(detail));
-        }
+        QString detail = m_statusText.trimmed();
+        QString backendError = QString::fromUtf8(m_backendErrorBuffer).trimmed();
+        m_backendErrorBuffer.clear();
+        if (backendError.startsWith(QStringLiteral("aero7 backend:")))
+            backendError = backendError.sliced(QStringLiteral("aero7 backend:").size()).trimmed();
+        if (detail.isEmpty())
+            detail = backendError;
+        if (detail.startsWith(QStringLiteral("Stopped safely:")))
+            detail = detail.sliced(QStringLiteral("Stopped safely:").size()).trimmed();
+        if (detail.isEmpty())
+            detail = QStringLiteral("The installation backend exited with code %1.").arg(exitCode);
+
+        m_setupFailed = true;
+        m_failureDetails = detail;
+        m_progressStage = QStringLiteral("Installation stopped");
+        emit setupFailureChanged();
+        emit progressChanged();
+        setStatus(QStringLiteral("Setup stopped safely. %1").arg(detail));
         return;
     }
+    m_backendErrorBuffer.clear();
+    clearSetupFailure();
     if (purpose.startsWith(QStringLiteral("storage-"))) {
         refreshDisks();
         if (purpose == QStringLiteral("storage-delete"))
@@ -977,6 +1007,7 @@ void InstallerController::resetDemo()
     m_password.clear();
     m_passwordConfirmation.clear();
     m_passwordHint.clear();
+    clearSetupFailure();
     setBusy(false);
     setStatus({});
     emit progressChanged();
@@ -1008,4 +1039,13 @@ void InstallerController::setBusy(bool busy)
         return;
     m_busy = busy;
     emit busyChanged();
+}
+
+void InstallerController::clearSetupFailure()
+{
+    if (!m_setupFailed && m_failureDetails.isEmpty())
+        return;
+    m_setupFailed = false;
+    m_failureDetails.clear();
+    emit setupFailureChanged();
 }

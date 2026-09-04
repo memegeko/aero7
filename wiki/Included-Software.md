@@ -51,6 +51,11 @@ then the signed Aero7 repository adds the themed desktop components.
 | Version information | LinVer |
 | Windows executable helper | execbin |
 
+Programs Center Beta is not installed by default. Open **Turn Aero7 features
+on or off** to add it from the checksum-verified package retained on the system;
+this specific optional feature remains installable without internet access.
+See [Aero7 Optional Features](Optional-Features.md) for every available toggle.
+
 ## Intentionally absent
 
 - WinXplorer is optional and is not installed by the ISO;

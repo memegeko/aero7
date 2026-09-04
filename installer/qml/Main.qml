@@ -84,6 +84,11 @@ ApplicationWindow {
                 fullFrameRepaintGuard.visible = true
                 releaseFullFrameRepaint.restart()
             }
+
+            function onSetupFailureChanged() {
+                fullFrameRepaintGuard.visible = true
+                releaseFullFrameRepaint.restart()
+            }
         }
 
         Timer {

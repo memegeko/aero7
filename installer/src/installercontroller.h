@@ -26,6 +26,8 @@ class InstallerController final : public QObject
     Q_PROPERTY(QString progressStage READ progressStage NOTIFY progressChanged)
     Q_PROPERTY(QString statusText READ statusText NOTIFY statusChanged)
     Q_PROPERTY(bool busy READ busy NOTIFY busyChanged)
+    Q_PROPERTY(bool setupFailed READ setupFailed NOTIFY setupFailureChanged)
+    Q_PROPERTY(QString failureDetails READ failureDetails NOTIFY setupFailureChanged)
     Q_PROPERTY(int restartSeconds READ restartSeconds NOTIFY restartSecondsChanged)
     Q_PROPERTY(bool desktopHandoff READ desktopHandoff NOTIFY desktopHandoffChanged)
 
@@ -61,6 +63,8 @@ public:
     [[nodiscard]] QString progressStage() const;
     [[nodiscard]] QString statusText() const;
     [[nodiscard]] bool busy() const;
+    [[nodiscard]] bool setupFailed() const;
+    [[nodiscard]] QString failureDetails() const;
     [[nodiscard]] int restartSeconds() const;
     [[nodiscard]] bool desktopHandoff() const;
 
@@ -88,6 +92,7 @@ signals:
     void progressChanged();
     void statusChanged();
     void busyChanged();
+    void setupFailureChanged();
     void formChanged();
     void oobeModeChanged();
     void restartSecondsChanged();
@@ -97,6 +102,7 @@ private slots:
     void advanceTransition();
     void advanceDemoProgress();
     void readBackendOutput();
+    void readBackendError();
     void backendFinished(int exitCode, QProcess::ExitStatus exitStatus);
     void tickRestartCountdown();
     void handoffToDesktop();
@@ -109,6 +115,7 @@ private:
     void beginDesktopHandoff();
     void setStatus(const QString &text);
     void setBusy(bool busy);
+    void clearSetupFailure();
     void startInstallation();
     void startOobeFinalization();
     void startDemoProgress(bool oobe);
@@ -135,6 +142,8 @@ private:
     QString m_progressStage;
     QString m_statusText;
     bool m_busy = false;
+    bool m_setupFailed = false;
+    QString m_failureDetails;
     QTimer m_transitionTimer;
     QTimer m_progressTimer;
     QTimer m_restartTimer;
@@ -143,6 +152,7 @@ private:
     bool m_desktopHandoff = false;
     QProcess m_backend;
     QByteArray m_backendBuffer;
+    QByteArray m_backendErrorBuffer;
     QString m_activePlanPath;
     QString m_backendPurpose;
 

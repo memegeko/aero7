@@ -57,6 +57,7 @@ Item {
             anchors.top: parent.top
             anchors.topMargin: 132
             spacing: 3
+            visible: !controller.setupFailed
 
             Repeater {
                 model: [
@@ -99,6 +100,52 @@ Item {
                         font.pixelSize: 13
                         font.bold: stageRow.index === root.visualStageIndex
                     }
+                }
+            }
+        }
+
+        Rectangle {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.leftMargin: 46
+            anchors.rightMargin: 46
+            anchors.topMargin: 132
+            height: 218
+            visible: controller.setupFailed
+            radius: 4
+            color: "#fff4f2"
+            border.color: "#b9473b"
+
+            Column {
+                anchors.fill: parent
+                anchors.margins: 18
+                spacing: 10
+
+                Text {
+                    text: qsTr("Aero7 could not finish installing")
+                    color: "#8c231c"
+                    font.pixelSize: 17
+                    font.bold: true
+                }
+
+                Text {
+                    width: parent.width
+                    height: 124
+                    text: controller.failureDetails
+                    color: "#3f2926"
+                    font.pixelSize: 12
+                    wrapMode: Text.Wrap
+                    elide: Text.ElideRight
+                    maximumLineCount: 7
+                }
+
+                Text {
+                    text: qsTr("The disk has been left in a safe stopped state. Details are also saved in /var/log/aero7-installer.log.")
+                    width: parent.width
+                    color: "#6d3a34"
+                    font.pixelSize: 11
+                    wrapMode: Text.WordWrap
                 }
             }
         }

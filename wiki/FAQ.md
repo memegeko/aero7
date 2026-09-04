@@ -28,8 +28,12 @@ capability honest: only clean custom installation is implemented.
 
 ## Does installation need internet access?
 
-Yes. Beta 1 installs packages from Arch Linux and the signed Aero7 repository.
-An offline payload is not included yet.
+The published Beta 1 image needs internet access. Beta 2 has two planned media
+variants: the smaller online ISO needs a stable connection throughout package
+installation, while the recommended offline ISO embeds the complete package
+set and installs without internet. Both retain the configured repositories for
+normal updates after setup. The Beta 2 images are not public until their
+remaining release gates pass.
 
 ## Why did the VM boot into setup again?
 

@@ -1,0 +1,11 @@
+[Unit]
+Description=Refresh Aero7 desktop-session diagnostics
+
+[Timer]
+OnStartupSec=3min
+OnUnitActiveSec=5min
+AccuracySec=30s
+Unit=aero7-diagnostic-session.service
+
+[Install]
+WantedBy=timers.target

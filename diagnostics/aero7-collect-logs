@@ -1,0 +1,279 @@
+#!/usr/bin/env bash
+set -uo pipefail
+
+umask 077
+
+mode="${1:---system}"
+state_file="${AERO7_DIAGNOSTICS_STATE_FILE:-/var/lib/aero7/diagnostics-user}"
+
+read_target_user() {
+  if [[ "$mode" == "--user" ]]; then
+    printf '%s\n' "${USER:-$(id -un)}"
+    return
+  fi
+  [[ -s "$state_file" ]] || {
+    printf 'Aero7 diagnostic user has not been configured yet.\n' >&2
+    exit 1
+  }
+  sed -n '1p' "$state_file"
+}
+
+target_user="$(read_target_user)"
+passwd_entry="$(getent passwd "$target_user" || true)"
+[[ -n "$passwd_entry" ]] || {
+  printf 'Aero7 diagnostic user does not exist: %s\n' "$target_user" >&2
+  exit 1
+}
+target_uid="$(id -u "$target_user")"
+target_gid="$(id -g "$target_user")"
+target_home="${AERO7_DIAGNOSTICS_HOME:-$(cut -d: -f6 <<<"$passwd_entry")}"
+desktop_root="${AERO7_DIAGNOSTICS_DESKTOP:-$target_home/Desktop}"
+log_root="$desktop_root/Aero7 Physical Install Logs"
+boot_id="$(tr -cd '[:alnum:]-' </proc/sys/kernel/random/boot_id 2>/dev/null || true)"
+[[ -n "$boot_id" ]] || boot_id="unknown-boot"
+boot_root="$log_root/Boots/$boot_id"
+
+install -d -m 0700 "$desktop_root" "$log_root" "$boot_root"
+touch "$log_root/.collector.lock"
+if [[ "$(id -u)" == 0 ]]; then
+  chown "$target_uid:$target_gid" "$desktop_root" "$log_root" "$boot_root" \
+    "$log_root/.collector.lock"
+fi
+chmod 0600 "$log_root/.collector.lock"
+exec 9<>"$log_root/.collector.lock"
+flock -w 30 9 || {
+  printf 'Another Aero7 log collection is already running.\n' >&2
+  exit 0
+}
+
+capture() {
+  local destination="$1"
+  shift
+  install -d -m 0700 "${destination%/*}"
+  {
+    printf '$'
+    printf ' %q' "$@"
+    printf '\n\n'
+    "$@"
+  } >"$destination" 2>&1 || true
+}
+
+capture_note() {
+  local destination="$1"
+  shift
+  install -d -m 0700 "${destination%/*}"
+  printf '%s\n' "$*" >"$destination"
+}
+
+session_display_available() {
+  local display_number
+  if [[ -n "${WAYLAND_DISPLAY:-}" && -n "${XDG_RUNTIME_DIR:-}" \
+      && -S "$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY" ]]; then
+    return 0
+  fi
+  if [[ -n "${DISPLAY:-}" ]]; then
+    display_number="${DISPLAY#:}"
+    display_number="${display_number%%.*}"
+    [[ -S "/tmp/.X11-unix/X$display_number" ]] && return 0
+  fi
+  return 1
+}
+
+copy_log_file() {
+  local source="$1"
+  local destination_root="$2"
+  local relative destination
+  [[ -f "$source" ]] || return 0
+  relative="${source#/}"
+  destination="$destination_root/${relative//\//__}"
+  cp --reflink=auto -- "$source" "$destination" 2>/dev/null || true
+}
+
+write_readme() {
+  cat >"$log_root/README - GIVE THIS FOLDER TO AERO7 TESTING.txt" <<'EOF'
+Aero7 Physical Install Test Logs
+================================
+
+Give this entire folder back to the Aero7 developers after testing a physical
+installation. The folder is refreshed automatically after boot and login.
+Double-click "Collect Aero7 Logs Now" before copying it if the desktop is still
+usable after the problem occurs.
+
+The collection contains installer output, journals, service state, hardware
+inventory, package information, desktop/session diagnostics, application log
+files, and crash summaries. It deliberately does not copy passwords, Wi-Fi
+connection profiles, browser data, document contents, or process core images.
+
+Diagnostic logs can still contain the account name, computer name, disk serial
+numbers, MAC addresses, Wi-Fi network names mentioned by services, and file
+paths. Review the folder before sharing it publicly.
+EOF
+
+  cat >"$log_root/Collect Aero7 Logs Now.desktop" <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Collect Aero7 Logs Now
+Comment=Refresh the Aero7 physical-install diagnostic folder
+Exec=/usr/lib/aero7/aero7-collect-logs --user
+Terminal=false
+StartupNotify=false
+EOF
+  chmod 0700 "$log_root/Collect Aero7 Logs Now.desktop"
+}
+
+write_metadata() {
+  {
+    printf 'collected_at_utc=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    printf 'mode=%s\n' "$mode"
+    printf 'user=%s\n' "$target_user"
+    printf 'uid=%s\n' "$target_uid"
+    printf 'boot_id=%s\n' "$boot_id"
+    printf 'hostname=%s\n' "$(hostname 2>/dev/null || true)"
+    printf 'kernel=%s\n' "$(uname -srmo 2>/dev/null || true)"
+    printf 'os_release=%s\n' "$(. /etc/os-release 2>/dev/null; printf '%s' "${PRETTY_NAME:-unknown}")"
+  } >"$boot_root/COLLECTION.txt"
+}
+
+collect_user_logs() {
+  local session_root="$boot_root/Desktop-Session"
+  install -d -m 0700 "$session_root" "$session_root/Application-Logs"
+  capture "$session_root/environment.txt" env
+  capture "$session_root/user-units-failed.txt" systemctl --user --failed --no-pager
+  capture "$session_root/user-units.txt" systemctl --user list-units --all --no-pager
+  capture "$session_root/user-journal.txt" journalctl --user --boot=0 --no-pager -o short-precise
+  capture "$session_root/graphical-session.txt" loginctl session-status "${XDG_SESSION_ID:-self}" --no-pager
+  capture "$session_root/processes.txt" ps -u "$target_user" -o pid,ppid,stat,lstart,cmd
+  if session_display_available; then
+    capture "$session_root/display-outputs.txt" kscreen-doctor -o
+  else
+    capture_note "$session_root/display-outputs.txt" \
+      'Skipped: no usable Wayland or X11 display socket was available to the diagnostic service.'
+  fi
+  # Query package metadata instead of launching extra GUI processes. Running
+  # plasmashell, kwin_wayland, or kscreen-doctor without a display can abort and
+  # create misleading coredumps during the first-login collection.
+  capture "$session_root/plasma-version.txt" pacman -Q plasma-workspace
+  capture "$session_root/kwin-version.txt" pacman -Q kwin
+  capture "$session_root/qt-version.txt" qmake6 -query
+  capture "$session_root/xdg-user-directories.txt" sh -c 'for name in DESKTOP DOWNLOAD DOCUMENTS PICTURES VIDEOS MUSIC; do printf "%s=" "$name"; xdg-user-dir "$name"; done'
+
+  while IFS= read -r -d '' application_log; do
+    copy_log_file "$application_log" "$session_root/Application-Logs"
+  done < <(
+    find "$target_home/.cache" "$target_home/.local/state" "$target_home/.local/share" \
+      -xdev -type f \( -iname '*.log' -o -iname '*.log.[0-9]*' -o -name '.xsession-errors' \) \
+      -size -20M -print0 2>/dev/null
+  )
+}
+
+collect_system_logs() {
+  [[ "$(id -u)" == 0 ]] || {
+    printf '%s requires root for system collection.\n' "$0" >&2
+    exit 1
+  }
+
+  local installer_root="$log_root/Installer"
+  local system_root="$boot_root/System"
+  local hardware_root="$boot_root/Hardware"
+  local packages_root="$boot_root/Packages"
+  local desktop_logs_root="$boot_root/Desktop-System"
+  local crash_root="$boot_root/Crashes"
+  local application_root="$boot_root/Application-Logs"
+  install -d -m 0700 "$installer_root" "$system_root" "$hardware_root" \
+    "$packages_root" "$desktop_logs_root" "$crash_root" "$application_root"
+
+  for installer_log in \
+    /var/log/aero7-installer.log \
+    /var/log/aero7-storage-actions.log \
+    /var/log/aero7-oobe.log \
+    /var/log/aero7-live-media-journal.log \
+    /var/log/aero7-live-media-dmesg.log \
+    /var/log/aero7-live-media-installer-service.log \
+    /var/log/aero7-partition-table-before.sfdisk \
+    /var/lib/aero7/install-source \
+    /var/lib/aero7/oobe-complete; do
+    copy_log_file "$installer_log" "$installer_root"
+  done
+
+  capture "$system_root/journal-current-boot.txt" journalctl --boot=0 --no-pager -o short-precise
+  capture "$system_root/journal-current-boot-errors.txt" journalctl --boot=0 --priority=warning --no-pager -o short-precise
+  capture "$system_root/journal-previous-boot.txt" journalctl --boot=-1 --no-pager -o short-precise
+  capture "$system_root/journal-boot-list.txt" journalctl --list-boots --no-pager
+  capture "$system_root/kernel-ring-buffer.txt" dmesg --ctime
+  capture "$system_root/failed-system-units.txt" systemctl --failed --no-pager
+  capture "$system_root/all-system-units.txt" systemctl list-units --all --no-pager
+  capture "$system_root/aero7-system-units.txt" systemctl status 'aero7*' --no-pager
+  capture "$system_root/aero7-journal.txt" journalctl --boot=0 --unit='aero7*' --no-pager -o short-precise
+  capture "$system_root/networkmanager-journal.txt" journalctl --boot=0 --unit=NetworkManager.service --no-pager -o short-precise
+  capture "$system_root/display-manager-journal.txt" journalctl --boot=0 --unit=display-manager.service --no-pager -o short-precise
+  capture "$system_root/system-information.txt" sh -c 'uname -a; echo; hostnamectl; echo; localectl; echo; timedatectl'
+  capture "$system_root/mounts.txt" findmnt --all --output-all
+  capture "$system_root/fstab.txt" sed -n '1,240p' /etc/fstab
+  capture "$system_root/kernel-command-line.txt" sed -n '1p' /proc/cmdline
+  capture "$system_root/disk-space.txt" df -hT
+  capture "$system_root/memory.txt" sh -c 'free -h; echo; sed -n "1,240p" /proc/meminfo'
+  capture "$system_root/users-and-sessions.txt" loginctl list-sessions --no-legend
+
+  capture "$hardware_root/pci.txt" lspci -nnk
+  capture "$hardware_root/usb.txt" lsusb -tv
+  capture "$hardware_root/block-devices.txt" lsblk --all --fs --output NAME,KNAME,PATH,TYPE,SIZE,FSTYPE,FSVER,LABEL,UUID,PARTUUID,MOUNTPOINTS,MODEL,SERIAL,TRAN,ROTA,RO,RM
+  capture "$hardware_root/block-identifiers.txt" blkid
+  capture "$hardware_root/firmware.txt" sh -c 'printf "Firmware: "; test -d /sys/firmware/efi && echo UEFI || echo BIOS; echo; bootctl status --no-pager; echo; efibootmgr -v'
+  capture "$hardware_root/dmi.txt" dmidecode
+  capture "$hardware_root/cpu.txt" lscpu
+  capture "$hardware_root/input-devices.txt" sed -n '1,320p' /proc/bus/input/devices
+  capture "$hardware_root/graphics-kernel.txt" sh -c 'for card in /sys/class/drm/card*/device; do echo "### $card"; udevadm info -q property -p "$card"; done'
+  capture "$hardware_root/network-addresses.txt" ip -details address show
+  capture "$hardware_root/network-routes.txt" ip -details route show table all
+  capture "$hardware_root/radio-state.txt" rfkill list
+  capture "$hardware_root/power.txt" sh -c 'upower -e; echo; for device in $(upower -e 2>/dev/null); do upower -i "$device"; done'
+  capture "$hardware_root/storage-health.txt" sh -c 'for disk in /dev/sd? /dev/nvme?n? /dev/mmcblk?; do test -b "$disk" || continue; echo "### $disk"; smartctl --all "$disk" 2>&1 || true; done'
+
+  copy_log_file /var/log/pacman.log "$packages_root"
+  capture "$packages_root/installed-packages.txt" pacman -Q
+  capture "$packages_root/foreign-packages.txt" pacman -Qm
+  capture "$packages_root/explicit-packages.txt" pacman -Qqe
+  capture "$packages_root/package-integrity.txt" pacman -Qkk
+  capture "$packages_root/repositories.txt" sed -n '1,320p' /etc/pacman.conf
+
+  capture "$desktop_logs_root/user-journal.txt" journalctl --boot=0 "_UID=$target_uid" --no-pager -o short-precise
+  capture "$desktop_logs_root/sddm-state.txt" sh -c 'systemctl status sddm.service --no-pager; echo; loginctl seat-status seat0 --no-pager'
+  capture "$desktop_logs_root/session-files.txt" find "$target_home" -maxdepth 4 -type f -printf '%M %u:%g %s %TY-%Tm-%TdT%TH:%TM:%TS %p\n'
+  capture "$desktop_logs_root/aero7-config-list.txt" find "$target_home/.config" /etc/aero7 /usr/share/aero7 -maxdepth 4 -type f -printf '%M %u:%g %s %TY-%Tm-%TdT%TH:%TM:%TS %p\n'
+
+  capture "$crash_root/coredump-list.txt" coredumpctl list --no-pager
+  capture "$crash_root/kernel-pstore-list.txt" find /sys/fs/pstore -maxdepth 1 -type f -printf '%M %s %TY-%Tm-%TdT%TH:%TM:%TS %p\n'
+  while IFS= read -r -d '' pstore_log; do
+    copy_log_file "$pstore_log" "$crash_root"
+  done < <(find /sys/fs/pstore -maxdepth 1 -type f -size -20M -print0 2>/dev/null)
+
+  while IFS= read -r -d '' system_log; do
+    copy_log_file "$system_log" "$application_root"
+  done < <(find /var/log -xdev -maxdepth 3 -type f -iname '*.log*' -size -20M -print0 2>/dev/null)
+
+  chown -R "$target_uid:$target_gid" "$log_root"
+}
+
+refresh_manifest() {
+  local temporary="$log_root/.manifest.sha256.tmp"
+  (
+    cd "$log_root" || exit 1
+    find . -type f ! -name manifest.sha256 ! -name '.manifest.sha256.tmp' -print0 \
+      | sort -z \
+      | xargs -0r sha256sum
+  ) >"$temporary"
+  mv "$temporary" "$log_root/manifest.sha256"
+}
+
+write_readme
+write_metadata
+case "$mode" in
+  --system) collect_system_logs ;;
+  --user) collect_user_logs ;;
+  *) printf 'Usage: %s [--system|--user]\n' "$0" >&2; exit 2 ;;
+esac
+refresh_manifest
+if [[ "$(id -u)" == 0 ]]; then
+  chown -R "$target_uid:$target_gid" "$log_root"
+fi
+printf 'Aero7 logs refreshed in %s\n' "$log_root"

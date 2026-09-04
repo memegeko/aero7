@@ -2,10 +2,10 @@
 
 ## Current publication status
 
-The existing Beta 1 image remains available. New ISO and package artifacts are
-not published during the final bug-testing period. Source commits and automated
-checks continue normally; publication resumes only after the final release is
-explicitly approved.
+The existing Beta 1 image remains available. Beta 2 source, package definitions,
+release notes, and handbook updates are published for review. Beta 2 ISO files
+and the promoted package-repository payload remain unpublished until the
+remaining release gates pass and publication is explicitly approved.
 
 Beta releases use four gates: source validation, image validation, a fresh
 installation, and a second installed-system boot.
@@ -28,11 +28,12 @@ Run:
 
 ```bash
 ./scripts/verify-release.sh
-sha256sum out/aero7-beta1-*.iso
+sha256sum out/aero7-beta2-online-*.iso out/aero7-beta2-offline-*.iso
 ```
 
-There must be exactly one current Beta 1 ISO in `out/`. The verifier inspects
-both the boot medium and its embedded live filesystem.
+There must be exactly one current online and one current offline Beta 2 ISO in
+`out/`. The verifier inspects each boot medium and its embedded live filesystem.
+These local artifacts are test inputs and are not uploaded by the source push.
 
 ## Fresh-VM gate
 
@@ -94,3 +95,9 @@ removed.
 
 The repository's `docs/validation.md` is the detailed automated, VM, and
 real-hardware test record for this release line.
+
+## Beta 2 release gate
+
+See [Beta 2 Release Notes](Beta-2-Release-Notes.md) for the candidate package
+set, completed source checks, and the fresh-install and graphical checks that
+must still be recorded before either ISO can be published.

@@ -17,15 +17,22 @@ news, downloads, screenshots, and an overview of the complete system.
 > important data, disconnect unrelated disks, and verify the selected disk:
 > Beta software and partition changes can still cause data loss.
 
+> **Beta 2 status:** source, package definitions, release notes, and handbook
+> updates are prepared. The online and offline ISO files are intentionally not
+> published until the remaining fresh-install and graphical release gates pass.
+> Beta 1 remains the current public download.
+
 ## Start here
 
 | I want to… | Read… |
 | --- | --- |
 | Download and install Beta 1 | [Installation](Installation.md) |
+| Review the Beta 2 candidate | [Beta 2 Release Notes](Beta-2-Release-Notes.md) |
 | Check whether my VM or test PC is supported | [System Requirements](System-Requirements.md) |
 | Understand every setup page | [Installer Guide](Installer-Guide.md) |
 | Learn what happens after restart | [First Boot and OOBE](First-Boot-and-OOBE.md) |
 | See which programs are included | [Included Software](Included-Software.md) |
+| Understand optional components | [Aero7 Optional Features](Optional-Features.md) |
 | Browse the current interface | [Screenshot Gallery](Screenshot-Gallery.md) |
 | Fix a failed or black-screen boot | [Troubleshooting](Troubleshooting.md) |
 | Open the recovery console | [Recovery and Logs](Recovery-and-Logs.md) |

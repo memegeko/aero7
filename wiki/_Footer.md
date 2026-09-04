@@ -1,1 +1,1 @@
-Aero7 Beta 1 · [Website](https://aero7.miku-dayo.com/) · [Repository](https://github.com/memegeko/aero7) · [Issues](https://github.com/memegeko/aero7/issues) · Independent open-source project
+Aero7 Beta · Beta 1 available · Beta 2 source ready · [Website](https://aero7.miku-dayo.com/) · [Repository](https://github.com/memegeko/aero7) · [Issues](https://github.com/memegeko/aero7/issues) · Independent open-source project

@@ -1,0 +1,8 @@
+aero7-computer-management-git
+aero7-device-manager
+aero7-file-explorer
+aero7-internet-explorer
+aero7-gadgets
+linux-control-panel
+aerothemeplasma-desktop-git
+aero7-desktop

@@ -2,6 +2,8 @@
 set -Eeuo pipefail
 
 project_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
+shell_relative_path="$(sed -n 's/^aero7_shell_path=//p' "$project_root/sources.lock")"
+source_path="$(realpath -m "$project_root/$shell_relative_path")"
 
 printf 'Repository policy files\n'
 for policy_file in \
@@ -38,7 +40,96 @@ if git -C "$project_root" ls-files | grep -Eq '^aero_desktop/'; then
   printf 'Aero7-shell source is tracked inside the ISO repository.\n' >&2
   exit 1
 fi
-grep -Fqx 'aero7_shell_path=../aero_desktop' "$project_root/sources.lock" || {
+
+printf 'Beta 2 package ownership\n'
+local_package_manifest="$project_root/config/beta2-local-packages.sha256"
+local_package_names="$project_root/config/beta2-local-package-names.txt"
+optional_package_names="$project_root/config/beta2-optional-package-names.txt"
+[[ -s "$local_package_manifest" ]] || {
+  printf 'The Beta 2 package manifest is missing.\n' >&2
+  exit 1
+}
+[[ -s "$local_package_names" && -s "$optional_package_names" ]] || {
+  printf 'The required/optional Beta 2 package lists are missing.\n' >&2
+  exit 1
+}
+if comm -12 \
+    <(grep -Ev '^[[:space:]]*(#|$)' "$local_package_names" | sort -u) \
+    <(grep -Ev '^[[:space:]]*(#|$)' "$optional_package_names" | sort -u) \
+    | grep -q .; then
+  printf 'A Beta 2 package is declared as both required and optional.\n' >&2
+  exit 1
+fi
+command -v bsdtar >/dev/null 2>&1 || {
+  printf 'bsdtar is required to validate package ownership.\n' >&2
+  exit 1
+}
+(
+  cd "$project_root"
+  sha256sum --check "${local_package_manifest#$project_root/}"
+)
+declare -A package_owners=()
+while read -r package_hash package_path; do
+  [[ "$package_hash" =~ ^[0-9a-f]{64}$ && "$package_path" == local-packages/*.pkg.tar.zst ]] || {
+    printf 'Invalid Beta 2 package manifest entry: %s %s\n' \
+      "$package_hash" "$package_path" >&2
+    exit 1
+  }
+  while IFS= read -r package_entry; do
+    [[ -n "$package_entry" && "$package_entry" != */ ]] || continue
+    case "$package_entry" in
+      .BUILDINFO|.MTREE|.PKGINFO) continue ;;
+    esac
+    if [[ -v "package_owners[$package_entry]" ]]; then
+      printf 'Beta 2 packages have conflicting ownership for %s: %s and %s\n' \
+        "$package_entry" "${package_owners[$package_entry]}" "$package_path" >&2
+      exit 1
+    fi
+    package_owners["$package_entry"]="$package_path"
+  done < <(bsdtar -tf "$project_root/$package_path")
+done < "$local_package_manifest"
+
+file_explorer_package_path="$(
+  awk '$2 ~ /^local-packages\/aero7-file-explorer-.*\.pkg\.tar\.zst$/ { print $2 }' \
+    "$local_package_manifest"
+)"
+[[ -n "$file_explorer_package_path" && -f "$project_root/$file_explorer_package_path" ]] || {
+  printf 'The embedded File Explorer package is missing.\n' >&2
+  exit 1
+}
+file_explorer_desktop="$(
+  bsdtar -xOf "$project_root/$file_explorer_package_path" \
+    usr/share/applications/org.aero7.FileExplorer.desktop
+)"
+for desktop_key in \
+  'Name=File Explorer' \
+  'Exec=aero7-file-explorer %u' \
+  'Icon=aero7-file-explorer' \
+  'StartupWMClass=org.aero7.FileExplorer'; do
+  grep -Fqx "$desktop_key" <<<"$file_explorer_desktop" || {
+    printf 'The embedded File Explorer desktop identity is incorrect: %s\n' \
+      "$desktop_key" >&2
+    exit 1
+  }
+done
+declare -A approved_file_explorer_icons=(
+  [32x32]='f6e73ec0c30f356d23365cecabe9c3495bfd76a16374c7dc6c1393749fe7abd2'
+  [256x256]='d1c134d992bcc624c92213b3d81254cdb47692981c31fd9e64b92b870f9cb22c'
+)
+for icon_size in 32x32 256x256; do
+  embedded_icon_hash="$(
+    bsdtar -xOf "$project_root/$file_explorer_package_path" \
+      "usr/share/icons/hicolor/$icon_size/apps/aero7-file-explorer.png" \
+      | sha256sum | cut -d ' ' -f 1
+  )"
+  [[ "$embedded_icon_hash" == "${approved_file_explorer_icons[$icon_size]}" ]] || {
+    printf 'File Explorer does not contain the approved AeroThemePlasma icon at %s.\n' \
+      "$icon_size" >&2
+    exit 1
+  }
+done
+
+grep -Fqx 'aero7_shell_path=../aero7-beta2-test-inputs/aero7-shell-pinned' "$project_root/sources.lock" || {
   printf 'The ISO must consume Aero7-shell from its separate sibling clone.\n' >&2
   exit 1
 }
@@ -67,6 +158,37 @@ while IFS= read -r script; do
 done < <(find "$project_root/scripts" -maxdepth 1 -type f -name '*.sh' -print | sort)
 bash -n "$project_root/archiso/profiledef.sh"
 bash -n "$project_root/archiso/airootfs/usr/lib/aero7/aero7-kiosk-launch"
+bash -n "$project_root/diagnostics/aero7-collect-logs"
+[[ -x "$project_root/diagnostics/aero7-collect-logs" ]] || {
+  printf 'Diagnostic collector is not executable.\n' >&2
+  exit 1
+}
+grep -Fq 'Aero7 Physical Install Logs' \
+  "$project_root/diagnostics/aero7-collect-logs"
+if rg -n 'capture .* (plasmashell|kwin_wayland) --version' \
+    "$project_root/diagnostics/aero7-collect-logs" >/dev/null 2>&1; then
+  printf 'Diagnostic collector launches a GUI process for version detection.\n' >&2
+  exit 1
+fi
+grep -Fq 'session_display_available' \
+  "$project_root/diagnostics/aero7-collect-logs"
+grep -Fqx 'Storage=persistent' \
+  "$project_root/diagnostics/50-aero7-test-logging.conf"
+grep -Fqx 'OnUnitActiveSec=10min' \
+  "$project_root/diagnostics/aero7-diagnostic-collect.timer"
+grep -Fqx 'OnUnitActiveSec=5min' \
+  "$project_root/diagnostics/aero7-diagnostic-session.timer"
+grep -Fq 'configure_diagnostic_logging(username)' \
+  "$project_root/backend/aero7_install_backend.py"
+grep -Fq 'aero7-diagnostic-collect.timer' \
+  "$project_root/backend/aero7_install_backend.py"
+for diagnostic_package in \
+  pciutils usbutils dmidecode smartmontools efibootmgr wireless-regdb rtkit; do
+  grep -Fqx "$diagnostic_package" "$project_root/config/base-packages.txt" || {
+    printf 'Physical diagnostic package is missing: %s\n' "$diagnostic_package" >&2
+    exit 1
+  }
+done
 
 printf 'QEMU UEFI boot order\n'
 grep -Fq -- '-device "virtio-blk-pci,drive=aero7disk,bootindex=1"' \
@@ -128,6 +250,36 @@ if rg -n 'work_root/archive|out_root/archive' \
   printf 'The ISO builder still accumulates local build archives.\n' >&2
   exit 1
 fi
+
+printf 'Online and offline installer variants\n'
+grep -Fq 'Usage: %s [--variant online|offline]' \
+  "$project_root/scripts/build-iso.sh"
+grep -Fq 'iso_name="aero7-beta2-online"' \
+  "$project_root/scripts/build-iso.sh"
+grep -Fq 'iso_name="aero7-beta2-offline"' \
+  "$project_root/scripts/build-iso.sh"
+grep -Fq 'install-variant' "$project_root/scripts/build-iso.sh"
+grep -Fq 'if variant == "offline"' \
+  "$project_root/backend/aero7_install_backend.py"
+grep -Fq 'ensure_install_network()' \
+  "$project_root/backend/aero7_install_backend.py"
+grep -Fq 'if variant == "online"' \
+  "$project_root/backend/aero7_shell_adapter.py"
+grep -Fq 'offline-packages/aero7/' \
+  "$project_root/backend/aero7_shell_adapter.py"
+grep -Fq '/etc/pacman-aero7-offline.conf' \
+  "$project_root/backend/aero7_shell_adapter.py"
+grep -Fq 'offline-aero7-repo.sha256' \
+  "$project_root/scripts/verify-release.sh"
+grep -Fqx '/offline-packages/' "$project_root/.gitignore"
+[[ -x "$project_root/scripts/prepare-offline-packages.sh" ]] || {
+  printf 'The offline package preparation script is not executable.\n' >&2
+  exit 1
+}
+grep -Fq 'pacman -Sy --noconfirm' \
+  "$project_root/scripts/prepare-offline-packages.sh"
+grep -Fq 'Aero7 Beta 2 %s image verification passed.' \
+  "$project_root/scripts/verify-release.sh"
 
 printf 'Live package mirrors\n'
 mirrorlist="$project_root/archiso/airootfs/etc/pacman.d/mirrorlist"
@@ -288,9 +440,75 @@ branding_geometry="$(magick identify -format '%wx%h' "$project_root/installer/as
   printf 'Unexpected SDDM branding dimensions: %s\n' "$branding_geometry" >&2
   exit 1
 }
+approved_branding_hash='d45164d6d67f2d8ccae63c4fd83bd0dd73e05808f3c8cd739c4850b5680d4982'
+printf '%s  %s\n' "$approved_branding_hash" \
+  "$project_root/installer/assets/aero7-sddm-branding.png" \
+  | sha256sum --check --status || {
+  printf 'The login and lock-screen branding differs from the approved corrected artwork.\n' >&2
+  exit 1
+}
+branding_visible_bounds="$(
+  magick "$project_root/installer/assets/aero7-sddm-branding.png" \
+    -alpha extract -trim -format '%@' info:
+)"
+[[ "$branding_visible_bounds" == '223x45+0+0' ]] || {
+  printf 'Unexpected visible branding bounds: %s\n' "$branding_visible_bounds" >&2
+  exit 1
+}
 magick identify -format '%[channels]' \
   "$project_root/installer/assets/aero7-sddm-branding.png" | grep -qi 'a' || {
   printf 'SDDM branding must retain a transparent alpha channel.\n' >&2
+  exit 1
+}
+
+theme_package_path="$(
+  awk '$2 ~ /^local-packages\/aerothemeplasma-desktop-git-.*\.pkg\.tar\.zst$/ { print $2 }' \
+    "$local_package_manifest"
+)"
+[[ -n "$theme_package_path" && -f "$project_root/$theme_package_path" ]] || {
+  printf 'The embedded AeroTheme desktop package is missing.\n' >&2
+  exit 1
+}
+for branding_member in \
+  usr/share/sddm/themes/sddm-theme-mod/Assets/aero7-branding-r3.png \
+  usr/share/plasma/shells/io.gitgud.wackyideas.desktop/contents/images/branding.png; do
+  embedded_branding_hash="$(
+    bsdtar -xOf "$project_root/$theme_package_path" "$branding_member" \
+      | sha256sum | cut -d ' ' -f 1
+  )"
+  [[ "$embedded_branding_hash" == "$approved_branding_hash" ]] || {
+    printf 'The embedded AeroTheme package contains stale branding: %s\n' \
+      "$branding_member" >&2
+    exit 1
+  }
+done
+
+desktop_package_path="$(
+  awk '$2 ~ /^local-packages\/aero7-desktop-.*\.pkg\.tar\.zst$/ { print $2 }' \
+    "$local_package_manifest"
+)"
+[[ -n "$desktop_package_path" && -f "$project_root/$desktop_package_path" ]] || {
+  printf 'The embedded Aero7 Desktop package is missing.\n' >&2
+  exit 1
+}
+desktop_layout="$(
+  bsdtar -xOf "$project_root/$desktop_package_path" \
+    usr/share/aero7-desktop/shell/aero7-shell-layout.js
+)"
+factory_launchers="$(
+  sed -n '/^var defaultLaunchers = \[/,/^\];/p' <<<"$desktop_layout"
+)"
+grep -Fq '"applications:org.aero7.FileExplorer.desktop"' \
+  <<<"$factory_launchers" || {
+  printf 'The default taskbar does not pin the case-correct File Explorer identity.\n' >&2
+  exit 1
+}
+if grep -Fq 'org.aero7.fileexplorer.desktop' <<<"$factory_launchers"; then
+  printf 'The default taskbar still contains the broken lowercase File Explorer pin.\n' >&2
+  exit 1
+fi
+grep -Fq 'function isPreviousFactoryLayout(launchers)' <<<"$desktop_layout" || {
+  printf 'The desktop package cannot migrate the earlier broken factory taskbar.\n' >&2
   exit 1
 }
 for logo_asset in aero7-logo-circle.png aero7-logo-plain.png; do
@@ -363,21 +581,21 @@ while IFS= read -r package_name; do
     printf 'Base package from the pinned shell installer is missing: %s\n' "$package_name" >&2
     exit 1
   }
-done < "$project_root/../aero_desktop/config/packages.conf"
+done < "$source_path/config/packages.conf"
 while IFS= read -r package_name; do
   [[ -n "$package_name" && "$package_name" != \#* ]] || continue
   grep -Fqx "$package_name" "$project_root/config/aero7-packages.txt" || {
     printf 'Aero package from the pinned shell installer is missing: %s\n' "$package_name" >&2
     exit 1
   }
-done < "$project_root/../aero_desktop/config/aur-packages.conf"
+done < "$source_path/config/aur-packages.conf"
 while IFS= read -r package_name; do
   [[ -n "$package_name" && "$package_name" != \#* ]] || continue
   grep -Fqx "$package_name" "$project_root/config/aero7-packages.txt" || {
     printf 'Aero companion package from the pinned shell installer is missing: %s\n' "$package_name" >&2
     exit 1
   }
-done < "$project_root/../aero_desktop/config/companion-packages.conf"
+done < "$source_path/config/companion-packages.conf"
 grep -Fqx plasma-desktop "$project_root/config/base-packages.txt" || {
   printf 'The focused plasma-desktop package is missing from the installed system.\n' >&2
   exit 1
@@ -425,47 +643,47 @@ grep -Fqx oxygen-icons "$project_root/config/base-packages.txt" || {
   exit 1
 }
 grep -Fq 'io.gitgud.wackyideas.panel' \
-  "$project_root/../aero_desktop/modules/plasma/first-login.sh" || {
+  "$source_path/modules/plasma/first-login.sh" || {
   printf 'The pinned shell is missing duplicate-panel repair.\n' >&2
   exit 1
 }
 grep -Fq 'new Panel("io.gitgud.wackyideas.panel")' \
-  "$project_root/../aero_desktop/lib/plasma.sh" || {
+  "$source_path/lib/plasma.sh" || {
   printf 'The pinned shell layout does not create the canonical Aero taskbar.\n' >&2
   exit 1
 }
 if sed -n '/aero7_apply_plasma_layout()/,/^}/p' \
-    "$project_root/../aero_desktop/lib/plasma.sh" | \
+    "$source_path/lib/plasma.sh" | \
     grep -Fq 'org.kde.plasma.icontasks'; then
   printf 'The pinned shell layout still creates a duplicate stock KDE taskbar.\n' >&2
   exit 1
 fi
 grep -Fq 'aero7-login-background.jpg' \
-  "$project_root/../aero_desktop/lib/plasma.sh" || {
+  "$source_path/lib/plasma.sh" || {
   printf 'The pinned shell does not preserve the blue Welcome login background.\n' >&2
   exit 1
 }
 grep -Fq 'Name=Command Prompt' \
-  "$project_root/../aero_desktop/lib/applications.sh" || {
+  "$source_path/lib/applications.sh" || {
   printf 'The pinned shell is missing Command Prompt application branding.\n' >&2
   exit 1
 }
 for branded_application in 'Name=Media Player' 'Name=Snipping Tool' \
   'Name=Calculator' 'Name=Notepad'; do
   grep -Fq "$branded_application" \
-    "$project_root/../aero_desktop/lib/applications.sh" || {
+    "$source_path/lib/applications.sh" || {
     printf 'The pinned shell is missing application branding: %s\n' \
       "$branded_application" >&2
     exit 1
   }
 done
 grep -Fq 'Exec=/usr/bin/spectacle -r -b -c' \
-  "$project_root/../aero_desktop/lib/applications.sh" || {
+  "$source_path/lib/applications.sh" || {
   printf 'The pinned shell is missing the Snipping Tool capture command.\n' >&2
   exit 1
 }
 grep -Fq 'aero7-snipping-tool-print.desktop' \
-  "$project_root/../aero_desktop/lib/applications.sh" || {
+  "$source_path/lib/applications.sh" || {
   printf 'The pinned shell is missing the Print Screen shortcut service.\n' >&2
   exit 1
 }

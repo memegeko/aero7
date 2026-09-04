@@ -4,20 +4,34 @@ set -Eeuo pipefail
 project_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 prepare_only=0
 mkarchiso_only=0
+variant="online"
 
 usage() {
-  printf 'Usage: %s [--prepare-only | --mkarchiso-only]\n' "${0##*/}"
+  printf 'Usage: %s [--variant online|offline] [--prepare-only | --mkarchiso-only]\n' "${0##*/}"
 }
 
 while (($#)); do
   case "$1" in
     --prepare-only) prepare_only=1 ;;
     --mkarchiso-only) mkarchiso_only=1 ;;
+    --variant)
+      shift
+      (($#)) || { usage >&2; exit 2; }
+      variant="$1"
+      ;;
     --help) usage; exit 0 ;;
     *) printf 'Unknown option: %s\n' "$1" >&2; usage >&2; exit 2 ;;
   esac
   shift
 done
+[[ "$variant" == "online" || "$variant" == "offline" ]] || {
+  printf 'Unsupported installer variant: %s\n' "$variant" >&2
+  exit 2
+}
+((prepare_only + mkarchiso_only <= 1)) || {
+  printf '%s\n' '--prepare-only and --mkarchiso-only are mutually exclusive.' >&2
+  exit 2
+}
 
 lock_value() {
   local key="$1"
@@ -55,6 +69,10 @@ if ((mkarchiso_only)); then
   ((EUID == 0)) || { printf '%s must run as root.\n' '--mkarchiso-only' >&2; exit 2; }
   command -v mkarchiso >/dev/null 2>&1 || { printf 'Missing build tool: mkarchiso (install archiso).\n' >&2; exit 1; }
   [[ -x "$profile_root/airootfs/usr/bin/aero7-installer" ]] || { printf 'Prepared profile is missing. Run --prepare-only as your normal user first.\n' >&2; exit 1; }
+  [[ "$(cat "$profile_root/airootfs/usr/share/aero7/install-variant")" == "$variant" ]] || {
+    printf 'Prepared profile is not the requested %s variant.\n' "$variant" >&2
+    exit 1
+  }
   if rg -n '@INSTALL_MODE@|@DESTRUCTIVE_ENV@' "$profile_root" >/dev/null 2>&1; then
     printf 'Prepared profile still contains unresolved service placeholders.\n' >&2
     exit 1
@@ -103,17 +121,17 @@ if ((mkarchiso_only)); then
     AERO7_MKSQUASHFS_WRAPPER="$project_root/scripts/mksquashfs-safe-wrapper.sh" \
     "$safe_mkarchiso" -v -w "$archiso_work" -o "$staging_out" "$profile_root"
   mapfile -d '' staged_images < <(
-    find "$staging_out" -maxdepth 1 -type f -name 'aero7-*.iso' -print0
+    find "$staging_out" -maxdepth 1 -type f -name "aero7-beta2-$variant-*.iso" -print0
   )
   if ((${#staged_images[@]} != 1)); then
     printf 'Expected exactly one staged Aero7 ISO, found %d.\n' "${#staged_images[@]}" >&2
     exit 1
   fi
-  # Keep one published ISO only. Git history and release artifacts preserve
-  # released builds; local archive copies caused repeated storage exhaustion.
+  # Keep one current image for each variant. The other variant is a separate
+  # release artifact and must survive this replacement.
   while IFS= read -r -d '' old_image; do
     rm -f -- "$old_image"
-  done < <(find "$out_root" -maxdepth 1 -type f -name 'aero7-*.iso' -print0)
+  done < <(find "$out_root" -maxdepth 1 -type f -name "aero7-beta2-$variant-*.iso" -print0)
   for staged_image in "${staged_images[@]}"; do
     mv "$staged_image" "$out_root/"
   done
@@ -143,11 +161,12 @@ fi
 
 if ((EUID == 0)); then
   printf 'Refusing to compile or assemble the project as root. Run as your normal user first.\n' >&2
-  printf 'Then run: sudo %q --mkarchiso-only\n' "$project_root/scripts/build-iso.sh" >&2
+  printf 'Then run: sudo %q --variant %q --mkarchiso-only\n' \
+    "$project_root/scripts/build-iso.sh" "$variant" >&2
   exit 2
 fi
 
-for command_name in cmake ninja python git sha256sum realpath magick; do
+for command_name in bsdtar cmake ninja python git sha256sum realpath magick; do
   command -v "$command_name" >/dev/null 2>&1 || { printf 'Missing build tool: %s\n' "$command_name" >&2; exit 1; }
 done
 if ! command -v qmllint >/dev/null 2>&1 \
@@ -169,6 +188,22 @@ if [[ -e "$profile_root" ]]; then
 fi
 mkdir -p "$profile_root"
 cp -a "$project_root/archiso/." "$profile_root/"
+case "$variant" in
+  online)
+    sed -i \
+      -e 's/^iso_name=.*/iso_name="aero7-beta2-online"/' \
+      -e 's/^iso_label=.*/iso_label="A7B2ON_$(date --date="@${SOURCE_DATE_EPOCH:-$(date +%s)}" +%Y%m%d)"/' \
+      -e 's/^iso_application=.*/iso_application="Aero7 Beta 2 Online x86_64 UEFI installation medium"/' \
+      "$profile_root/profiledef.sh"
+    ;;
+  offline)
+    sed -i \
+      -e 's/^iso_name=.*/iso_name="aero7-beta2-offline"/' \
+      -e 's/^iso_label=.*/iso_label="A7B2OFF_$(date --date="@${SOURCE_DATE_EPOCH:-$(date +%s)}" +%Y%m%d)"/' \
+      -e 's/^iso_application=.*/iso_application="Aero7 Beta 2 Offline x86_64 UEFI installation medium"/' \
+      "$profile_root/profiledef.sh"
+    ;;
+esac
 install -d -m 0750 "$profile_root/airootfs/root"
 
 DESTDIR="$profile_root/airootfs" cmake --install "$build_root/installer" --prefix /usr
@@ -176,10 +211,94 @@ install -Dm755 "$project_root/backend/aero7_install_backend.py" \
   "$profile_root/airootfs/usr/lib/aero7/aero7-install-backend"
 install -Dm755 "$project_root/backend/aero7_shell_adapter.py" \
   "$profile_root/airootfs/usr/lib/aero7/aero7_shell_adapter.py"
+install -Dm755 "$project_root/diagnostics/aero7-collect-logs" \
+  "$profile_root/airootfs/usr/lib/aero7/aero7-collect-logs"
+install -Dm644 "$project_root/diagnostics/aero7-diagnostic-collect.service" \
+  "$profile_root/airootfs/usr/lib/systemd/system/aero7-diagnostic-collect.service"
+install -Dm644 "$project_root/diagnostics/aero7-diagnostic-collect.timer" \
+  "$profile_root/airootfs/usr/lib/systemd/system/aero7-diagnostic-collect.timer"
+install -Dm644 "$project_root/diagnostics/aero7-diagnostic-session.service" \
+  "$profile_root/airootfs/usr/lib/systemd/user/aero7-diagnostic-session.service"
+install -Dm644 "$project_root/diagnostics/aero7-diagnostic-session.timer" \
+  "$profile_root/airootfs/usr/lib/systemd/user/aero7-diagnostic-session.timer"
+install -Dm644 "$project_root/diagnostics/50-aero7-test-logging.conf" \
+  "$profile_root/airootfs/etc/systemd/journald.conf.d/50-aero7-test-logging.conf"
 install -Dm644 "$project_root/config/base-packages.txt" \
   "$profile_root/airootfs/usr/share/aero7/base-packages.txt"
 install -Dm644 "$project_root/config/aero7-packages.txt" \
   "$profile_root/airootfs/usr/share/aero7/aero7-packages.txt"
+printf '%s\n' "$variant" > "$profile_root/airootfs/usr/share/aero7/install-variant"
+local_package_manifest="$project_root/config/beta2-local-packages.sha256"
+local_package_names="$project_root/config/beta2-local-package-names.txt"
+optional_package_names="$project_root/config/beta2-optional-package-names.txt"
+[[ -s "$local_package_manifest" && -s "$local_package_names" && -s "$optional_package_names" ]] || {
+  printf 'Beta 2 local package manifest is missing.\n' >&2
+  exit 1
+}
+(
+  cd "$project_root"
+  sha256sum --check "${local_package_manifest#$project_root/}"
+)
+install -Dm644 "$local_package_names" \
+  "$profile_root/airootfs/usr/share/aero7/beta2-local-package-names.txt"
+install -Dm644 "$optional_package_names" \
+  "$profile_root/airootfs/usr/share/aero7/beta2-optional-package-names.txt"
+while read -r package_hash package_path; do
+  [[ "$package_hash" =~ ^[0-9a-f]{64}$ ]] || {
+    printf 'Invalid Beta 2 package hash: %s\n' "$package_hash" >&2
+    exit 1
+  }
+  [[ "$package_path" == local-packages/*.pkg.tar.zst ]] || {
+    printf 'Invalid Beta 2 package path: %s\n' "$package_path" >&2
+    exit 1
+  }
+  install -Dm644 "$project_root/$package_path" \
+    "$profile_root/airootfs/usr/share/aero7/local-packages/${package_path##*/}"
+done < "$local_package_manifest"
+install -Dm644 "$local_package_manifest" \
+  "$profile_root/airootfs/usr/share/aero7/beta2-local-packages.sha256"
+printf 'Embedded the verified Aero7 Beta 2 local package set.\n'
+if [[ "$variant" == "offline" ]]; then
+  for bundle_name in base aero7; do
+    manifest="$project_root/config/offline-$bundle_name-packages.sha256"
+    bundle_dir="$project_root/offline-packages/$bundle_name"
+    [[ -s "$manifest" && -d "$bundle_dir" ]] || {
+      printf 'The offline %s package bundle is missing; run prepare-offline-packages.sh.\n' \
+        "$bundle_name" >&2
+      exit 1
+    }
+    (
+      cd "$project_root"
+      sha256sum --check "${manifest#$project_root/}"
+    )
+    install -Dm644 "$manifest" \
+      "$profile_root/airootfs/usr/share/aero7/offline-$bundle_name-packages.sha256"
+    while read -r package_hash package_path; do
+      [[ "$package_hash" =~ ^[0-9a-f]{64}$ \
+          && "$package_path" == "offline-packages/$bundle_name/"*.pkg.tar.* \
+          && "$package_path" != *.sig ]] || {
+        printf 'Invalid offline %s package manifest entry.\n' "$bundle_name" >&2
+        exit 1
+      }
+      install -Dm644 "$project_root/$package_path" \
+        "$profile_root/airootfs/usr/share/aero7/$package_path"
+    done < "$manifest"
+  done
+  offline_repo_manifest="$project_root/config/offline-aero7-repo.sha256"
+  [[ -s "$offline_repo_manifest" ]] || {
+    printf 'The offline Aero7 repository manifest is missing.\n' >&2
+    exit 1
+  }
+  (
+    cd "$project_root"
+    sha256sum --check "${offline_repo_manifest#$project_root/}"
+  )
+  install -Dm644 "$offline_repo_manifest" \
+    "$profile_root/airootfs/usr/share/aero7/offline-aero7-repo.sha256"
+  install -Dm644 "$project_root/offline-packages/aero7-offline.db.tar.gz" \
+    "$profile_root/airootfs/usr/share/aero7/offline-packages/aero7-offline.db.tar.gz"
+  printf 'Embedded the complete verified offline package bundles.\n'
+fi
 plymouth_source="$project_root/third_party/PlymouthVista"
 plymouth_target="$profile_root/airootfs/usr/share/plymouth/themes/PlymouthVista"
 install -d -m 0755 "$plymouth_target/images"
@@ -260,5 +379,6 @@ if ((prepare_only)); then
 fi
 
 printf 'Profile checks passed. Archiso requires a short root-only second phase. Run exactly:\n' >&2
-printf '  sudo %q --mkarchiso-only\n' "$project_root/scripts/build-iso.sh" >&2
+printf '  sudo %q --variant %q --mkarchiso-only\n' \
+  "$project_root/scripts/build-iso.sh" "$variant" >&2
 exit 2

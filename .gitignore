@@ -28,6 +28,7 @@ __pycache__/
 
 # Local release, test, and artwork working files
 /artifacts/
+/offline-packages/
 /local/
 /tmp/
 /installer/assets/legacy-logo-backups/

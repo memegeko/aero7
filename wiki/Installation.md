@@ -7,6 +7,16 @@ erases the selected disk.
 
 ## 1. Download
 
+> **Recommended when Beta 2 is published:** download the offline ISO. It embeds the complete
+> package set, so installation does not pause for mirrors or package downloads
+> and is usually much faster on slower laptops. The installed system still uses
+> the normal configured repositories for later updates. Use the smaller online
+> ISO only when download size matters and reliable Internet will remain
+> available throughout setup.
+
+The Beta 2 files are not public yet. Until their release checks are complete,
+Beta 1 remains the current downloadable installation image.
+
 Open the [Aero7 Beta 1 release](https://github.com/memegeko/aero7/releases/tag/v0.1.0-beta.1)
 and download the current ISO and its matching `.sha256` file.
 

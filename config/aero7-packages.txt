@@ -11,8 +11,11 @@ tuxmanager
 aero7-qt
 aero7-dolphin
 aero7-gwenview
+aero7-internet-explorer
 linux-control-panel
 aero7-kolourpaint
 aero7-gadgets
+baloo-widgets
+cups
 execbin
 linver

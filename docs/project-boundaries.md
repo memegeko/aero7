@@ -27,9 +27,11 @@ This gives installed media a reproducible shell payload without merging the two
 projects. Shell changes are tested and committed in Aero7-shell first; the ISO
 pin is updated only after those checks pass.
 
-## Release freeze
+## Beta 2 release boundary
 
-The existing Beta 1 download and package endpoint remain available. New public
-ISO and package releases are frozen during bug testing. Source commits and CI
-checks may continue, but no new artifact is uploaded or package repository is
-promoted until the final release is explicitly approved.
+The existing Beta 1 download and package endpoint remain available. Beta 2
+source, package recipes, documentation, and CI checks may be published for
+review. The online ISO, offline ISO, checksum sidecars, and promoted binary
+package repository are separate release artifacts: none is uploaded or promoted
+until its validation evidence is complete and publication is explicitly
+approved.

@@ -13,6 +13,7 @@ full-screen installer and a KDE Plasma 6 Wayland desktop inspired by the calm,
 glassy desktop design of the late 2000s.
 
 [![Release](https://img.shields.io/badge/release-Beta%201-66B8FF?style=for-the-badge)](https://github.com/memegeko/aero7/releases/tag/v0.1.0-beta.1)
+[![Beta 2](https://img.shields.io/badge/Beta%202-source%20ready-F3B44B?style=for-the-badge)](docs/BETA2-RELEASE-NOTES.md)
 [![Arch Linux](https://img.shields.io/badge/base-Arch%20Linux-1793D1?style=for-the-badge&logo=archlinux&logoColor=white)](https://archlinux.org/)
 [![KDE Plasma](https://img.shields.io/badge/desktop-Plasma%206-1D99F3?style=for-the-badge&logo=kde&logoColor=white)](https://kde.org/plasma-desktop/)
 [![Wayland](https://img.shields.io/badge/session-Wayland-7D4CDB?style=for-the-badge)](https://wayland.freedesktop.org/)
@@ -34,6 +35,12 @@ glassy desktop design of the late 2000s.
 > back up important data, disconnect unrelated disks, and verify the
 > selected disk before continuing. Encryption, free-form manual partitioning,
 > legacy BIOS, and Secure Boot remain unsupported.
+
+> [!NOTE]
+> **Beta 2 source and documentation are prepared, but the Beta 2 ISO files are
+> not published yet.** Beta 1 remains the current download. The Beta 2 online
+> and offline images will be published only after the remaining fresh-install
+> and graphical release gates pass.
 
 ## Meet Aero7
 
@@ -87,7 +94,7 @@ authentication prompt.
 
 ## Included desktop
 
-Beta 1 installs a focused Plasma desktop rather than the broad Plasma or KDE
+The Beta 2 source line installs a focused Plasma desktop rather than the broad Plasma or KDE
 application meta-packages. Aero7 then adds its own signed desktop set:
 
 - AeroShell workspace, Start menu, taskbar, window decoration, icons, and sounds;
@@ -104,10 +111,22 @@ application meta-packages. Aero7 then adds its own signed desktop set:
 - AccountsService, UPower, power-profiles-daemon, and PipeWire services for
   the Control Panel's native account, battery, power, and sound pages.
 
+Programs Center Beta is optional and is not installed on a fresh system. Its
+checksum-verified package is retained locally so it can be enabled through
+**Turn Aero7 features on or off**, even without an internet connection. The
+[Optional Features guide](wiki/Optional-Features.md) explains every feature.
+
 WinXplorer remains optional and is not installed by the ISO. Sevulet is not
 included because its source and redistribution terms have not been verified.
 
-## Download and try Beta 1
+## Current download and Beta 2 media
+
+When Beta 2 media is published, the **offline ISO is recommended**. It includes the
+complete installation package set and is normally much faster and more
+reliable, especially on slower laptops, because setup does not wait for package
+mirrors. Choose the smaller online ISO only when download size is more important
+and the computer will have a stable Internet connection for the entire install.
+Both variants retain the configured repositories for updates after setup.
 
 1. Open the [Beta 1 release](https://github.com/memegeko/aero7/releases/tag/v0.1.0-beta.1).
 2. Download the `.iso` and matching `.sha256` file.
@@ -119,9 +138,9 @@ included because its source and redistribution terms have not been verified.
 Detailed Ventoy, Rufus, VM, checksum, recovery, and troubleshooting instructions
 are in the [Installation handbook page](wiki/Installation.md).
 
-## Beta 1 support matrix
+## Installer support matrix
 
-| Area | Beta 1 support |
+| Area | Support |
 | --- | --- |
 | Architecture | x86-64 |
 | Firmware | UEFI |
@@ -129,7 +148,7 @@ are in the [Installation handbook page](wiki/Installation.md).
 | Target storage | Non-removable SATA, NVMe, MMC, or VirtIO, 16 GiB minimum |
 | Partitioning | Whole-disk GPT, or guarded GPT New/Format/Shrink targets; 1 GiB FAT32 ESP and ext4 root |
 | Desktop | KDE Plasma 6 Wayland |
-| Networking | Required during package installation |
+| Networking | Required by the smaller online image; not required by the Beta 2 offline image |
 | Physical hardware | Supported for Beta testing; Secure Boot off and AHCI storage required |
 | Dual boot / encryption / manual layout | Guided preservation is experimental; encryption and free-form layouts are unavailable |
 
@@ -144,6 +163,7 @@ versioned pages are also ready to synchronize to GitHub Wiki:
 - [Installer guide](wiki/Installer-Guide.md)
 - [First boot and OOBE](wiki/First-Boot-and-OOBE.md)
 - [Included software](wiki/Included-Software.md)
+- [Aero7 optional features](wiki/Optional-Features.md)
 - [Screenshot gallery](wiki/Screenshot-Gallery.md)
 - [Troubleshooting](wiki/Troubleshooting.md)
 - [Known issues](wiki/Known-Issues.md)
@@ -164,16 +184,19 @@ versioned pages are also ready to synchronize to GitHub Wiki:
 
 ## Project status
 
-Aero7 is experimental Beta software. The existing Beta 1 download remains
-available, but new public artifacts are frozen while final-release bug testing
-continues. Automated checks cover the installer state
-machine, destructive-operation gates, package manifest, OOBE, boot configuration,
-QML, and embedded release contents. Beta 1 is intended for careful testing on
-UEFI PCs and disposable VMs. Do not use it on a production workstation or a
-disk containing irreplaceable data.
+Aero7 is experimental Beta software. Beta 2 source, package definitions, and
+documentation are prepared on their project branches; ISO artifacts remain
+withheld until fresh online and offline installations, reboot behavior, desktop
+interaction, and failure recovery are accepted. Automated checks cover the
+installer state machine, destructive-operation gates, package manifests, OOBE,
+boot configuration, QML, optional-feature transactions, and embedded release
+contents. Do not use a test build on a production workstation or a disk
+containing irreplaceable data.
 
-See the [Beta 1 release notes](docs/BETA1-RELEASE-NOTES.md) and
-[validation report](docs/validation.md) for the exact artifact and test record.
+See the [Beta 2 release notes](docs/BETA2-RELEASE-NOTES.md) for the candidate
+scope and remaining gates. The [Beta 1 release notes](docs/BETA1-RELEASE-NOTES.md)
+and [validation report](docs/validation.md) remain the record for the currently
+published artifact.
 
 ## License and trademark notice
 
